@@ -1,5 +1,12 @@
 import numpy as np
 
+from os import path
+import logging.config, logging
+
+logging_config_path = path.join(path.dirname(path.abspath(__file__)), 'logging.ini')
+logging.config.fileConfig(logging_config_path)
+logger = logging.getLogger(__name__)
+
 # Physical constants
 # ...
 
@@ -9,7 +16,7 @@ import numpy as np
 
 
 def distance(ϕ1, λ1, ϕ2, λ2):
-    # Calculate the distance between two points on the Earth (ϕ1, λ1) and (ϕ1, λ1) using the Haversine formula.
+    # Calculate the distance between two points on the Earth (ϕ1, λ1) and (ϕ1, λ1) using the haversine formula.
     # See: http://www.movable-type.co.uk/scripts/latlong.html
     # Latitudes are denoted by ϕ while longitudes are denoted by λ.
 
@@ -17,7 +24,6 @@ def distance(ϕ1, λ1, ϕ2, λ2):
     # See: https://en.wikipedia.org/wiki/Earth_radius#Location-dependent_radii
     R = 6371e3  # average radius of the earth [m]
 
-    # Convert all angles to radians
     ϕ1, λ1, ϕ2, λ2 = np.deg2rad([ϕ1, λ1, ϕ2, λ2])
     Δϕ = ϕ2 - ϕ1
     Δλ = λ2 - λ1
@@ -28,3 +34,4 @@ def distance(ϕ1, λ1, ϕ2, λ2):
 
     return d
 
+if __name__ == '__main__':
