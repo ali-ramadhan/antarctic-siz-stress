@@ -102,3 +102,6 @@ ENV/
 
 # PyCharm stuff
 .idea/
+
+# Ignore research data directory
+data/
