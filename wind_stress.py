@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 data_dir_path = path.join(cwd, 'data/')
 
 # Physical constants
-g = 9.80665 # standard acceleration due to gravity [m/s^2]
-Omega = 7.292115e-5 # rotation rate of the Earth [rad/s]
+# Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
+g = 9.80665  # standard acceleration due to gravity [m/s^2]
+Omega = 7.292115e-5  # rotation rate of the Earth [rad/s]
 
 
 def distance(ϕ1, λ1, ϕ2, λ2):
