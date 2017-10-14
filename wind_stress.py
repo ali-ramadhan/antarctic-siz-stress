@@ -45,11 +45,33 @@ class MDTDataset(object):
         logger.info('Successfully loaded MDT dataset: %s', self.MDT_filename)
         logger.info('Title: %s', self.MDT_dataset.title)
         logger.info('Data model: %s', self.MDT_dataset.data_model)
-        logger.info('Dimensions: \n %s', self.MDT_dataset.dimensions)
+
+        # Nicely display dimension names and sizes in log.
+        dim_string = ""
+        for dim in self.MDT_dataset.dimensions:
+            dim_name = self.MDT_dataset.dimensions[dim].name
+            dim_size = self.MDT_dataset.dimensions[dim].size
+            dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
+        logger.info('Dimensions: %s', dim_string)
+
+    def get_MDT(self, lat, lon):
+        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
+        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
+
+        # Nearest neighbour interpolation
+        # Find index of closest matching latitude and longitude
+        idx_lat = np.abs(np.array(self.MDT_dataset.variables['lat']) - lat).argmin()
+        idx_lon = np.abs(np.array(self.MDT_dataset.variables['lon']) - lat).argmin()
+
+        MDT_value = self.MDT_dataset.variables['mdt'][0][idx_lat][idx_lon]
+
+        return MDT_value
 
 
 if __name__ == '__main__':
     logger.info("Logger works I guess!")
     d = distance(24, 25, 26, 27)
     logger.info("That distance is %f m or %f km.", d, d/1000)
-    MDT_dataset = MDTDataset()
+    MDT = MDTDataset()
+    print(MDT.get_MDT(40, 50))
+    print(MDT.get_MDT(-60, 50))
