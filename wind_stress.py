@@ -15,6 +15,10 @@ logger = logging.getLogger(__name__)
 # Everything under a ./data/ softlink?
 data_dir_path = path.join(cwd, 'data/')
 
+# Physical constants
+g = 9.80665 # standard acceleration due to gravity [m/s^2]
+Omega = 7.292115e-5 # rotation rate of the Earth [rad/s]
+
 
 def distance(ϕ1, λ1, ϕ2, λ2):
     # Calculate the distance between two points on the Earth (ϕ1, λ1) and (ϕ1, λ1) using the haversine formula.
@@ -66,6 +70,20 @@ class MDTDataset(object):
         MDT_value = self.MDT_dataset.variables['mdt'][0][idx_lat][idx_lon]
 
         return MDT_value
+
+    def u_geo(self, lat, lon):
+        # Calculate the x and y derivatives of MDT at the grid point ij using a second-order centered finite difference
+        # approximation.
+        MDT_ip1j = self.get_MDT(lat, lon)
+
+        dMDTdx = (MDT_ip1j - MDTim1j) / (2*dx)
+        dMDTdy = (MDT_ijp1 - MDT_ijm1) / (2*dy)
+
+        f = 2*Omega*np.sin(np.deg2rad(lat))
+        u_geo_u = -(g/f) * dMDTdy
+        u_geo_v = (g/f) * dMDTdx
+
+        return np.array([u_geo_u, u_geo_v])
 
 
 if __name__ == '__main__':
