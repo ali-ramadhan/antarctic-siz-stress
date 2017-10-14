@@ -72,9 +72,10 @@ class MDTDataset(object):
 
         return MDT_value
 
-    def u_geo(self, lat, lon):
+    def u_geo_mean(self, lat, lon):
         # Calculate the x and y derivatives of MDT at the grid point ij using a second-order centered finite difference
         # approximation.
+        # TODO: Set up wrapping/periodicity in the horizontal for calculating those edge cases.
         MDT_ip1j = self.get_MDT(lat, lon)
 
         dMDTdx = (MDT_ip1j - MDTim1j) / (2*dx)
