@@ -22,15 +22,15 @@ data_dir_path = path.join(cwd, 'data/')
 g = 9.80665  # standard acceleration due to gravity [m/s^2]
 Omega = 7.292115e-5  # rotation rate of the Earth [rad/s]
 
+# Earth radius R could be upgraded to be location-dependent using a simple formula.
+# See: https://en.wikipedia.org/wiki/Earth_radius#Location-dependent_radii
+R = 6371e3  # average radius of the earth [m]
+
 
 def distance(ϕ1, λ1, ϕ2, λ2):
     # Calculate the distance between two points on the Earth (ϕ1, λ1) and (ϕ1, λ1) using the haversine formula.
     # See: http://www.movable-type.co.uk/scripts/latlong.html
     # Latitudes are denoted by ϕ while longitudes are denoted by λ.
-
-    # Earth radius R could be upgraded to be location-dependent using a simple formula.
-    # See: https://en.wikipedia.org/wiki/Earth_radius#Location-dependent_radii
-    R = 6371e3  # average radius of the earth [m]
 
     ϕ1, λ1, ϕ2, λ2 = np.deg2rad([ϕ1, λ1, ϕ2, λ2])
     Δϕ = ϕ2 - ϕ1
