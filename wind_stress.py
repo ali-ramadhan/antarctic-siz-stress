@@ -126,9 +126,39 @@ class SeaIceDataset(object):
         return path.join(self.sea_ice_dir_path, str(date.year), filename)
 
     def latlon2xy(self, lat, lon):
-        d = distance(lat, lon, -90, 0)
-        x = d * np.cos(np.deg2rad(lon))
-        y = d * np.sin(np.deg2rad(lon-90))
+        lat, lon = np.deg2rad([lat, lon])
+
+        # k_0 = 1.0  # scale factor in all directions apparently
+        # lon_0 = 0.0  # location of the prime meridian apparently?
+        #
+        # RR = 6378.273e3
+        # e = 0.081816153
+        #
+        # chi = 2*np.arctan(np.tan(np.pi/4 + lat/2) * ((1 - e*np.sin(lat)) / (1 + e*np.sin(lat)))**(e/2)) - np.pi/2
+        #
+        # k = 2*k_0 / (1 - np.sin(chi))
+        # x = 2*RR*k * np.tan(np.pi/4 + chi/2) * np.sin(lon - lon_0)
+        # y = 2*RR*k * np.tan(np.pi/4 + chi/2) * np.cos(lon - lon_0)
+
+        sgn = -1
+        e = 0.081816153
+        R_E = 6378.273e3
+        slat = 70
+
+        t = np.tan(np.pi/4 - lat/2) / ((1 - e*np.sin(lat)) / (1 + e*np.sin(lat)))**(e/2)
+
+        if np.abs(90 - lat) < 1e-5:
+            rho = 2*R_E*t / np.sqrt((1+e)**(1+e) * (1-e)**(1-e))
+        else:
+            sl = slat * np.pi/180
+            t_c = np.tan(np.pi/4 - sl/2) / ((1 - e*np.sin(sl)) / (1 + e*np.sin(sl)))**(e/2)
+            m_c = np.cos(sl) / np.sqrt(1 - e*e * (np.sin(sl)**2))
+            rho = R_E * m_c * (t/t_c)
+            logger.debug("rho = %f, m_c = %f, t = %f, t_c = %f", rho, m_c, t, t_c)
+
+        x = rho * sgn * np.sin(sgn * lon)
+        y = -rho * sgn * np.cos(sgn * lon)
+
         return x, y
 
     def __init__(self):
@@ -186,4 +216,4 @@ if __name__ == '__main__':
     print(MDT.u_geo_mean(-60, 135+180))
 
     sea_ice = SeaIceDataset()
-    print(sea_ice.sea_ice_concentration(-60, 133, datetime.date(2015, 7, 31)))
+    print(sea_ice.sea_ice_concentration(60.0, 133.0, datetime.date(2015, 7, 31)))
