@@ -40,8 +40,9 @@ def distance(ϕ1, λ1, ϕ2, λ2):
 
 
 class MDTDataset(object):
+    MDT_directory = 'mdt_cnes_cls2013_global'
     MDT_filename = 'mdt_cnes_cls2013_global.nc'
-    MDT_file_path = path.join(data_dir_path, MDT_filename)
+    MDT_file_path = path.join(data_dir_path, MDT_directory, MDT_filename)
 
     def __init__(self):
         logger.info('MDT class initializing. Loading MDT dataset: %s', self.MDT_filename)
@@ -79,11 +80,29 @@ class MDTDataset(object):
     def u_geo_mean(self, lat, lon):
         # Calculate the x and y derivatives of MDT at the grid point ij using a second-order centered finite difference
         # approximation.
-        # TODO: Set up wrapping/periodicity in the horizontal for calculating those edge cases.
-        MDT_ip1j = self.get_MDT(lat, lon)
 
-        dMDTdx = (MDT_ip1j - MDTim1j) / (2*dx)
-        dMDTdy = (MDT_ijp1 - MDT_ijm1) / (2*dy)
+        dLat = self.MDT_dataset.variables['lat'][1] - self.MDT_dataset.variables['lat'][0]
+        dLon = self.MDT_dataset.variables['lon'][1] - self.MDT_dataset.variables['lon'][0]
+
+        logger.debug("dLat = %f, dLon = %f", dLat, dLon)
+
+        # TODO: Set up wrapping/periodicity in the horizontal for calculating those edge cases.
+        # TODO: Check that you're not getting back land values or something.
+        MDT_ip1j = self.get_MDT(lat+dLat, lon)
+        MDT_im1j = self.get_MDT(lat-dLat, lon)
+        MDT_ijp1 = self.get_MDT(lat, lon+dLon)
+        MDT_ijm1 = self.get_MDT(lat, lon-dLon)
+
+        logger.debug("MDT_i+1,j = %f, MDT_i-1,j = %f, MDT_i,j+1 = %f, MDT_i,j-1 = %f,", MDT_ip1j, MDT_im1j, MDT_ijp1, MDT_ijm1)
+
+        dx = distance(lat-dLat, lon, lat+dLat, lon)
+        dy = distance(lat, lon-dLon, lat, lon+dLon)
+
+        # We are using a second-order centered finite difference approximation for the derivative which usually have
+        # 2dx and dy in the denominator but here the dx and dy I've calculated are across two cells so there's no need
+        # for the factor of 2.
+        dMDTdx = (MDT_ip1j - MDT_im1j) / dx
+        dMDTdy = (MDT_ijp1 - MDT_ijm1) / dy
 
         f = 2*Omega*np.sin(np.deg2rad(lat))
         u_geo_u = -(g/f) * dMDTdy
@@ -93,9 +112,8 @@ class MDTDataset(object):
 
 
 if __name__ == '__main__':
-    logger.info("Logger works I guess!")
     d = distance(24, 25, 26, 27)
     logger.info("That distance is %f m or %f km.", d, d/1000)
     MDT = MDTDataset()
-    print(MDT.get_MDT(40, 50))
-    print(MDT.get_MDT(-60, 50))
+    print(MDT.get_MDT(-60, 135))
+    print(MDT.u_geo_mean(-60, 135))
