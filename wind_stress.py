@@ -126,6 +126,8 @@ class SeaIceDataset(object):
         return path.join(self.sea_ice_dir_path, str(date.year), filename)
 
     def latlon2xy(self, lat, lon):
+        # TODO: Move to module-level or to util?
+
         # This subroutine converts from geodetic latitude and longitude to Polar
         # Stereographic (X,Y) coordinates for the polar regions.  The equations
         # are from Snyder, J. P., 1982,  Map Projections Used by the U.S.
@@ -207,6 +209,10 @@ class SeaIceDataset(object):
         logger.debug("idx_x = %d, idx_y = %d", idx_x, idx_y)
         logger.debug("lat_xy = %f, lon_xy = %f", lat_xy, lon_xy)
 
+        sea_ice_alpha = self.sea_ice_dataset.variables['goddard_nt_seaice_conc'][0][idx_y][idx_x]
+
+        return sea_ice_alpha
+
 
 if __name__ == '__main__':
     dist = distance(24, 25, 26, 27)
@@ -219,3 +225,4 @@ if __name__ == '__main__':
     sea_ice = SeaIceDataset()
     print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
     print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
+    print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
