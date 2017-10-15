@@ -128,18 +128,6 @@ class SeaIceDataset(object):
     def latlon2xy(self, lat, lon):
         lat, lon = np.deg2rad([lat, lon])
 
-        # k_0 = 1.0  # scale factor in all directions apparently
-        # lon_0 = 0.0  # location of the prime meridian apparently?
-        #
-        # RR = 6378.273e3
-        # e = 0.081816153
-        #
-        # chi = 2*np.arctan(np.tan(np.pi/4 + lat/2) * ((1 - e*np.sin(lat)) / (1 + e*np.sin(lat)))**(e/2)) - np.pi/2
-        #
-        # k = 2*k_0 / (1 - np.sin(chi))
-        # x = 2*RR*k * np.tan(np.pi/4 + chi/2) * np.sin(lon - lon_0)
-        # y = 2*RR*k * np.tan(np.pi/4 + chi/2) * np.cos(lon - lon_0)
-
         sgn = -1
         e = 0.081816153
         R_E = 6378.273e3
@@ -183,25 +171,13 @@ class SeaIceDataset(object):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
-        # max_i = min(self.sea_ice_dataset.variables['latitude'].shape)
-        # lat_diag = np.array([self.sea_ice_dataset.variables['latitude'][i][i] for i in range(max_i)])
-        #
-        # lat_idx = np.abs(lat_diag - lat).argmin()
-        # lon_idx = np.abs(np.array(self.sea_ice_dataset.variables['longitude'][lat_idx]) - lon).argmin()
-        #
-        # lat_ij = self.sea_ice_dataset.variables['latitude'][lon_idx][lat_idx]
-        # lon_ij = self.sea_ice_dataset.variables['longitude'][lat_idx][lon_idx]
-        #
-        logger.debug("lat = %f, lon = %f", lat, lon)
-        # logger.debug("lat_idx = %d, lon_idx = %d", lat_idx, lon_idx)
-        # logger.debug("lat_ij = %f, lon_ij = %f", lat_ij, lon_ij)
-
         x, y = self.latlon2xy(lat, lon)
         idx_x = np.abs(np.array(self.sea_ice_dataset.variables['xgrid']) - x).argmin()
         idx_y = np.abs(np.array(self.sea_ice_dataset.variables['ygrid']) - y).argmin()
         lat_xy = self.sea_ice_dataset.variables['latitude'][idx_y][idx_x]
         lon_xy = self.sea_ice_dataset.variables['longitude'][idx_y][idx_x]
 
+        logger.debug("lat = %f, lon = %f", lat, lon)
         logger.debug("x = %f, y = %f", x, y)
         logger.debug("idx_x = %d, idx_y = %d", idx_x, idx_y)
         logger.debug("lat_xy = %f, lon_xy = %f", lat_xy, lon_xy)
