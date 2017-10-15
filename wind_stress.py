@@ -1,6 +1,8 @@
 import numpy as np
 import netCDF4
 
+import datetime
+
 from os import path
 import logging.config
 import logging
@@ -93,7 +95,8 @@ class MDTDataset(object):
         MDT_ijp1 = self.get_MDT(lat, lon+dLon)
         MDT_ijm1 = self.get_MDT(lat, lon-dLon)
 
-        logger.debug("MDT_i+1,j = %f, MDT_i-1,j = %f, MDT_i,j+1 = %f, MDT_i,j-1 = %f,", MDT_ip1j, MDT_im1j, MDT_ijp1, MDT_ijm1)
+        logger.debug("MDT_i+1,j = %f, MDT_i-1,j = %f, MDT_i,j+1 = %f, MDT_i,j-1 = %f,",
+                     MDT_ip1j, MDT_im1j, MDT_ijp1, MDT_ijm1)
 
         dx = distance(lat-dLat, lon, lat+dLat, lon)
         dy = distance(lat, lon-dLon, lat, lon+dLon)
@@ -111,9 +114,37 @@ class MDTDataset(object):
         return np.array([u_geo_u, u_geo_v])
 
 
+class SeaIceDataset(object):
+    sea_ice_dir_path = path.join(data_dir_path, 'NOAA_NSIDC_G02202_V3_SEA_ICE_CONCENTRATION', 'south', 'daily')
+
+    def date2filepath(self, date):
+        filename = 'seaice_conc_daily_sh_f17_2011' + str(date.month) + str(date.day) + '_v03r00.nc'
+        return path.join(self.sea_ice_dir_path, str(date.year), filename)
+
+    def __init__(self):
+        test_dataset_date = datetime.date(2011, 12, 31)
+        test_dataset_filepath = self.date2filepath(test_dataset_date)
+        logger.info('Sea ice class initializing. Loading sample sea ice dataset: %s', test_dataset_filepath)
+        self.sea_ice_dataset = netCDF4.Dataset(test_dataset_filepath)
+
+        logger.info('Successfully loaded sample sea ice dataset: %s', test_dataset_filepath)
+        logger.info('Title: %s', self.sea_ice_dataset.title)
+        logger.info('Data model: %s', self.sea_ice_dataset.data_model)
+
+        # Nicely display dimension names and sizes in log.
+        dim_string = ""
+        for dim in self.sea_ice_dataset.dimensions:
+            dim_name = self.sea_ice_dataset.dimensions[dim].name
+            dim_size = self.sea_ice_dataset.dimensions[dim].size
+            dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
+        logger.info('Dimensions: %s', dim_string)
+
 if __name__ == '__main__':
     d = distance(24, 25, 26, 27)
     logger.info("That distance is %f m or %f km.", d, d/1000)
+
     MDT = MDTDataset()
-    print(MDT.get_MDT(-60, 135))
-    print(MDT.u_geo_mean(-60, 135))
+    print(MDT.get_MDT(-60, 135+180))
+    print(MDT.u_geo_mean(-60, 135+180))
+
+    sea_ice = SeaIceDataset()
