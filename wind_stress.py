@@ -126,12 +126,37 @@ class SeaIceDataset(object):
         return path.join(self.sea_ice_dir_path, str(date.year), filename)
 
     def latlon2xy(self, lat, lon):
-        lat, lon = np.deg2rad([lat, lon])
+        # This subroutine converts from geodetic latitude and longitude to Polar
+        # Stereographic (X,Y) coordinates for the polar regions.  The equations
+        # are from Snyder, J. P., 1982,  Map Projections Used by the U.S.
+        # Geological Survey, Geological Survey Bulletin 1532, U.S. Government
+        # Printing Office.  See JPL Technical Memorandum 3349-85-101 for further
+        # details.
 
-        sgn = -1
-        e = 0.081816153
-        R_E = 6378.273e3
-        slat = 70
+        # The original equations are from Snyder, J. P., 1982,  Map Projections Used by the U.S. Geological Survey,
+        # Geological Survey Bulletin 1532, U.S. Government Printing Office. See JPL Technical Memorandum 3349-85-101 for
+        # further details.
+
+        # Original FORTRAN program written by C. S. Morris, April 1985, Jet Propulsion Laboratory, California
+        # Institute of Technology
+
+        # The polar stereographic formulae for converting between latitude/longitude and x-y grid coordinates have been
+        # taken from map projections used by the U.S. Geological Survey (Snyder 1982).
+
+        # SSM/I: Special Sensor Microwave Imager
+
+        # WARNING: lat must be positive for the southern hemisphere! Or take absolute value like below.
+
+        sgn = -1  # Sign of the latitude (use +1 for northern hemisphere, -1 for southern)
+        e = 0.081816153  # Eccentricity of the Hughes ellipsoid
+        R_E = 6378.273e3  # Radius of the Hughes ellipsode [m]
+        slat = 70  # Standard latitude for the SSM/I grids is 70 degrees.
+
+        # delta is the meridian offset for the SSM/I grids (0 degrees for the South Polar grids; 45 degrees for the
+        # North Polar grids).
+        delta = 45 if sgn == 1 else 0
+
+        lat, lon = np.deg2rad([abs(lat), lon+delta])
 
         t = np.tan(np.pi/4 - lat/2) / ((1 - e*np.sin(lat)) / (1 + e*np.sin(lat)))**(e/2)
 
@@ -192,4 +217,5 @@ if __name__ == '__main__':
     print(MDT.u_geo_mean(-60, 135+180))
 
     sea_ice = SeaIceDataset()
-    print(sea_ice.sea_ice_concentration(60.0, 133.0, datetime.date(2015, 7, 31)))
+    print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
+    print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
