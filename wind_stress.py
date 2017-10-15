@@ -66,7 +66,11 @@ class MDTDataset(object):
         # Nearest neighbour interpolation
         # Find index of closest matching latitude and longitude
         idx_lat = np.abs(np.array(self.MDT_dataset.variables['lat']) - lat).argmin()
-        idx_lon = np.abs(np.array(self.MDT_dataset.variables['lon']) - lat).argmin()
+        idx_lon = np.abs(np.array(self.MDT_dataset.variables['lon']) - lon).argmin()
+
+        logger.debug("lat = %f, lon = %f", lat, lon)
+        logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
+        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.MDT_dataset.variables['lat'][idx_lat], self.MDT_dataset.variables['lon'][idx_lon])
 
         MDT_value = self.MDT_dataset.variables['mdt'][0][idx_lat][idx_lon]
 
