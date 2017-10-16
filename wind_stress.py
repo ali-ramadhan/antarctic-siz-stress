@@ -1,3 +1,8 @@
+# TODO: Use the typing module.
+# TODO: Add test case units?
+# TODO: Split into multiple files.
+# TODO: Switch from printf style logging to Python3 style formatting.
+
 import numpy as np
 import netCDF4
 
@@ -61,6 +66,8 @@ class MDTDataset(object):
             dim_size = self.MDT_dataset.dimensions[dim].size
             dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
         logger.info('Dimensions: %s', dim_string)
+
+        # TODO: log variables as well.
 
     def get_MDT(self, lat, lon):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
