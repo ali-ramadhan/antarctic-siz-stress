@@ -209,6 +209,7 @@ class SeaIceDataset(object):
         lat_xy = self.sea_ice_dataset.variables['latitude'][idx_y][idx_x]
         lon_xy = self.sea_ice_dataset.variables['longitude'][idx_y][idx_x]
 
+        # TODO: Add a logger.warning if lat_xy, lon_xy don't match lat, lon very closely.
         logger.debug("lat = %f, lon = %f", lat, lon)
         logger.debug("x = %f, y = %f", x, y)
         logger.debug("idx_x = %d, idx_y = %d", idx_x, idx_y)
@@ -231,6 +232,7 @@ class WindDataset(object):
         test_dataset_filepath = self.date2filepath(test_dataset_date)
         logger.info('WindDataset class initializing. Loading sample wind vector dataset: %s', test_dataset_filepath)
         self.wind_dataset = netCDF4.Dataset(test_dataset_filepath)
+        self.wind_dataset.set_auto_mask(False)  # TODO: Why is most of the data masked?
 
         logger.info('Successfully loaded sample wind vector dataset: %s', test_dataset_filepath)
         logger.info('Title: %s', self.wind_dataset.title)
@@ -244,13 +246,14 @@ class WindDataset(object):
             dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
         logger.info('Dimensions: %s', dim_string)
 
-    def surface_wind_vector(self, lat, lon):
+    def surface_wind_vector(self, lat, lon, day):
         idx_lat = np.abs(np.array(self.wind_dataset.variables['lat']) - lat).argmin()
         idx_lon = np.abs(np.array(self.wind_dataset.variables['lon']) - lon).argmin()
 
         logger.debug("lat = %f, lon = %f", lat, lon)
         logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.wind_dataset.variables['lat'][idx_lat], self.wind_dataset.variables['lon'][idx_lon])
+        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.wind_dataset.variables['lat'][idx_lat],
+                     self.wind_dataset.variables['lon'][idx_lon])
 
         u_wind = self.wind_dataset.variables['uwnd'][0][idx_lat][idx_lon]
         v_wind = self.wind_dataset.variables['vwnd'][0][idx_lat][idx_lon]
@@ -272,4 +275,4 @@ if __name__ == '__main__':
     print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
 
     wind_vectors = WindDataset()
-    print(wind_vectors.surface_wind_vector(-60, 20), datetime.date(2011, 12, 31))
+    print(wind_vectors.surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
