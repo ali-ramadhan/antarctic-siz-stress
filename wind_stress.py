@@ -145,6 +145,10 @@ class SeaIceDataset(object):
         # The polar stereographic formulae for converting between latitude/longitude and x-y grid coordinates have been
         # taken from map projections used by the U.S. Geological Survey (Snyder 1982).
 
+        # http://nsidc.org/data/polar-stereo/ps_grids.html
+        # http://nsidc.org/data/polar-stereo/tools_geo_pixel.html
+        # https://nsidc.org/data/docs/daac/nsidc0001_ssmi_tbs/ff.html
+
         # SSM/I: Special Sensor Microwave Imager
 
         # WARNING: lat must be positive for the southern hemisphere! Or take absolute value like below.
@@ -195,6 +199,7 @@ class SeaIceDataset(object):
         logger.info('Dimensions: %s', dim_string)
 
     def sea_ice_concentration(self, lat, lon, day):
+        # TODO: time-dependent lookup.
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
