@@ -48,18 +48,14 @@ def distance(ϕ1, λ1, ϕ2, λ2):
 
 
 def log_netCDF_dataset_metadata(dataset):
-    logger.info('Title: %s', dataset.title)
-    logger.info('Data model: %s', dataset.data_model)
-
-    # Nicely display dimension names and sizes.
+    # Nicely format dimension names and sizes.
     dim_string = ""
     for dim in dataset.dimensions:
         dim_name = dataset.dimensions[dim].name
         dim_size = dataset.dimensions[dim].size
         dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
-    logger.info('Dimensions: %s', dim_string)
 
-    # Nicely display variable information.
+    # Nicely format variable information.
     var_string = ""
     for var in dataset.variables:
         var_type = dataset.variables[var].dtype
@@ -71,6 +67,10 @@ def log_netCDF_dataset_metadata(dataset):
         var_dim_str = var_dim_str[:-2] + ')'
 
         var_string = var_string + str(var_type) + ' ' + var_name + var_dim_str + ', '
+
+    logger.info('Title: %s', dataset.title)
+    logger.info('Data model: %s', dataset.data_model)
+    logger.info('Dimensions: %s', dim_string)
     logger.info('Variables: %s', var_string[:-2])
 
 
