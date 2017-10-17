@@ -296,7 +296,7 @@ class SeaIceMotionDataset(object):
         for i in range(xdim*ydim):
             for j in range(ngrids):
                 for k in range(valsize):
-                    file_contents_uninterleaved[valsize * (xdim*ydim*j + i) + k] = file_contents[valsize*(i*ngrids + j) + k]
+                    file_contents_uninterleaved[valsize*(xdim*ydim*j+i) + k] = file_contents[valsize*(i*ngrids+j) + k]
 
 
         # for (i=0; i < xdim * ydim; i++) {/ * i is the index in each array * /
@@ -307,20 +307,52 @@ class SeaIceMotionDataset(object):
         #     }
         # }
 
+        fname = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'tools', 'south_x_y_lat_lon.txt')
+        ijlatlon = []
+        with open(fname) as f:
+            content = f.readlines()
+
+        content = [x.strip().split() for x in content]
+        for i in range(len(content)):
+            content[i] = [int(content[i][0]), int(content[i][1]), float(content[i][2]), float(content[i][3])]
+
+        X = []
+        Y = []
+        U = []
+        V = []
         import struct
         total = 0
-        nonempty = 0
+        valid = 0
+        coast = 0
+        large = 0
         for i in range(int(len(file_contents)/6)):
             total = total+1
-            x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
-            if x[0] != 0:
-                nonempty = nonempty+1
+            x = list(struct.unpack("<hhh", file_contents[i:i+6]))
+            # x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
+            if x[0] < 0:
+                coast = coast+1
+                continue
+            if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
+                large = large+1
+                continue
+            if x[0] > 0:
+                valid = valid+1
                 x[0] = x[0]/10
                 x[1] = x[1]/10
                 x[2] = x[2]/10
                 print("{} -> {}".format(i, x))
+                X.append(content[i][2])
+                Y.append(content[i][3])
+                U.append(x[1])
+                V.append(x[2])
 
-        logger.debug('total = {}, nonempty = {}'.format(total, nonempty))
+        logger.debug('total = {}, coast = {}, large = {}, valid = {}'.format(total, coast, large, valid))
+
+        print(len(content))
+        print(len(file_contents)/6)
+        import matplotlib.pyplot as plt
+        plt.quiver(X, Y, U, V, latlon=True)
+        plt.show()
 
     def seaice_drift_vector(self, lat, lon, day):
         pass
