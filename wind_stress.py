@@ -283,16 +283,25 @@ class SeaIceMotionDataset(object):
 
         logger.debug('Reading in sea ice drift dataset: {}'.format(test_dataset_filepath))
         with open(test_dataset_filepath, mode='rb') as file:
-            fileContent = file.read()
+            file_contents = file.read()
 
         logger.info('Successfully read sea ice drift data.')
 
         import struct
 
-        for i in range(100000):
-            x = struct.unpack("<hhh", fileContent[i:i+6])
+        total = 0
+        nonempty = 0
+        for i in range(int(len(file_contents)/6)):
+            total = total+1
+            x = list(struct.unpack("<hhh", file_contents[i:i+6]))
             if x[0] != 0:
-                print("{}".format(x))
+                nonempty = nonempty+1
+                x[0] = x[0]/10
+                x[1] = x[1]/10
+                x[2] = x[2]/10
+                print("{} -> {}".format(i, x))
+
+        logger.debug('total = {}, nonempty = {}'.format(total, nonempty))
 
     def seaice_drift_vector(self, lat, lon, day):
         pass
