@@ -74,14 +74,65 @@ def log_netCDF_dataset_metadata(dataset):
     logger.info('Variables: %s', var_string[:-2])
 
 
+def latlon_to_polar_stereographic_xy(lat, lon):
+    # This function converts from geodetic latitude and longitude to polar stereographic (x,y) coordinates for the polar
+    # regions. The original equations are from Snyder, J. P., 1982,  Map Projections Used by the U.S. Geological Survey,
+    # Geological Survey Bulletin 1532, U.S. Government Printing Office.  See JPL Technical Memorandum 3349-85-101 for
+    # further details.
+    #
+    # The original FORTRAN program written by C. S. Morris, April 1985, Jet Propulsion Laboratory, California
+    # Institute of Technology
+    #
+    # More information:
+    # http://nsidc.org/data/polar-stereo/ps_grids.html
+    # http://nsidc.org/data/polar-stereo/tools_geo_pixel.html
+    # https://nsidc.org/data/docs/daac/nsidc0001_ssmi_tbs/ff.html
+    #
+    # SSM/I: Special Sensor Microwave Imager
+    # Note: lat must be positive for the southern hemisphere! Or take absolute value like below.
+
+    sgn = -1  # Sign of the latitude (use +1 for northern hemisphere, -1 for southern)
+    e = 0.081816153  # Eccentricity of the Hughes ellipsoid
+    R_E = 6378.273e3  # Radius of the Hughes ellipsode [m]
+    slat = 70  # Standard latitude for the SSM/I grids is 70 degrees.
+
+    # delta is the meridian offset for the SSM/I grids (0 degrees for the South Polar grids; 45 degrees for the
+    # North Polar grids).
+    delta = 45 if sgn == 1 else 0
+
+    lat, lon = np.deg2rad([abs(lat), lon+delta])
+
+    t = np.tan(np.pi/4 - lat/2) / ((1 - e*np.sin(lat)) / (1 + e*np.sin(lat)))**(e/2)
+
+    if np.abs(90 - lat) < 1e-5:
+        rho = 2*R_E*t / np.sqrt((1+e)**(1+e) * (1-e)**(1-e))
+    else:
+        sl = slat * np.pi/180
+        t_c = np.tan(np.pi/4 - sl/2) / ((1 - e*np.sin(sl)) / (1 + e*np.sin(sl)))**(e/2)
+        m_c = np.cos(sl) / np.sqrt(1 - e*e * (np.sin(sl)**2))
+        rho = R_E * m_c * (t/t_c)
+        logger.debug("rho = %f, m_c = %f, t = %f, t_c = %f", rho, m_c, t, t_c)
+
+    x = rho * sgn * np.sin(sgn * lon)
+    y = -rho * sgn * np.cos(sgn * lon)
+
+    return x, y
+
+
 class MeanDynamicTopographyDataReader(object):
     MDT_file_path = path.join(data_dir_path, 'mdt_cnes_cls2013_global', 'mdt_cnes_cls2013_global.nc')
 
     def __init__(self):
         logger.info('MeanDynamicTopographyDataReader initializing. Loading MDT dataset: %s', self.MDT_file_path)
         self.MDT_dataset = netCDF4.Dataset(self.MDT_file_path)
-        logger.info('Successfully loaded dataset: %s', self.MDT_file_path)
+        logger.info('Successfully loaded MDT dataset: %s', self.MDT_file_path)
         log_netCDF_dataset_metadata(self.MDT_dataset)
+
+    # def interpolate_MDT_dataset(self):
+    #     points = np.array([self.MDT_dataset.variables['lat']], [self.MDT_dataset.variables['lon']])
+    #     values = np.array(self.MDT_dataset.variables['mdt'])
+    #     grid_x, grid_y = np.mgrid[0:1:100j, 0:1:200j]
+    #     pass
 
     def get_MDT(self, lat, lon):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
@@ -149,61 +200,6 @@ class SeaIceDataset(object):
                    + '_v03r00.nc'
         return path.join(self.sea_ice_dir_path, str(date.year), filename)
 
-    def latlon2xy(self, lat, lon):
-        # TODO: Move to module-level or to util?
-
-        # This subroutine converts from geodetic latitude and longitude to Polar
-        # Stereographic (X,Y) coordinates for the polar regions.  The equations
-        # are from Snyder, J. P., 1982,  Map Projections Used by the U.S.
-        # Geological Survey, Geological Survey Bulletin 1532, U.S. Government
-        # Printing Office.  See JPL Technical Memorandum 3349-85-101 for further
-        # details.
-
-        # The original equations are from Snyder, J. P., 1982,  Map Projections Used by the U.S. Geological Survey,
-        # Geological Survey Bulletin 1532, U.S. Government Printing Office. See JPL Technical Memorandum 3349-85-101 for
-        # further details.
-
-        # Original FORTRAN program written by C. S. Morris, April 1985, Jet Propulsion Laboratory, California
-        # Institute of Technology
-
-        # The polar stereographic formulae for converting between latitude/longitude and x-y grid coordinates have been
-        # taken from map projections used by the U.S. Geological Survey (Snyder 1982).
-
-        # http://nsidc.org/data/polar-stereo/ps_grids.html
-        # http://nsidc.org/data/polar-stereo/tools_geo_pixel.html
-        # https://nsidc.org/data/docs/daac/nsidc0001_ssmi_tbs/ff.html
-
-        # SSM/I: Special Sensor Microwave Imager
-
-        # WARNING: lat must be positive for the southern hemisphere! Or take absolute value like below.
-
-        sgn = -1  # Sign of the latitude (use +1 for northern hemisphere, -1 for southern)
-        e = 0.081816153  # Eccentricity of the Hughes ellipsoid
-        R_E = 6378.273e3  # Radius of the Hughes ellipsode [m]
-        slat = 70  # Standard latitude for the SSM/I grids is 70 degrees.
-
-        # delta is the meridian offset for the SSM/I grids (0 degrees for the South Polar grids; 45 degrees for the
-        # North Polar grids).
-        delta = 45 if sgn == 1 else 0
-
-        lat, lon = np.deg2rad([abs(lat), lon+delta])
-
-        t = np.tan(np.pi/4 - lat/2) / ((1 - e*np.sin(lat)) / (1 + e*np.sin(lat)))**(e/2)
-
-        if np.abs(90 - lat) < 1e-5:
-            rho = 2*R_E*t / np.sqrt((1+e)**(1+e) * (1-e)**(1-e))
-        else:
-            sl = slat * np.pi/180
-            t_c = np.tan(np.pi/4 - sl/2) / ((1 - e*np.sin(sl)) / (1 + e*np.sin(sl)))**(e/2)
-            m_c = np.cos(sl) / np.sqrt(1 - e*e * (np.sin(sl)**2))
-            rho = R_E * m_c * (t/t_c)
-            logger.debug("rho = %f, m_c = %f, t = %f, t_c = %f", rho, m_c, t, t_c)
-
-        x = rho * sgn * np.sin(sgn * lon)
-        y = -rho * sgn * np.cos(sgn * lon)
-
-        return x, y
-
     def __init__(self):
         test_dataset_date = datetime.date(2015, 7, 31)
         test_dataset_filepath = self.date2filepath(test_dataset_date)
@@ -227,7 +223,7 @@ class SeaIceDataset(object):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
-        x, y = self.latlon2xy(lat, lon)
+        x, y = latlon_to_polar_stereographic_xy(lat, lon)
         idx_x = np.abs(np.array(self.sea_ice_dataset.variables['xgrid']) - x).argmin()
         idx_y = np.abs(np.array(self.sea_ice_dataset.variables['ygrid']) - y).argmin()
         lat_xy = self.sea_ice_dataset.variables['latitude'][idx_y][idx_x]
@@ -382,10 +378,10 @@ if __name__ == '__main__':
     print(MDT.get_MDT(-60, 135+180))
     print(MDT.u_geo_mean(-60, 135+180))
 
-    # sea_ice = SeaIceDataset()
-    # print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
-    # print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
-    # print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
+    sea_ice = SeaIceDataset()
+    print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
+    print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
+    print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
     #
     # wind_vectors = WindDataset()
     # print(wind_vectors.surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
