@@ -47,28 +47,41 @@ def distance(ϕ1, λ1, ϕ2, λ2):
     return R*c
 
 
-class MDTDataset(object):
-    MDT_directory = 'mdt_cnes_cls2013_global'
-    MDT_filename = 'mdt_cnes_cls2013_global.nc'
-    MDT_file_path = path.join(data_dir_path, MDT_directory, MDT_filename)
+def log_netCDF_dataset_metadata(dataset):
+    logger.info('Title: %s', dataset.title)
+    logger.info('Data model: %s', dataset.data_model)
+
+    # Nicely display dimension names and sizes.
+    dim_string = ""
+    for dim in dataset.dimensions:
+        dim_name = dataset.dimensions[dim].name
+        dim_size = dataset.dimensions[dim].size
+        dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
+    logger.info('Dimensions: %s', dim_string)
+
+    # Nicely display variable information.
+    var_string = ""
+    for var in dataset.variables:
+        var_type = dataset.variables[var].dtype
+        var_name = dataset.variables[var].name
+
+        var_dim_str = '('
+        for dim in dataset.variables[var].dimensions:
+            var_dim_str = var_dim_str + str(dim) + ', '
+        var_dim_str = var_dim_str[:-2] + ')'
+
+        var_string = var_string + str(var_type) + ' ' + var_name + var_dim_str + ', '
+    logger.info('Variables: %s', var_string[:-2])
+
+
+class MeanDynamicTopographyDataReader(object):
+    MDT_file_path = path.join(data_dir_path, 'mdt_cnes_cls2013_global', 'mdt_cnes_cls2013_global.nc')
 
     def __init__(self):
-        logger.info('MDT class initializing. Loading MDT dataset: %s', self.MDT_filename)
+        logger.info('MeanDynamicTopographyDataReader initializing. Loading MDT dataset: %s', self.MDT_file_path)
         self.MDT_dataset = netCDF4.Dataset(self.MDT_file_path)
-
-        logger.info('Successfully loaded MDT dataset: %s', self.MDT_filename)
-        logger.info('Title: %s', self.MDT_dataset.title)
-        logger.info('Data model: %s', self.MDT_dataset.data_model)
-
-        # Nicely display dimension names and sizes in log.
-        dim_string = ""
-        for dim in self.MDT_dataset.dimensions:
-            dim_name = self.MDT_dataset.dimensions[dim].name
-            dim_size = self.MDT_dataset.dimensions[dim].size
-            dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
-        logger.info('Dimensions: %s', dim_string)
-
-        # TODO: log variables as well.
+        logger.info('Successfully loaded dataset: %s', self.MDT_file_path)
+        log_netCDF_dataset_metadata(self.MDT_dataset)
 
     def get_MDT(self, lat, lon):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
@@ -315,6 +328,7 @@ class SeaIceMotionDataset(object):
         #
         # logger.info('Uninterleaving done.')
 
+        # Apparently this way of unpacking binary data does not work. Had to use np.fromfile below.
         # logger.debug('Unpacking binary (sea ice drift) data...')
         # total = 0
         # valid = 0
@@ -343,7 +357,7 @@ class SeaIceMotionDataset(object):
         data = np.fromfile(test_dataset_filepath, dtype='<i2').reshape(321, 321, 3)
         self.u_wind = data[..., 1]/10
         self.v_wind = data[..., 2]/10
-        self.wind_error = data[..., 3]/10
+        self.wind_error = data[..., 0]/10
 
         import matplotlib.pyplot as plt
         self.u_wind[self.u_wind == 0] = np.nan
@@ -356,20 +370,24 @@ class SeaIceMotionDataset(object):
         pass
 
 
+class SeaSurfaceHeightAnomalyDataReader(object):
+    pass
+
+
 if __name__ == '__main__':
     dist = distance(24, 25, 26, 27)
     logger.info("That distance is %f m or %f km.", dist, dist/1000)
 
-    MDT = MDTDataset()
+    MDT = MeanDynamicTopographyDataReader()
     print(MDT.get_MDT(-60, 135+180))
     print(MDT.u_geo_mean(-60, 135+180))
 
-    sea_ice = SeaIceDataset()
-    print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
-    print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
-    print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
-
-    wind_vectors = WindDataset()
-    print(wind_vectors.surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
-
-    seaice_drift = SeaIceMotionDataset()
+    # sea_ice = SeaIceDataset()
+    # print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
+    # print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
+    # print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
+    #
+    # wind_vectors = WindDataset()
+    # print(wind_vectors.surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
+    #
+    # seaice_drift = SeaIceMotionDataset()
