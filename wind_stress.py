@@ -287,25 +287,16 @@ class SeaIceMotionDataset(object):
 
         logger.info('Successfully read sea ice drift data.')
 
-        logger.info('Uninterleaving data...')
-        xdim = 321
-        ydim = 321
-        ngrids = 3
-        valsize = 2
-        file_contents_uninterleaved = bytearray(len(file_contents))
-        for i in range(xdim*ydim):
-            for j in range(ngrids):
-                for k in range(valsize):
-                    file_contents_uninterleaved[valsize*(xdim*ydim*j+i) + k] = file_contents[valsize*(i*ngrids+j) + k]
-
-
-        # for (i=0; i < xdim * ydim; i++) {/ * i is the index in each array * /
-        #     for (j=0; j < ngrids; j++) {/ * j is which grid is being worked on * /
-        #         for (k=0; k < valsize; k++) {/ * k is which byte * /
-        #             outvals[valsize * (xdim * ydim * j+i)+k] = invals[valsize * (i * ngrids+j)+k];
-        #         }
-        #     }
-        # }
+        # logger.info('Uninterleaving data...')
+        # xdim = 321
+        # ydim = 321
+        # ngrids = 3
+        # valsize = 2
+        # file_contents_uninterleaved = bytearray(len(file_contents))
+        # for i in range(xdim*ydim):
+        #     for j in range(ngrids):
+        #         for k in range(valsize):
+        #             file_contents_uninterleaved[valsize*(xdim*ydim*j+i) + k] = file_contents[valsize*(i*ngrids+j) + k]
 
         fname = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'tools', 'south_x_y_lat_lon.txt')
         ijlatlon = []
@@ -325,33 +316,43 @@ class SeaIceMotionDataset(object):
         valid = 0
         coast = 0
         large = 0
-        for i in range(int(len(file_contents)/6)):
-            total = total+1
-            x = list(struct.unpack("<hhh", file_contents[i:i+6]))
-            # x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
-            # if x[0] < 0:
-            #     coast = coast+1
-            #     continue
-            # if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
-            #     large = large+1
-            #     continue
-            if x[0] > 0:
-                valid = valid+1
-                x[0] = x[0]/10
-                x[1] = x[1]/10
-                x[2] = x[2]/10
-                print("{} -> {}".format(i, x))
-                X.append(content[i][0])
-                Y.append(content[i][1])
-                U.append(x[1])
-                V.append(x[2])
+        data = np.fromfile(test_dataset_filepath, dtype='<i2').reshape(321, 321, 3)
+        U = data[..., 1]
+        V = data[..., 2]
+        # for i in range(321):
+        #     for j in range(321):
+        #         print('{}'.format(data[i][j]))
+
+
+
+        # for i in range(int(len(file_contents)/6)):
+        #     total = total+1
+        #     x = list(struct.unpack("<hhh", file_contents[i:i+6]))
+        #     # x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
+        #     # if x[0] < 0:
+        #     #     coast = coast+1
+        #     #     continue
+        #     # if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
+        #     #     large = large+1
+        #     #     continue
+        #     if x[0] > 0:
+        #         valid = valid+1
+        #         x[0] = x[0]/10
+        #         x[1] = x[1]/10
+        #         x[2] = x[2]/10
+        #         print("{} -> {}".format(i, x))
+        #         X.append(content[i][0])
+        #         Y.append(content[i][1])
+        #         U.append(x[1])
+        #         V.append(x[2])
 
         logger.debug('total = {}, coast = {}, large = {}, valid = {}'.format(total, coast, large, valid))
 
         print(len(content))
         print(len(file_contents)/6)
         import matplotlib.pyplot as plt
-        plt.quiver(X, Y, U, V)
+        plt.quiver(U[::4, ::4], V[::4, ::4])
+        plt.gca().invert_yaxis()
         plt.show()
 
     def seaice_drift_vector(self, lat, lon, day):
