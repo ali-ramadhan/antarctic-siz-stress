@@ -2,6 +2,7 @@
 # TODO: Add test case units?
 # TODO: Split into multiple files.
 # TODO: Switch from printf style logging to Python3 style formatting.
+# TODO: Use propoer docstrings for functions.
 
 import numpy as np
 import netCDF4
@@ -80,7 +81,8 @@ class MDTDataset(object):
 
         logger.debug("lat = %f, lon = %f", lat, lon)
         logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.MDT_dataset.variables['lat'][idx_lat], self.MDT_dataset.variables['lon'][idx_lon])
+        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.MDT_dataset.variables['lat'][idx_lat],
+                     self.MDT_dataset.variables['lon'][idx_lon])
 
         MDT_value = self.MDT_dataset.variables['mdt'][0][idx_lat][idx_lon]
 
@@ -100,6 +102,7 @@ class MDTDataset(object):
 
         # TODO: Set up wrapping/periodicity in the horizontal for calculating those edge cases.
         # TODO: Check that you're not getting back land values or something.
+        # TODO: Use scipy interpolation function for this?
         MDT_ip1j = self.get_MDT(lat+dLat, lon)
         MDT_im1j = self.get_MDT(lat-dLat, lon)
         MDT_ijp1 = self.get_MDT(lat, lon+dLon)
@@ -340,6 +343,7 @@ class SeaIceMotionDataset(object):
         data = np.fromfile(test_dataset_filepath, dtype='<i2').reshape(321, 321, 3)
         self.u_wind = data[..., 1]/10
         self.v_wind = data[..., 2]/10
+        self.wind_error = data[..., 3]/10
 
         import matplotlib.pyplot as plt
         self.u_wind[self.u_wind == 0] = np.nan
