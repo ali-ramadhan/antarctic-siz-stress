@@ -287,13 +287,32 @@ class SeaIceMotionDataset(object):
 
         logger.info('Successfully read sea ice drift data.')
 
-        import struct
+        logger.info('Uninterleaving data...')
+        xdim = 321
+        ydim = 321
+        ngrids = 3
+        valsize = 2
+        file_contents_uninterleaved = bytearray(len(file_contents))
+        for i in range(xdim*ydim):
+            for j in range(ngrids):
+                for k in range(valsize):
+                    file_contents_uninterleaved[valsize * (xdim*ydim*j + i) + k] = file_contents[valsize*(i*ngrids + j) + k]
 
+
+        # for (i=0; i < xdim * ydim; i++) {/ * i is the index in each array * /
+        #     for (j=0; j < ngrids; j++) {/ * j is which grid is being worked on * /
+        #         for (k=0; k < valsize; k++) {/ * k is which byte * /
+        #             outvals[valsize * (xdim * ydim * j+i)+k] = invals[valsize * (i * ngrids+j)+k];
+        #         }
+        #     }
+        # }
+
+        import struct
         total = 0
         nonempty = 0
         for i in range(int(len(file_contents)/6)):
             total = total+1
-            x = list(struct.unpack("<hhh", file_contents[i:i+6]))
+            x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
             if x[0] != 0:
                 nonempty = nonempty+1
                 x[0] = x[0]/10
