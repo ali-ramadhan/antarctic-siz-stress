@@ -329,20 +329,20 @@ class SeaIceMotionDataset(object):
             total = total+1
             x = list(struct.unpack("<hhh", file_contents[i:i+6]))
             # x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
-            if x[0] < 0:
-                coast = coast+1
-                continue
-            if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
-                large = large+1
-                continue
+            # if x[0] < 0:
+            #     coast = coast+1
+            #     continue
+            # if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
+            #     large = large+1
+            #     continue
             if x[0] > 0:
                 valid = valid+1
                 x[0] = x[0]/10
                 x[1] = x[1]/10
                 x[2] = x[2]/10
                 print("{} -> {}".format(i, x))
-                X.append(content[i][2])
-                Y.append(content[i][3])
+                X.append(content[i][0])
+                Y.append(content[i][1])
                 U.append(x[1])
                 V.append(x[2])
 
@@ -351,7 +351,7 @@ class SeaIceMotionDataset(object):
         print(len(content))
         print(len(file_contents)/6)
         import matplotlib.pyplot as plt
-        plt.quiver(X, Y, U, V, latlon=True)
+        plt.quiver(X, Y, U, V)
         plt.show()
 
     def seaice_drift_vector(self, lat, lon, day):
