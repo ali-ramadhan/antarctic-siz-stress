@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 # Data directory string constants
 # Everything under a ./data/ softlink?
-data_dir_path = path.join(cwd, 'data/')
+data_dir_path = path.join(cwd, 'data')
 
 # Physical constants
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
@@ -108,6 +108,7 @@ class MDTDataset(object):
         logger.debug("MDT_i+1,j = %f, MDT_i-1,j = %f, MDT_i,j+1 = %f, MDT_i,j-1 = %f,",
                      MDT_ip1j, MDT_im1j, MDT_ijp1, MDT_ijm1)
 
+        # TODO: Make sure I'm calculating this correctly.
         dx = distance(lat-dLat, lon, lat+dLat, lon)
         dy = distance(lat, lon-dLon, lat, lon+dLon)
 
@@ -254,6 +255,7 @@ class WindDataset(object):
         logger.info('Dimensions: %s', dim_string)
 
     def surface_wind_vector(self, lat, lon, day):
+        # TODO: Add date + time lookup functionality.
         idx_lat = np.abs(np.array(self.wind_dataset.variables['lat']) - lat).argmin()
         idx_lon = np.abs(np.array(self.wind_dataset.variables['lon']) - lon).argmin()
 
@@ -266,6 +268,34 @@ class WindDataset(object):
         v_wind = self.wind_dataset.variables['vwnd'][0][idx_lat][idx_lon]
 
         return np.array([u_wind, v_wind])
+
+
+class SeaIceMotionDataset(object):
+    seaice_drift_path = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
+
+    def date2filepath(self, date):
+        filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday) + '.s.v3.bin'
+        return path.join(self.seaice_drift_path, str(date.year), filename)
+
+    def __init__(self):
+        test_dataset_date = datetime.date(2015, 6, 29)
+        test_dataset_filepath = self.date2filepath(test_dataset_date)
+
+        logger.debug('Reading in sea ice drift dataset: {}'.format(test_dataset_filepath))
+        with open(test_dataset_filepath, mode='rb') as file:
+            fileContent = file.read()
+
+        logger.info('Successfully read sea ice drift data.')
+
+        import struct
+
+        for i in range(100000):
+            x = struct.unpack("<hhh", fileContent[i:i+6])
+            if x[0] != 0:
+                print("{}".format(x))
+
+    def seaice_drift_vector(self, lat, lon, day):
+        pass
 
 
 if __name__ == '__main__':
@@ -283,3 +313,5 @@ if __name__ == '__main__':
 
     wind_vectors = WindDataset()
     print(wind_vectors.surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
+
+    seaice_drift = SeaIceMotionDataset()
