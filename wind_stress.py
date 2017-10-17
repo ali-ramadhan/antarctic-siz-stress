@@ -275,9 +275,20 @@ class SeaIceMotionDataset(object):
 
     def date2filepath(self, date):
         filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday) + '.s.v3.bin'
+        # filename = 'icemotion.grid.daily.' + str(date.year) + '170.s.v3.bin'
         return path.join(self.seaice_drift_path, str(date.year), filename)
 
     def __init__(self):
+        # Load in the NSIDC grid for the southern hemisphere. It stores the (x,y) polar stereographic coordinates for
+        # each grid point and its corresponding (lat,lon).
+        grid_filename = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'tools', 'south_x_y_lat_lon.txt')
+        with open(grid_filename) as f:
+            self.south_grid = f.readlines()
+            self.south_grid = [s.strip().split() for s in self.south_grid]
+            for i in range(len(self.south_grid)):
+                self.south_grid[i] = [int(self.south_grid[i][0]), int(self.south_grid[i][1]),
+                                      float(self.south_grid[i][2]), float(self.south_grid[i][3])]
+
         test_dataset_date = datetime.date(2015, 6, 29)
         test_dataset_filepath = self.date2filepath(test_dataset_date)
 
@@ -287,7 +298,8 @@ class SeaIceMotionDataset(object):
 
         logger.info('Successfully read sea ice drift data.')
 
-        # logger.info('Uninterleaving data...')
+        # I thought we had to uninterleave the NSIDC ice motion binary data files according to the dataset's user guide.
+        # logger.info('Uninterleaving NSIDC ice motion binary data file...')
         # xdim = 321
         # ydim = 321
         # ngrids = 3
@@ -297,61 +309,42 @@ class SeaIceMotionDataset(object):
         #     for j in range(ngrids):
         #         for k in range(valsize):
         #             file_contents_uninterleaved[valsize*(xdim*ydim*j+i) + k] = file_contents[valsize*(i*ngrids+j) + k]
+        #
+        # logger.info('Uninterleaving done.')
 
-        fname = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'tools', 'south_x_y_lat_lon.txt')
-        ijlatlon = []
-        with open(fname) as f:
-            content = f.readlines()
-
-        content = [x.strip().split() for x in content]
-        for i in range(len(content)):
-            content[i] = [int(content[i][0]), int(content[i][1]), float(content[i][2]), float(content[i][3])]
-
-        X = []
-        Y = []
-        U = []
-        V = []
-        import struct
-        total = 0
-        valid = 0
-        coast = 0
-        large = 0
-        data = np.fromfile(test_dataset_filepath, dtype='<i2').reshape(321, 321, 3)
-        U = data[..., 1]
-        V = data[..., 2]
-        # for i in range(321):
-        #     for j in range(321):
-        #         print('{}'.format(data[i][j]))
-
-
-
+        # logger.debug('Unpacking binary (sea ice drift) data...')
+        # total = 0
+        # valid = 0
+        # coast = 0
+        # large = 0
+        # import struct
         # for i in range(int(len(file_contents)/6)):
         #     total = total+1
-        #     x = list(struct.unpack("<hhh", file_contents[i:i+6]))
-        #     # x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
-        #     # if x[0] < 0:
-        #     #     coast = coast+1
-        #     #     continue
-        #     # if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
-        #     #     large = large+1
-        #     #     continue
+        #     # x = list(struct.unpack("<hhh", file_contents[i:i+6]))
+        #     x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
+        #     if x[0] < 0:
+        #         coast = coast+1
+        #         continue
+        #     if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
+        #         large = large+1
+        #         continue
         #     if x[0] > 0:
         #         valid = valid+1
         #         x[0] = x[0]/10
         #         x[1] = x[1]/10
         #         x[2] = x[2]/10
         #         print("{} -> {}".format(i, x))
-        #         X.append(content[i][0])
-        #         Y.append(content[i][1])
-        #         U.append(x[1])
-        #         V.append(x[2])
+        #
+        # logger.debug('total = {}, coast = {}, large = {}, valid = {}'.format(total, coast, large, valid))
 
-        logger.debug('total = {}, coast = {}, large = {}, valid = {}'.format(total, coast, large, valid))
+        data = np.fromfile(test_dataset_filepath, dtype='<i2').reshape(321, 321, 3)
+        self.u_wind = data[..., 1]/10
+        self.v_wind = data[..., 2]/10
 
-        print(len(content))
-        print(len(file_contents)/6)
         import matplotlib.pyplot as plt
-        plt.quiver(U[::4, ::4], V[::4, ::4])
+        self.u_wind[self.u_wind == 0] = np.nan
+        self.v_wind[self.u_wind == 0] = np.nan
+        plt.quiver(self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width', width=0.001, scale=1000)
         plt.gca().invert_yaxis()
         plt.show()
 
