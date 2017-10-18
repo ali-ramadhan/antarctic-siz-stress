@@ -193,12 +193,12 @@ class MeanDynamicTopographyDataReader(object):
 
 
 class SeaIceConcentrationDataReader(object):
-    sea_ice_dir_path = path.join(data_dir_path, 'NOAA_NSIDC_G02202_V3_SEA_ICE_CONCENTRATION', 'south', 'daily')
+    sic_data_dir_path = path.join(data_dir_path, 'NOAA_NSIDC_G02202_V3_SEA_ICE_CONCENTRATION', 'south', 'daily')
 
     def date_to_SIC_dataset_filepath(self, date):
         filename = 'seaice_conc_daily_sh_f17_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
                    + '_v03r00.nc'
-        return path.join(self.sea_ice_dir_path, str(date.year), filename)
+        return path.join(self.sic_data_dir_path, str(date.year), filename)
 
     def load_SIC_dataset(self, date):
         dataset_filepath = self.date_to_SIC_dataset_filepath(date)
@@ -211,6 +211,8 @@ class SeaIceConcentrationDataReader(object):
     def __init__(self, date=None):
         if date is None:
             logger.info('SeaIceConcentrationDataReader object initialized but no dataset was loaded.')
+            self.current_SIC_dataset = None
+            self.current_date = None
         else:
             logger.info('SeaIceConcentrationDataReader object initializing...')
             self.current_SIC_dataset = self.load_SIC_dataset(date)
@@ -238,37 +240,45 @@ class SeaIceConcentrationDataReader(object):
             logger.debug("idx_x = %d, idx_y = %d", idx_x, idx_y)
             logger.debug("lat_xy = %f, lon_xy = %f (from SIC dataset)", lat_xy, lon_xy)
 
+        # TODO: check for masked values, etc.
         return self.current_SIC_dataset.variables['goddard_nt_seaice_conc'][0][idx_y][idx_x]
 
 
-class WindDataset(object):
-    wind_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
+class OceanSurfaceWindVectorDataReader(object):
+    oswv_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
 
-    def date2filepath(self, date):
+    def date_to_OSWV_dataset_filepath(self, date):
         filename = 'analysis_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2) + '_v11l30flk.nc'
-        return path.join(self.wind_dir_path, str(date.year), str(date.month).zfill(2), filename)
+        return path.join(self.oswv_data_dir_path, str(date.year), str(date.month).zfill(2), filename)
 
-    def __init__(self):
-        test_dataset_date = datetime.date(2011, 12, 31)
-        test_dataset_filepath = self.date2filepath(test_dataset_date)
-        logger.info('WindDataset class initializing. Loading sample wind vector dataset: %s', test_dataset_filepath)
-        self.wind_dataset = netCDF4.Dataset(test_dataset_filepath)
-        self.wind_dataset.set_auto_mask(False)  # TODO: Why is most of the data masked?
+    def load_OSWV_dataset(self, date):
+        dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
+        logger.info('Loading ocean surface wind vector dataset: %s', dataset_filepath)
+        dataset = netCDF4.Dataset(dataset_filepath)
+        dataset.set_auto_mask(False)  # TODO: Why is most of the data masked?
+        logger.info('Successfully ocean surface wind vector dataset: %s', dataset_filepath)
+        log_netCDF_dataset_metadata(dataset)
+        return dataset
 
-        logger.info('Successfully loaded sample wind vector dataset: %s', test_dataset_filepath)
-        logger.info('Title: %s', self.wind_dataset.title)
-        logger.info('Data model: %s', self.wind_dataset.data_model)
+    def __init__(self, date=None):
+        if date is None:
+            logger.info('OceanSurfaceWindVectorDataReader object initialized but no dataset was loaded.')
+            self.current_OSWV_dataset = None
+            self.current_date = None
+        else:
+            logger.info('OceanSurfaceWindVectorDataReader object initializing...')
+            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            self.current_date = date
 
-        # Nicely display dimension names and sizes in log.
-        dim_string = ""
-        for dim in self.wind_dataset.dimensions:
-            dim_name = self.wind_dataset.dimensions[dim].name
-            dim_size = self.wind_dataset.dimensions[dim].size
-            dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
-        logger.info('Dimensions: %s', dim_string)
+    def ocean_surface_wind_vector(self, lat, lon, date):
+        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
+        assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
-    def surface_wind_vector(self, lat, lon, day):
-        # TODO: Add date + time lookup functionality.
+        if date != self.current_date:
+            logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
+            logger.info('Changing OSWV dataset...')
+            self.load_OSWV_dataset(date)
+
         idx_lat = np.abs(np.array(self.wind_dataset.variables['lat']) - lat).argmin()
         idx_lon = np.abs(np.array(self.wind_dataset.variables['lon']) - lon).argmin()
 
