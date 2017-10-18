@@ -192,52 +192,53 @@ class MeanDynamicTopographyDataReader(object):
         return np.array([u_geo_u, u_geo_v])
 
 
-class SeaIceDataset(object):
+class SeaIceConcentrationDataReader(object):
     sea_ice_dir_path = path.join(data_dir_path, 'NOAA_NSIDC_G02202_V3_SEA_ICE_CONCENTRATION', 'south', 'daily')
 
-    def date2filepath(self, date):
+    def date_to_SIC_dataset_filepath(self, date):
         filename = 'seaice_conc_daily_sh_f17_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
                    + '_v03r00.nc'
         return path.join(self.sea_ice_dir_path, str(date.year), filename)
 
-    def __init__(self):
-        test_dataset_date = datetime.date(2015, 7, 31)
-        test_dataset_filepath = self.date2filepath(test_dataset_date)
-        logger.info('Sea ice class initializing. Loading sample sea ice dataset: %s', test_dataset_filepath)
-        self.sea_ice_dataset = netCDF4.Dataset(test_dataset_filepath)
+    def load_SIC_dataset(self, date):
+        dataset_filepath = self.date_to_SIC_dataset_filepath(date)
+        logger.info('Loading sea ice concentration dataset: %s', dataset_filepath)
+        dataset = netCDF4.Dataset(dataset_filepath)
+        logger.info('Successfully loaded sea ice concentration dataset: %s', dataset_filepath)
+        log_netCDF_dataset_metadata(dataset)
+        return dataset
 
-        logger.info('Successfully loaded sample sea ice dataset: %s', test_dataset_filepath)
-        logger.info('Title: %s', self.sea_ice_dataset.title)
-        logger.info('Data model: %s', self.sea_ice_dataset.data_model)
+    def __init__(self, date=None):
+        if date is None:
+            logger.info('SeaIceConcentrationDataReader object initialized but no dataset was loaded.')
+        else:
+            logger.info('SeaIceConcentrationDataReader object initializing...')
+            self.current_SIC_dataset = self.load_SIC_dataset(date)
+            self.current_date = date
 
-        # Nicely display dimension names and sizes in log.
-        dim_string = ""
-        for dim in self.sea_ice_dataset.dimensions:
-            dim_name = self.sea_ice_dataset.dimensions[dim].name
-            dim_size = self.sea_ice_dataset.dimensions[dim].size
-            dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
-        logger.info('Dimensions: %s', dim_string)
-
-    def sea_ice_concentration(self, lat, lon, day):
-        # TODO: time-dependent lookup.
+    def sea_ice_concentration(self, lat, lon, date):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
+        if date != self.current_date:
+            logger.info('SIC at different date requested: {} -> {}.'.format(self.current_date, date))
+            logger.info('Changing SIC dataset...')
+            self.load_SIC_dataset(date)
+
         x, y = latlon_to_polar_stereographic_xy(lat, lon)
-        idx_x = np.abs(np.array(self.sea_ice_dataset.variables['xgrid']) - x).argmin()
-        idx_y = np.abs(np.array(self.sea_ice_dataset.variables['ygrid']) - y).argmin()
-        lat_xy = self.sea_ice_dataset.variables['latitude'][idx_y][idx_x]
-        lon_xy = self.sea_ice_dataset.variables['longitude'][idx_y][idx_x]
+        idx_x = np.abs(np.array(self.current_SIC_dataset.variables['xgrid']) - x).argmin()
+        idx_y = np.abs(np.array(self.current_SIC_dataset.variables['ygrid']) - y).argmin()
+        lat_xy = self.current_SIC_dataset.variables['latitude'][idx_y][idx_x]
+        lon_xy = self.current_SIC_dataset.variables['longitude'][idx_y][idx_x]
 
-        # TODO: Add a logger.warning if lat_xy, lon_xy don't match lat, lon very closely.
-        logger.debug("lat = %f, lon = %f", lat, lon)
-        logger.debug("x = %f, y = %f", x, y)
-        logger.debug("idx_x = %d, idx_y = %d", idx_x, idx_y)
-        logger.debug("lat_xy = %f, lon_xy = %f", lat_xy, lon_xy)
+        if np.abs(lat - lat_xy) > 0.5 or np.abs(lon - lon_xy) > 0.5:
+            logger.warning('Lat or lon obtained from SIC dataset differ by more than 0.5 deg from input lat/lon!')
+            logger.debug("lat = %f, lon = %f (input)", lat, lon)
+            logger.debug("x = %f, y = %f (polar stereographic)", x, y)
+            logger.debug("idx_x = %d, idx_y = %d", idx_x, idx_y)
+            logger.debug("lat_xy = %f, lon_xy = %f (from SIC dataset)", lat_xy, lon_xy)
 
-        sea_ice_alpha = self.sea_ice_dataset.variables['goddard_nt_seaice_conc'][0][idx_y][idx_x]
-
-        return sea_ice_alpha
+        return self.current_SIC_dataset.variables['goddard_nt_seaice_conc'][0][idx_y][idx_x]
 
 
 class WindDataset(object):
