@@ -388,10 +388,10 @@ class OceanSurfaceWindVectorDataReader(object):
             raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
 
-class SeaIceMotionDataset(object):
+class SeaIceMotionDataReader(object):
     seaice_drift_path = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
 
-    def date2filepath(self, date):
+    def date_to_SIM_filepath(self, date):
         filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday) + '.s.v3.bin'
         # filename = 'icemotion.grid.daily.' + str(date.year) + '170.s.v3.bin'
         return path.join(self.seaice_drift_path, str(date.year), filename)
@@ -404,17 +404,20 @@ class SeaIceMotionDataset(object):
             self.south_grid = f.readlines()
             self.south_grid = [s.strip().split() for s in self.south_grid]
             for i in range(len(self.south_grid)):
-                self.south_grid[i] = [int(self.south_grid[i][0]), int(self.south_grid[i][1]),
-                                      float(self.south_grid[i][2]), float(self.south_grid[i][3])]
+                self.south_grid[i] = [int(self.south_grid[i][0]), int(self.south_grid[i][1]),  # x, y
+                                      float(self.south_grid[i][2]), float(self.south_grid[i][3])]  # lat, lon
+
+        self.south_grid_lats = 321
+        self.south_grid_lons = 321
 
         test_dataset_date = datetime.date(2015, 6, 29)
-        test_dataset_filepath = self.date2filepath(test_dataset_date)
+        test_dataset_filepath = self.date_to_SIM_filepath(test_dataset_date)
 
-        logger.debug('Reading in sea ice drift dataset: {}'.format(test_dataset_filepath))
-        with open(test_dataset_filepath, mode='rb') as file:
-            file_contents = file.read()
-
-        logger.info('Successfully read sea ice drift data.')
+        # logger.debug('Reading in sea ice drift dataset: {}'.format(test_dataset_filepath))
+        # with open(test_dataset_filepath, mode='rb') as file:
+        #     file_contents = file.read()
+        #
+        # logger.info('Successfully read sea ice drift data.')
 
         # I thought we had to uninterleave the NSIDC ice motion binary data files according to the dataset's user guide.
         # logger.info('Uninterleaving NSIDC ice motion binary data file...')
@@ -456,10 +459,30 @@ class SeaIceMotionDataset(object):
         #
         # logger.debug('total = {}, coast = {}, large = {}, valid = {}'.format(total, coast, large, valid))
 
+        logger.debug('Reading in sea ice motion dataset: {}'.format(test_dataset_filepath))
         data = np.fromfile(test_dataset_filepath, dtype='<i2').reshape(321, 321, 3)
-        self.u_wind = data[..., 1]/10
-        self.v_wind = data[..., 2]/10
-        self.wind_error = data[..., 0]/10
+        logger.info('Successfully read sea ice motion data.')
+
+        u_wind = data[..., 1]/10  # [cm/s]
+        v_wind = data[..., 2]/10  # [cm/s]
+        wind_error = data[..., 0]/10  # [???]
+
+        logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup...')
+        self.u_wind = np.zeros((self.south_grid_lats, self.south_grid_lons), dtype=float)
+        self.v_wind = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.wind_error = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.lat = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.lon = np.zeros((self.south_grid_lats, self.south_grid_lons))
+
+        for i in range(self.south_grid_lats):
+            for j in range(self.south_grid_lons):
+                self.u_wind[i][j] = u_wind[i][j]
+                self.v_wind[i][j] = v_wind[i][j]
+                self.wind_error[i][j] = wind_error[i][j]
+                self.lat[i][j] = self.south_grid[i * self.south_grid_lats + j][2]
+                self.lon[i][j] = self.south_grid[i * self.south_grid_lats + j][3]
+
+        logger.debug('Lookup arrays built.')
 
         import matplotlib.pyplot as plt
         self.u_wind[self.u_wind == 0] = np.nan
@@ -499,4 +522,4 @@ if __name__ == '__main__':
     wind_vectors = OceanSurfaceWindVectorDataReader()
     print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2015, 10, 10)))
 
-    # seaice_drift = SeaIceMotionDataset()
+    seaice_drift = SeaIceMotionDataReader()
