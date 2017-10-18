@@ -3,6 +3,7 @@
 # TODO: Split into multiple files.
 # TODO: Switch from printf style logging to Python3 style formatting.
 # TODO: Use propoer docstrings for functions.
+# TODO: Choose a lat/lon convention for the frontend and convert as required for each product.
 
 # Python standard library
 import datetime
@@ -322,9 +323,6 @@ class OceanSurfaceWindVectorDataReader(object):
                 raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
     def ocean_surface_wind_vector(self, lat, lon, date):
-        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
-        assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
-
         if self.current_OSWV_dataset is None:
             logger.info('ocean_surface_wind_vector called with no current dataset loaded.')
             logger.info('Loading ocean surface wind vector dataset for date requested: {}'.format(date))
@@ -352,6 +350,9 @@ class OceanSurfaceWindVectorDataReader(object):
                 raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
         if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+            assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
+            assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
+
             day_of_year = date.timetuple().tm_yday
             idx_lat = np.abs(np.array(self.current_uwind_dataset.variables['lat']) - lat).argmin()
             idx_lon = np.abs(np.array(self.current_uwind_dataset.variables['lon']) - lon).argmin()
@@ -367,6 +368,9 @@ class OceanSurfaceWindVectorDataReader(object):
 
             return np.array([u_wind, v_wind])
         elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+            assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
+            assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
+
             idx_lat = np.abs(np.array(self.current_OSWV_dataset.variables['lat']) - lat).argmin()
             idx_lon = np.abs(np.array(self.current_OSWV_dataset.variables['lon']) - lon).argmin()
 
@@ -469,6 +473,13 @@ class SeaIceMotionDataset(object):
 
 
 class SeaSurfaceHeightAnomalyDataReader(object):
+    # Empty until I need SSH' to compute dynamic ocean topography and dynamic geostrophic currents.
+    pass
+
+
+class WindStressDataWriter(object):
+    # Such an object should mainly compute daily (averaged) wind stress and wind stress curl fields and write them out
+    # to netCDF files. Computing monthly means makes sense here. But plotting should go elsewhere.
     pass
 
 
@@ -489,4 +500,3 @@ if __name__ == '__main__':
     print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2015, 10, 10)))
 
     # seaice_drift = SeaIceMotionDataset()
-    # TEST
