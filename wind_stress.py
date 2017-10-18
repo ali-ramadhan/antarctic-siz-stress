@@ -303,7 +303,7 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.error('Invalid value for current_product: {}'.format(self.current_product))
             raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
-    def __init__(self, date=None, product=OSWVProduct.CCMP):
+    def __init__(self, date=None, product=OSWVProduct.NCEP):
         if date is None:
             logger.info('OceanSurfaceWindVectorDataReader object initialized but no dataset was loaded.')
             self.current_product = product
@@ -328,15 +328,44 @@ class OceanSurfaceWindVectorDataReader(object):
         if self.current_OSWV_dataset is None:
             logger.info('ocean_surface_wind_vector called with no current dataset loaded.')
             logger.info('Loading ocean surface wind vector dataset for date requested: {}'.format(date))
-            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            self.current_date = date
+
+            if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+            elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            else:
+                logger.error('Invalid value for current_product: {}'.format(self.current_product))
+                raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
         if date != self.current_date:
             logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
             logger.info('Changing OSWV dataset...')
-            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            self.current_date = date
+
+            if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+            elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            else:
+                logger.error('Invalid value for current_product: {}'.format(self.current_product))
+                raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
         if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
-            pass
+            day_of_year = date.timetuple().tm_yday
+            idx_lat = np.abs(np.array(self.current_uwind_dataset.variables['lat']) - lat).argmin()
+            idx_lon = np.abs(np.array(self.current_uwind_dataset.variables['lon']) - lon).argmin()
+
+            logger.debug("lat = %f, lon = %f", lat, lon)
+            logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
+            logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.current_uwind_dataset.variables['lat'][idx_lat],
+                         self.current_uwind_dataset.variables['lon'][idx_lon])
+            logger.debug('time = {}'.format(self.current_uwind_dataset.variables['time'][day_of_year]))
+
+            u_wind = self.current_uwind_dataset.variables['uwnd'][day_of_year][idx_lat][idx_lon]
+            v_wind = self.current_vwind_dataset.variables['vwnd'][day_of_year][idx_lat][idx_lon]
+
+            return np.array([u_wind, v_wind])
         elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
             idx_lat = np.abs(np.array(self.current_OSWV_dataset.variables['lat']) - lat).argmin()
             idx_lon = np.abs(np.array(self.current_OSWV_dataset.variables['lon']) - lon).argmin()
@@ -457,6 +486,7 @@ if __name__ == '__main__':
     # print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
 
     wind_vectors = OceanSurfaceWindVectorDataReader()
-    print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
+    print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2015, 10, 10)))
 
     # seaice_drift = SeaIceMotionDataset()
+    # TEST
