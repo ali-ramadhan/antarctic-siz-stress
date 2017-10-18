@@ -279,25 +279,25 @@ class OceanSurfaceWindVectorDataReader(object):
             dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
             logger.info('Loading ocean surface wind vector dataset: %s', dataset_filepath)
             dataset = netCDF4.Dataset(dataset_filepath)
-            dataset.set_auto_mask(False)  # TODO: Why is most of the data masked?
+            dataset.set_auto_mask(False)  # TODO: Why is most of the CCMP wind data masked?
             logger.info('Successfully ocean surface wind vector dataset: %s', dataset_filepath)
             log_netCDF_dataset_metadata(dataset)
             return dataset
         else:
-            logger.error('Invalid Enum value for current_product: {}'.format(self.current_product))
-            raise ValueError('Invalid Enum value for current_product: {}'.format(self.current_product))
+            logger.error('Invalid value for current_product: {}'.format(self.current_product))
+            raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
     def __init__(self, date=None, product=OSWVProduct.CCMP):
         if date is None:
             logger.info('OceanSurfaceWindVectorDataReader object initialized but no dataset was loaded.')
-            self.current_OSWV_dataset = None
-            self.current_date = None
             self.current_product = product
+            self.current_date = None
+            self.current_OSWV_dataset = None
         else:
             logger.info('OceanSurfaceWindVectorDataReader object initializing...')
-            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
-            self.current_date = date
             self.current_product = product
+            self.current_date = date
+            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
 
     def ocean_surface_wind_vector(self, lat, lon, date):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
@@ -313,18 +313,24 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.info('Changing OSWV dataset...')
             self.current_OSWV_dataset = self.load_OSWV_dataset(date)
 
-        idx_lat = np.abs(np.array(self.current_OSWV_dataset.variables['lat']) - lat).argmin()
-        idx_lon = np.abs(np.array(self.current_OSWV_dataset.variables['lon']) - lon).argmin()
+        if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+            pass
+        elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+            idx_lat = np.abs(np.array(self.current_OSWV_dataset.variables['lat']) - lat).argmin()
+            idx_lon = np.abs(np.array(self.current_OSWV_dataset.variables['lon']) - lon).argmin()
 
-        logger.debug("lat = %f, lon = %f", lat, lon)
-        logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.current_OSWV_dataset.variables['lat'][idx_lat],
-                     self.current_OSWV_dataset.variables['lon'][idx_lon])
+            logger.debug("lat = %f, lon = %f", lat, lon)
+            logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
+            logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.current_OSWV_dataset.variables['lat'][idx_lat],
+                         self.current_OSWV_dataset.variables['lon'][idx_lon])
 
-        u_wind = self.current_OSWV_dataset.variables['uwnd'][0][idx_lat][idx_lon]
-        v_wind = self.current_OSWV_dataset.variables['vwnd'][0][idx_lat][idx_lon]
+            u_wind = self.current_OSWV_dataset.variables['uwnd'][0][idx_lat][idx_lon]
+            v_wind = self.current_OSWV_dataset.variables['vwnd'][0][idx_lat][idx_lon]
 
-        return np.array([u_wind, v_wind])
+            return np.array([u_wind, v_wind])
+        else:
+            logger.error('Invalid value for current_product: {}'.format(self.current_product))
+            raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
 
 class SeaIceMotionDataset(object):
