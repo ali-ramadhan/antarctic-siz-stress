@@ -256,6 +256,7 @@ class SeaIceConcentrationDataReader(object):
 
 class OceanSurfaceWindVectorDataReader(object):
     oswv_ccmp_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
+    oswv_ncep_data_dir_path = path.join(data_dir_path, 'ncep.reanalysis.dailyavgs', 'surface_gauss')
 
     class OSWVProduct(Enum):
         NCEP = 1  # NCEP/NCAR Reanalysis 1 project wind data
@@ -263,7 +264,9 @@ class OceanSurfaceWindVectorDataReader(object):
 
     def date_to_OSWV_dataset_filepath(self, date):
         if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
-            pass
+            uwind_filepath = path.join(self.oswv_ncep_data_dir_path, 'uwnd.10m.gauss.' + str(date.year) + '.nc')
+            vwind_filepath = path.join(self.oswv_ncep_data_dir_path, 'vwnd.10m.gauss.' + str(date.year) + '.nc')
+            return uwind_filepath, vwind_filepath
         elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
             filename = 'analysis_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
                        + '_v11l30flk.nc'
@@ -274,13 +277,26 @@ class OceanSurfaceWindVectorDataReader(object):
 
     def load_OSWV_dataset(self, date):
         if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
-            pass
+            uwind_dataset_filepath, vwind_dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
+            logger.info('Loading ocean surface wind vector NCEP datasets...', )
+
+            logger.info('Loading NCEP uwind dataset: {}'.format(uwind_dataset_filepath))
+            uwind_dataset = netCDF4.Dataset(uwind_dataset_filepath)
+            logger.info('Successfully loaded NCEP uwind dataset: %s', uwind_dataset_filepath)
+            log_netCDF_dataset_metadata(uwind_dataset)
+
+            logger.info('Loading NCEP vwind dataset: {}'.format(vwind_dataset_filepath))
+            vwind_dataset = netCDF4.Dataset(vwind_dataset_filepath)
+            logger.info('Successfully loaded NCEP vwind dataset: %s', vwind_dataset_filepath)
+            log_netCDF_dataset_metadata(vwind_dataset)
+
+            return uwind_dataset, vwind_dataset
         elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
             dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
-            logger.info('Loading ocean surface wind vector dataset: %s', dataset_filepath)
+            logger.info('Loading ocean surface wind vector CCMP dataset: %s', dataset_filepath)
             dataset = netCDF4.Dataset(dataset_filepath)
             dataset.set_auto_mask(False)  # TODO: Why is most of the CCMP wind data masked?
-            logger.info('Successfully ocean surface wind vector dataset: %s', dataset_filepath)
+            logger.info('Successfully ocean surface wind vector CCMP dataset: %s', dataset_filepath)
             log_netCDF_dataset_metadata(dataset)
             return dataset
         else:
@@ -297,7 +313,13 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.info('OceanSurfaceWindVectorDataReader object initializing...')
             self.current_product = product
             self.current_date = date
-            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+            elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            else:
+                logger.error('Invalid value for current_product: {}'.format(self.current_product))
+                raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
     def ocean_surface_wind_vector(self, lat, lon, date):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
