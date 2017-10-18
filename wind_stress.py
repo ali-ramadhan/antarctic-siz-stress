@@ -4,10 +4,13 @@
 # TODO: Switch from printf style logging to Python3 style formatting.
 # TODO: Use propoer docstrings for functions.
 
+# Python standard library
+import datetime
+from enum import Enum
+
+# Third party libraries
 import numpy as np
 import netCDF4
-
-import datetime
 
 from os import path
 import logging.config
@@ -222,10 +225,17 @@ class SeaIceConcentrationDataReader(object):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
+        if self.current_SIC_dataset is None:
+            logger.info('sea_ice_concentration called with no current dataset loaded.')
+            logger.info('Loading sea ice concentration dataset for date requested: {}'.format(date))
+            self.current_SIC_dataset = self.load_SIC_dataset(date)
+            self.current_date = date
+
         if date != self.current_date:
             logger.info('SIC at different date requested: {} -> {}.'.format(self.current_date, date))
             logger.info('Changing SIC dataset...')
-            self.load_SIC_dataset(date)
+            self.current_SIC_dataset = self.load_SIC_dataset(date)
+            self.current_date = date
 
         x, y = latlon_to_polar_stereographic_xy(lat, lon)
         idx_x = np.abs(np.array(self.current_SIC_dataset.variables['xgrid']) - x).argmin()
@@ -245,50 +255,74 @@ class SeaIceConcentrationDataReader(object):
 
 
 class OceanSurfaceWindVectorDataReader(object):
-    oswv_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
+    oswv_ccmp_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
+
+    class OSWVProduct(Enum):
+        NCEP = 1  # NCEP/NCAR Reanalysis 1 project wind data
+        CCMP = 2  # Cross-Calibrated Multi-Platform Ocean Surface Wind Vector L3.0 First-Look Analyses
 
     def date_to_OSWV_dataset_filepath(self, date):
-        filename = 'analysis_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2) + '_v11l30flk.nc'
-        return path.join(self.oswv_data_dir_path, str(date.year), str(date.month).zfill(2), filename)
+        if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+            pass
+        elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+            filename = 'analysis_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
+                       + '_v11l30flk.nc'
+            return path.join(self.oswv_ccmp_data_dir_path, str(date.year), str(date.month).zfill(2), filename)
+        else:
+            logger.error('Invalid Enum value for current_product: {}'.format(self.current_product))
+            raise ValueError('Invalid Enum value for current_product: {}'.format(self.current_product))
 
     def load_OSWV_dataset(self, date):
-        dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
-        logger.info('Loading ocean surface wind vector dataset: %s', dataset_filepath)
-        dataset = netCDF4.Dataset(dataset_filepath)
-        dataset.set_auto_mask(False)  # TODO: Why is most of the data masked?
-        logger.info('Successfully ocean surface wind vector dataset: %s', dataset_filepath)
-        log_netCDF_dataset_metadata(dataset)
-        return dataset
+        if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+            pass
+        elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+            dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
+            logger.info('Loading ocean surface wind vector dataset: %s', dataset_filepath)
+            dataset = netCDF4.Dataset(dataset_filepath)
+            dataset.set_auto_mask(False)  # TODO: Why is most of the data masked?
+            logger.info('Successfully ocean surface wind vector dataset: %s', dataset_filepath)
+            log_netCDF_dataset_metadata(dataset)
+            return dataset
+        else:
+            logger.error('Invalid Enum value for current_product: {}'.format(self.current_product))
+            raise ValueError('Invalid Enum value for current_product: {}'.format(self.current_product))
 
-    def __init__(self, date=None):
+    def __init__(self, date=None, product=OSWVProduct.CCMP):
         if date is None:
             logger.info('OceanSurfaceWindVectorDataReader object initialized but no dataset was loaded.')
             self.current_OSWV_dataset = None
             self.current_date = None
+            self.current_product = product
         else:
             logger.info('OceanSurfaceWindVectorDataReader object initializing...')
             self.current_OSWV_dataset = self.load_OSWV_dataset(date)
             self.current_date = date
+            self.current_product = product
 
     def ocean_surface_wind_vector(self, lat, lon, date):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
+        if self.current_OSWV_dataset is None:
+            logger.info('ocean_surface_wind_vector called with no current dataset loaded.')
+            logger.info('Loading ocean surface wind vector dataset for date requested: {}'.format(date))
+            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+
         if date != self.current_date:
             logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
             logger.info('Changing OSWV dataset...')
-            self.load_OSWV_dataset(date)
+            self.current_OSWV_dataset = self.load_OSWV_dataset(date)
 
-        idx_lat = np.abs(np.array(self.wind_dataset.variables['lat']) - lat).argmin()
-        idx_lon = np.abs(np.array(self.wind_dataset.variables['lon']) - lon).argmin()
+        idx_lat = np.abs(np.array(self.current_OSWV_dataset.variables['lat']) - lat).argmin()
+        idx_lon = np.abs(np.array(self.current_OSWV_dataset.variables['lon']) - lon).argmin()
 
         logger.debug("lat = %f, lon = %f", lat, lon)
         logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.wind_dataset.variables['lat'][idx_lat],
-                     self.wind_dataset.variables['lon'][idx_lon])
+        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.current_OSWV_dataset.variables['lat'][idx_lat],
+                     self.current_OSWV_dataset.variables['lon'][idx_lon])
 
-        u_wind = self.wind_dataset.variables['uwnd'][0][idx_lat][idx_lon]
-        v_wind = self.wind_dataset.variables['vwnd'][0][idx_lat][idx_lon]
+        u_wind = self.current_OSWV_dataset.variables['uwnd'][0][idx_lat][idx_lon]
+        v_wind = self.current_OSWV_dataset.variables['vwnd'][0][idx_lat][idx_lon]
 
         return np.array([u_wind, v_wind])
 
@@ -382,19 +416,19 @@ class SeaSurfaceHeightAnomalyDataReader(object):
 
 
 if __name__ == '__main__':
-    dist = distance(24, 25, 26, 27)
-    logger.info("That distance is %f m or %f km.", dist, dist/1000)
+    # dist = distance(24, 25, 26, 27)
+    # logger.info("That distance is %f m or %f km.", dist, dist/1000)
 
-    MDT = MeanDynamicTopographyDataReader()
-    print(MDT.get_MDT(-60, 135+180))
-    print(MDT.u_geo_mean(-60, 135+180))
+    # MDT = MeanDynamicTopographyDataReader()
+    # print(MDT.get_MDT(-60, 135+180))
+    # print(MDT.u_geo_mean(-60, 135+180))
 
-    sea_ice = SeaIceDataset()
-    print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
-    print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
-    print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
-    #
-    # wind_vectors = WindDataset()
-    # print(wind_vectors.surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
-    #
+    # sea_ice = SeaIceConcentrationDataReader()
+    # print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
+    # print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
+    # print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
+
+    wind_vectors = OceanSurfaceWindVectorDataReader()
+    print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2011, 12, 31)))
+
     # seaice_drift = SeaIceMotionDataset()
