@@ -34,7 +34,7 @@ Omega = 7.292115e-5  # rotation rate of the Earth [rad/s]
 
 # Earth radius R could be upgraded to be location-dependent using a simple formula.
 # See: https://en.wikipedia.org/wiki/Earth_radius#Location-dependent_radii
-R = 6371e3  # average radius of the earth [m]
+R = 6371.228e3  # average radius of the earth [m]
 
 
 def distance(ϕ1, λ1, ϕ2, λ2):
@@ -396,17 +396,20 @@ class SeaIceMotionDataReader(object):
         # filename = 'icemotion.grid.daily.' + str(date.year) + '170.s.v3.bin'
         return path.join(self.seaice_drift_path, str(date.year), filename)
 
-    def __init__(self):
+    def load_south_grid(self):
         # Load in the NSIDC grid for the southern hemisphere. It stores the (x,y) polar stereographic coordinates for
         # each grid point and its corresponding (lat,lon).
         grid_filename = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'tools', 'south_x_y_lat_lon.txt')
         with open(grid_filename) as f:
-            self.south_grid = f.readlines()
-            self.south_grid = [s.strip().split() for s in self.south_grid]
-            for i in range(len(self.south_grid)):
-                self.south_grid[i] = [int(self.south_grid[i][0]), int(self.south_grid[i][1]),  # x, y
-                                      float(self.south_grid[i][2]), float(self.south_grid[i][3])]  # lat, lon
+            south_grid = f.readlines()
+            south_grid = [s.strip().split() for s in south_grid]
+            for i in range(len(south_grid)):
+                south_grid[i] = [int(south_grid[i][0]), int(south_grid[i][1]),  # x, y
+                                 float(south_grid[i][2]), float(south_grid[i][3])]  # lat, lon
+                return south_grid
 
+    def __init__(self):
+        self.south_grid = self.load_south_grid()
         self.south_grid_lats = 321
         self.south_grid_lons = 321
 
@@ -471,6 +474,8 @@ class SeaIceMotionDataReader(object):
         self.u_wind = np.zeros((self.south_grid_lats, self.south_grid_lons), dtype=float)
         self.v_wind = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.wind_error = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.x = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.y = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.lat = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.lon = np.zeros((self.south_grid_lats, self.south_grid_lons))
 
@@ -481,18 +486,43 @@ class SeaIceMotionDataReader(object):
                 self.wind_error[i][j] = wind_error[i][j]
                 self.lat[i][j] = self.south_grid[i * self.south_grid_lats + j][2]
                 self.lon[i][j] = self.south_grid[i * self.south_grid_lats + j][3]
+                self.x[i][j] = self.south_grid[i * self.south_grid_lats + j][0]
+                self.y[i][j] = self.south_grid[i * self.south_grid_lats + j][1]
 
         logger.debug('Lookup arrays built.')
 
         import matplotlib.pyplot as plt
         self.u_wind[self.u_wind == 0] = np.nan
         self.v_wind[self.u_wind == 0] = np.nan
-        plt.quiver(self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width', width=0.001, scale=1000)
+        plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width', width=0.001, scale=1000)
         plt.gca().invert_yaxis()
         plt.show()
 
     def seaice_drift_vector(self, lat, lon, day):
-        pass
+        C = 25e3  # nominal cell size [m]
+        r0 = 160.0  # map origin column
+        s0 = 160.0  # map origin row
+
+        logger.debug('lat = {}, lon = {}'.format(lat, lon))
+        lat, lon = np.deg2rad([lat, lon])
+
+        # EASE-Grid coordinate transformation
+        # http: // nsidc.org / data / ease / ease_grid.html
+        # h = np.cos(np.pi/4 - lat/2)  # Particular scale along meridians
+        # k = np.csc(np.pi/4 - lat/2)  # Particular scale along parallels
+        col = 2*R/C * np.sin(lon) * np.cos(np.pi/4 - lat/2) + r0
+        row = -2*R/C * np.cos(lon) * np.cos(np.pi/4 - lat/2) + s0
+
+        row, col = int(row), int(col)
+        u_wind = self.u_wind[row][col]
+        v_wind = self.v_wind[row][col]
+        lat_rc = self.lat[row][col]
+        lon_rc = self.lon[row][col]
+
+        logger.debug('lat = {}, lon = {}'.format(lat, lon))
+        logger.debug('row = {}, col = {}'.format(row, col))
+        logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
+        logger.debug('u_wind = {}, v_wind = {}'.format(u_wind, v_wind))
 
 
 class SeaSurfaceHeightAnomalyDataReader(object):
@@ -523,3 +553,4 @@ if __name__ == '__main__':
     print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2015, 10, 10)))
 
     seaice_drift = SeaIceMotionDataReader()
+    print(seaice_drift.seaice_drift_vector(-60, 20, datetime.date(2015, 1, 1)))
