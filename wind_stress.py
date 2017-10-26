@@ -406,7 +406,8 @@ class SeaIceMotionDataReader(object):
             for i in range(len(south_grid)):
                 south_grid[i] = [int(south_grid[i][0]), int(south_grid[i][1]),  # x, y
                                  float(south_grid[i][2]), float(south_grid[i][3])]  # lat, lon
-                return south_grid
+
+        return south_grid
 
     def __init__(self):
         self.south_grid = self.load_south_grid()
@@ -491,12 +492,12 @@ class SeaIceMotionDataReader(object):
 
         logger.debug('Lookup arrays built.')
 
-        import matplotlib.pyplot as plt
-        self.u_wind[self.u_wind == 0] = np.nan
-        self.v_wind[self.u_wind == 0] = np.nan
-        plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width', width=0.001, scale=1000)
-        plt.gca().invert_yaxis()
-        plt.show()
+        # import matplotlib.pyplot as plt
+        # self.u_wind[self.u_wind == 0] = np.nan
+        # self.v_wind[self.u_wind == 0] = np.nan
+        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width', width=0.001, scale=1000)
+        # plt.gca().invert_yaxis()
+        # plt.show()
 
     def seaice_drift_vector(self, lat, lon, day):
         C = 25e3  # nominal cell size [m]
@@ -519,7 +520,6 @@ class SeaIceMotionDataReader(object):
         lat_rc = self.lat[row][col]
         lon_rc = self.lon[row][col]
 
-        logger.debug('lat = {}, lon = {}'.format(lat, lon))
         logger.debug('row = {}, col = {}'.format(row, col))
         logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
         logger.debug('u_wind = {}, v_wind = {}'.format(u_wind, v_wind))
