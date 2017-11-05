@@ -1,13 +1,13 @@
-from os import path
+# Configure logger first before importing any sub-module that depend on the logger being already configured.
 import logging
+logger = logging.getLogger(__name__)
 
+from os import path
 import numpy as np
 import netCDF4
 
 from constants import data_dir_path, Omega, g
 from utils import distance, log_netCDF_dataset_metadata
-
-logger = logging.getLogger(__name__)
 
 
 class MeanDynamicTopographyDataReader(object):

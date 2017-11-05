@@ -1,3 +1,15 @@
+# Configure logger first before importing any sub-module that depend on the logger being already configured.
+import logging
+logger = logging.getLogger(__name__)
+
+from os import path
+import numpy as np
+import netCDF4
+
+from constants import data_dir_path
+from utils import log_netCDF_dataset_metadata, latlon_to_polar_stereographic_xy
+
+
 class SeaIceConcentrationDataReader(object):
     sic_data_dir_path = path.join(data_dir_path, 'NOAA_NSIDC_G02202_V3_SEA_ICE_CONCENTRATION', 'south', 'daily')
 

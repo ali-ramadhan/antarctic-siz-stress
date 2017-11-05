@@ -1,12 +1,13 @@
-import numpy as np
+# Configure logger first before importing any sub-module that depend on the logger being already configured.
 import logging
-
-from constants import R
-
 logger = logging.getLogger(__name__)
+
+import numpy as np
 
 
 def distance(ϕ1, λ1, ϕ2, λ2):
+    from constants import R
+
     # Calculate the distance between two points on the Earth (ϕ1, λ1) and (ϕ1, λ1) using the haversine formula.
     # See: http://www.movable-type.co.uk/scripts/latlong.html
     # Latitudes are denoted by ϕ while longitudes are denoted by λ.
