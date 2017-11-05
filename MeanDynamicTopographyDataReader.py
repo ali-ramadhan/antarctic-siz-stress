@@ -1,19 +1,13 @@
-# Third party libraries
-import numpy as np
-import netCDF4
-
-
-from utils import distance, log_netCDF_dataset_metadata
-
 from os import path
 import logging
 
-logger = logging.getLogger(__name__)
+import numpy as np
+import netCDF4
 
-cwd = path.dirname(path.abspath(__file__))  # Current Working Directory
-data_dir_path = path.join(cwd, 'data')
-Omega = 7.292115e-5  # rotation rate of the Earth [rad/s]
-g = 9.80665  # standard acceleration due to gravity [m/s^2]
+from constants import data_dir_path, Omega, g
+from utils import distance, log_netCDF_dataset_metadata
+
+logger = logging.getLogger(__name__)
 
 
 class MeanDynamicTopographyDataReader(object):

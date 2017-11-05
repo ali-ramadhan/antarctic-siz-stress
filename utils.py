@@ -1,9 +1,9 @@
 import numpy as np
 import logging
 
-logger = logging.getLogger(__name__)
+from constants import R
 
-R = 6371.228e3  # average radius of the earth [m]
+logger = logging.getLogger(__name__)
 
 
 def distance(ϕ1, λ1, ϕ2, λ2):
