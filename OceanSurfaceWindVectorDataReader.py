@@ -1,10 +1,15 @@
 from os import path
-from enum import Enum
+from enum import Enum, auto
 import numpy as np
 import netCDF4
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class OSWVProduct(Enum):
+    NCEP = auto()  # NCEP/NCAR Reanalysis 1 project wind data
+    CCMP = auto()  # Cross-Calibrated Multi-Platform Ocean Surface Wind Vector L3.0 First-Look Analyses
 
 
 class OceanSurfaceWindVectorDataReader(object):
@@ -13,16 +18,12 @@ class OceanSurfaceWindVectorDataReader(object):
     oswv_ccmp_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
     oswv_ncep_data_dir_path = path.join(data_dir_path, 'ncep.reanalysis.dailyavgs', 'surface_gauss')
 
-    class OSWVProduct(Enum):
-        NCEP = 1  # NCEP/NCAR Reanalysis 1 project wind data
-        CCMP = 2  # Cross-Calibrated Multi-Platform Ocean Surface Wind Vector L3.0 First-Look Analyses
-
     def date_to_OSWV_dataset_filepath(self, date):
-        if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+        if self.current_product is OSWVProduct.NCEP:
             uwind_filepath = path.join(self.oswv_ncep_data_dir_path, 'uwnd.10m.gauss.' + str(date.year) + '.nc')
             vwind_filepath = path.join(self.oswv_ncep_data_dir_path, 'vwnd.10m.gauss.' + str(date.year) + '.nc')
             return uwind_filepath, vwind_filepath
-        elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+        elif self.current_product is OSWVProduct.CCMP:
             filename = 'analysis_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
                        + '_v11l30flk.nc'
             return path.join(self.oswv_ccmp_data_dir_path, str(date.year), str(date.month).zfill(2), filename)
@@ -33,7 +34,7 @@ class OceanSurfaceWindVectorDataReader(object):
     def load_OSWV_dataset(self, date):
         from utils import log_netCDF_dataset_metadata
 
-        if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+        if self.current_product is OSWVProduct.NCEP:
             uwind_dataset_filepath, vwind_dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
             logger.info('Loading ocean surface wind vector NCEP datasets...', )
 
@@ -48,7 +49,7 @@ class OceanSurfaceWindVectorDataReader(object):
             log_netCDF_dataset_metadata(vwind_dataset)
 
             return uwind_dataset, vwind_dataset
-        elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+        elif self.current_product is OSWVProduct.CCMP:
             dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
             logger.info('Loading ocean surface wind vector CCMP dataset: %s', dataset_filepath)
             dataset = netCDF4.Dataset(dataset_filepath)
@@ -73,9 +74,9 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.info('OceanSurfaceWindVectorDataReader object initializing...')
             self.current_product = product
             self.current_date = date
-            if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+            if self.current_product is OSWVProduct.NCEP:
                 self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
-            elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+            elif self.current_product is OSWVProduct.CCMP:
                 self.current_OSWV_dataset = self.load_OSWV_dataset(date)
             else:
                 logger.error('Invalid value for current_product: {}'.format(self.current_product))
@@ -87,9 +88,9 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.info('Loading ocean surface wind vector dataset for date requested: {}'.format(date))
             self.current_date = date
 
-            if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+            if self.current_product is OSWVProduct.NCEP:
                 self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
-            elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+            elif self.current_product is OSWVProduct.CCMP:
                 self.current_OSWV_dataset = self.load_OSWV_dataset(date)
             else:
                 logger.error('Invalid value for current_product: {}'.format(self.current_product))
@@ -100,15 +101,15 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.info('Changing OSWV dataset...')
             self.current_date = date
 
-            if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+            if self.current_product is OSWVProduct.NCEP:
                 self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
-            elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+            elif self.current_product is OSWVProduct.CCMP:
                 self.current_OSWV_dataset = self.load_OSWV_dataset(date)
             else:
                 logger.error('Invalid value for current_product: {}'.format(self.current_product))
                 raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
-        if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
+        if self.current_product is OSWVProduct.NCEP:
             assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
             assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
@@ -126,7 +127,7 @@ class OceanSurfaceWindVectorDataReader(object):
             v_wind = self.current_vwind_dataset.variables['vwnd'][day_of_year][idx_lat][idx_lon]
 
             return np.array([u_wind, v_wind])
-        elif self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.CCMP:
+        elif self.current_product is OSWVProduct.CCMP:
             assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
             assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
