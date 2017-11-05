@@ -17,6 +17,10 @@ from os import path
 import logging.config
 import logging
 
+from utils import *
+
+import MeanDynamicTopographyDataReader
+
 cwd = path.dirname(path.abspath(__file__))  # Current Working Directory
 
 logging_config_path = path.join(cwd, 'logging.ini')
@@ -35,165 +39,6 @@ Omega = 7.292115e-5  # rotation rate of the Earth [rad/s]
 # Earth radius R could be upgraded to be location-dependent using a simple formula.
 # See: https://en.wikipedia.org/wiki/Earth_radius#Location-dependent_radii
 R = 6371.228e3  # average radius of the earth [m]
-
-
-def distance(ϕ1, λ1, ϕ2, λ2):
-    # Calculate the distance between two points on the Earth (ϕ1, λ1) and (ϕ1, λ1) using the haversine formula.
-    # See: http://www.movable-type.co.uk/scripts/latlong.html
-    # Latitudes are denoted by ϕ while longitudes are denoted by λ.
-
-    ϕ1, λ1, ϕ2, λ2 = np.deg2rad([ϕ1, λ1, ϕ2, λ2])
-    Δϕ = ϕ2 - ϕ1
-    Δλ = λ2 - λ1
-
-    a = np.sin(Δϕ/2)**2 + np.cos(ϕ1) * np.cos(ϕ2) * np.sin(Δλ/2)**2
-    c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
-    return R*c
-
-
-def log_netCDF_dataset_metadata(dataset):
-    # Nicely format dimension names and sizes.
-    dim_string = ""
-    for dim in dataset.dimensions:
-        dim_name = dataset.dimensions[dim].name
-        dim_size = dataset.dimensions[dim].size
-        dim_string = dim_string + dim_name + '(' + str(dim_size) + ') '
-
-    # Nicely format variable information.
-    var_string = ""
-    for var in dataset.variables:
-        var_type = dataset.variables[var].dtype
-        var_name = dataset.variables[var].name
-
-        var_dim_str = '('
-        for dim in dataset.variables[var].dimensions:
-            var_dim_str = var_dim_str + str(dim) + ', '
-        var_dim_str = var_dim_str[:-2] + ')'
-
-        var_string = var_string + str(var_type) + ' ' + var_name + var_dim_str + ', '
-
-    logger.info('Title: %s', dataset.title)
-    logger.info('Data model: %s', dataset.data_model)
-    logger.info('Dimensions: %s', dim_string)
-    logger.info('Variables: %s', var_string[:-2])
-
-
-def latlon_to_polar_stereographic_xy(lat, lon):
-    # This function converts from geodetic latitude and longitude to polar stereographic (x,y) coordinates for the polar
-    # regions. The original equations are from Snyder, J. P., 1982,  Map Projections Used by the U.S. Geological Survey,
-    # Geological Survey Bulletin 1532, U.S. Government Printing Office.  See JPL Technical Memorandum 3349-85-101 for
-    # further details.
-    #
-    # The original FORTRAN program written by C. S. Morris, April 1985, Jet Propulsion Laboratory, California
-    # Institute of Technology
-    #
-    # More information:
-    # http://nsidc.org/data/polar-stereo/ps_grids.html
-    # http://nsidc.org/data/polar-stereo/tools_geo_pixel.html
-    # https://nsidc.org/data/docs/daac/nsidc0001_ssmi_tbs/ff.html
-    #
-    # SSM/I: Special Sensor Microwave Imager
-    # Note: lat must be positive for the southern hemisphere! Or take absolute value like below.
-
-    sgn = -1  # Sign of the latitude (use +1 for northern hemisphere, -1 for southern)
-    e = 0.081816153  # Eccentricity of the Hughes ellipsoid
-    R_E = 6378.273e3  # Radius of the Hughes ellipsode [m]
-    slat = 70  # Standard latitude for the SSM/I grids is 70 degrees.
-
-    # delta is the meridian offset for the SSM/I grids (0 degrees for the South Polar grids; 45 degrees for the
-    # North Polar grids).
-    delta = 45 if sgn == 1 else 0
-
-    lat, lon = np.deg2rad([abs(lat), lon+delta])
-
-    t = np.tan(np.pi/4 - lat/2) / ((1 - e*np.sin(lat)) / (1 + e*np.sin(lat)))**(e/2)
-
-    if np.abs(90 - lat) < 1e-5:
-        rho = 2*R_E*t / np.sqrt((1+e)**(1+e) * (1-e)**(1-e))
-    else:
-        sl = slat * np.pi/180
-        t_c = np.tan(np.pi/4 - sl/2) / ((1 - e*np.sin(sl)) / (1 + e*np.sin(sl)))**(e/2)
-        m_c = np.cos(sl) / np.sqrt(1 - e*e * (np.sin(sl)**2))
-        rho = R_E * m_c * (t/t_c)
-        logger.debug("rho = %f, m_c = %f, t = %f, t_c = %f", rho, m_c, t, t_c)
-
-    x = rho * sgn * np.sin(sgn * lon)
-    y = -rho * sgn * np.cos(sgn * lon)
-
-    return x, y
-
-
-class MeanDynamicTopographyDataReader(object):
-    MDT_file_path = path.join(data_dir_path, 'mdt_cnes_cls2013_global', 'mdt_cnes_cls2013_global.nc')
-
-    def __init__(self):
-        logger.info('MeanDynamicTopographyDataReader initializing. Loading MDT dataset: %s', self.MDT_file_path)
-        self.MDT_dataset = netCDF4.Dataset(self.MDT_file_path)
-        logger.info('Successfully loaded MDT dataset: %s', self.MDT_file_path)
-        log_netCDF_dataset_metadata(self.MDT_dataset)
-
-    # def interpolate_MDT_dataset(self):
-    #     points = np.array([self.MDT_dataset.variables['lat']], [self.MDT_dataset.variables['lon']])
-    #     values = np.array(self.MDT_dataset.variables['mdt'])
-    #     grid_x, grid_y = np.mgrid[0:1:100j, 0:1:200j]
-    #     pass
-
-    def get_MDT(self, lat, lon):
-        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
-        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
-
-        # Nearest neighbour interpolation
-        # Find index of closest matching latitude and longitude
-        idx_lat = np.abs(np.array(self.MDT_dataset.variables['lat']) - lat).argmin()
-        idx_lon = np.abs(np.array(self.MDT_dataset.variables['lon']) - lon).argmin()
-
-        logger.debug("lat = %f, lon = %f", lat, lon)
-        logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.MDT_dataset.variables['lat'][idx_lat],
-                     self.MDT_dataset.variables['lon'][idx_lon])
-
-        MDT_value = self.MDT_dataset.variables['mdt'][0][idx_lat][idx_lon]
-
-        return MDT_value
-
-    def u_geo_mean(self, lat, lon):
-        # Calculate the x and y derivatives of MDT at the grid point ij using a second-order centered finite difference
-        # approximation.
-
-        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
-        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
-
-        dLat = self.MDT_dataset.variables['lat'][1] - self.MDT_dataset.variables['lat'][0]
-        dLon = self.MDT_dataset.variables['lon'][1] - self.MDT_dataset.variables['lon'][0]
-
-        logger.debug("dLat = %f, dLon = %f", dLat, dLon)
-
-        # TODO: Set up wrapping/periodicity in the horizontal for calculating those edge cases.
-        # TODO: Check that you're not getting back land values or something.
-        # TODO: Use scipy interpolation function for this?
-        MDT_ip1j = self.get_MDT(lat+dLat, lon)
-        MDT_im1j = self.get_MDT(lat-dLat, lon)
-        MDT_ijp1 = self.get_MDT(lat, lon+dLon)
-        MDT_ijm1 = self.get_MDT(lat, lon-dLon)
-
-        logger.debug("MDT_i+1,j = %f, MDT_i-1,j = %f, MDT_i,j+1 = %f, MDT_i,j-1 = %f,",
-                     MDT_ip1j, MDT_im1j, MDT_ijp1, MDT_ijm1)
-
-        # TODO: Make sure I'm calculating this correctly.
-        dx = distance(lat-dLat, lon, lat+dLat, lon)
-        dy = distance(lat, lon-dLon, lat, lon+dLon)
-
-        # We are using a second-order centered finite difference approximation for the derivative which usually have
-        # 2dx and dy in the denominator but here the dx and dy I've calculated are across two cells so there's no need
-        # for the factor of 2.
-        dMDTdx = (MDT_ip1j - MDT_im1j) / dx
-        dMDTdy = (MDT_ijp1 - MDT_ijm1) / dy
-
-        f = 2*Omega*np.sin(np.deg2rad(lat))
-        u_geo_u = -(g/f) * dMDTdy
-        u_geo_v = (g/f) * dMDTdx
-
-        return np.array([u_geo_u, u_geo_v])
 
 
 class SeaIceConcentrationDataReader(object):
@@ -540,9 +385,9 @@ if __name__ == '__main__':
     # dist = distance(24, 25, 26, 27)
     # logger.info("That distance is %f m or %f km.", dist, dist/1000)
 
-    # MDT = MeanDynamicTopographyDataReader()
-    # print(MDT.get_MDT(-60, 135+180))
-    # print(MDT.u_geo_mean(-60, 135+180))
+    MDT = MeanDynamicTopographyDataReader.MeanDynamicTopographyDataReader()
+    print(MDT.get_MDT(-60, 135+180))
+    print(MDT.u_geo_mean(-60, 135+180))
 
     # sea_ice = SeaIceConcentrationDataReader()
     # print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
