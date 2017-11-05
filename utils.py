@@ -1,8 +1,7 @@
-# Configure logger first before importing any sub-module that depend on the logger being already configured.
+import numpy as np
+
 import logging
 logger = logging.getLogger(__name__)
-
-import numpy as np
 
 
 def distance(ϕ1, λ1, ϕ2, λ2):

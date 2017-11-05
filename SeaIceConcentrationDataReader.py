@@ -1,16 +1,14 @@
-# Configure logger first before importing any sub-module that depend on the logger being already configured.
-import logging
-logger = logging.getLogger(__name__)
-
 from os import path
 import numpy as np
 import netCDF4
 
-from constants import data_dir_path
-from utils import log_netCDF_dataset_metadata, latlon_to_polar_stereographic_xy
+import logging
+logger = logging.getLogger(__name__)
 
 
 class SeaIceConcentrationDataReader(object):
+    from constants import data_dir_path
+
     sic_data_dir_path = path.join(data_dir_path, 'NOAA_NSIDC_G02202_V3_SEA_ICE_CONCENTRATION', 'south', 'daily')
 
     def date_to_SIC_dataset_filepath(self, date):
@@ -19,6 +17,8 @@ class SeaIceConcentrationDataReader(object):
         return path.join(self.sic_data_dir_path, str(date.year), filename)
 
     def load_SIC_dataset(self, date):
+        from utils import log_netCDF_dataset_metadata
+
         dataset_filepath = self.date_to_SIC_dataset_filepath(date)
         logger.info('Loading sea ice concentration dataset: %s', dataset_filepath)
         dataset = netCDF4.Dataset(dataset_filepath)
@@ -37,6 +37,8 @@ class SeaIceConcentrationDataReader(object):
             self.current_date = date
 
     def sea_ice_concentration(self, lat, lon, date):
+        from utils import latlon_to_polar_stereographic_xy
+
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 

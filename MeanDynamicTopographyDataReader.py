@@ -1,19 +1,18 @@
-# Configure logger first before importing any sub-module that depend on the logger being already configured.
-import logging
-logger = logging.getLogger(__name__)
-
 from os import path
 import numpy as np
 import netCDF4
 
-from constants import data_dir_path, Omega, g
-from utils import distance, log_netCDF_dataset_metadata
+import logging
+logger = logging.getLogger(__name__)
 
 
 class MeanDynamicTopographyDataReader(object):
+    from constants import data_dir_path
     MDT_file_path = path.join(data_dir_path, 'mdt_cnes_cls2013_global', 'mdt_cnes_cls2013_global.nc')
 
     def __init__(self):
+        from utils import log_netCDF_dataset_metadata
+
         logger.info('MeanDynamicTopographyDataReader initializing. Loading MDT dataset: %s', self.MDT_file_path)
         self.MDT_dataset = netCDF4.Dataset(self.MDT_file_path)
         logger.info('Successfully loaded MDT dataset: %s', self.MDT_file_path)
@@ -44,6 +43,9 @@ class MeanDynamicTopographyDataReader(object):
         return MDT_value
 
     def u_geo_mean(self, lat, lon):
+        from constants import Omega, g
+        from utils import distance
+
         # Calculate the x and y derivatives of MDT at the grid point ij using a second-order centered finite difference
         # approximation.
 

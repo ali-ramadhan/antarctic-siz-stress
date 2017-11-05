@@ -1,19 +1,15 @@
 from os import path
-import logging
 from enum import Enum
-
 import numpy as np
 import netCDF4
 
-from constants import data_dir_path
-from utils import log_netCDF_dataset_metadata
-
+import logging
 logger = logging.getLogger(__name__)
-print(logging.getLevelName(logger.getEffectiveLevel()))
-print(__name__)
 
 
 class OceanSurfaceWindVectorDataReader(object):
+    from constants import data_dir_path
+
     oswv_ccmp_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
     oswv_ncep_data_dir_path = path.join(data_dir_path, 'ncep.reanalysis.dailyavgs', 'surface_gauss')
 
@@ -35,6 +31,8 @@ class OceanSurfaceWindVectorDataReader(object):
             raise ValueError('Invalid Enum value for current_product: {}'.format(self.current_product))
 
     def load_OSWV_dataset(self, date):
+        from utils import log_netCDF_dataset_metadata
+
         if self.current_product is OceanSurfaceWindVectorDataReader.OSWVProduct.NCEP:
             uwind_dataset_filepath, vwind_dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
             logger.info('Loading ocean surface wind vector NCEP datasets...', )

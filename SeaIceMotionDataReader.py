@@ -2,7 +2,6 @@ from os import path
 import datetime
 import numpy as np
 
-# Configure logger first before importing any sub-module that depend on the logger being already configured.
 import logging
 logger = logging.getLogger(__name__)
 
@@ -17,6 +16,8 @@ class SeaIceMotionDataReader(object):
         return path.join(self.seaice_drift_path, str(date.year), filename)
 
     def load_south_grid(self):
+        from constants import data_dir_path
+
         # Load in the NSIDC grid for the southern hemisphere. It stores the (x,y) polar stereographic coordinates for
         # each grid point and its corresponding (lat,lon).
         grid_filename = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'tools', 'south_x_y_lat_lon.txt')
