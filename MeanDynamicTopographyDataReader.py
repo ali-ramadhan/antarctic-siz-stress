@@ -40,12 +40,23 @@ class MeanDynamicTopographyDataReader(object):
         lat2 = np.tile(lat, len(lon))
         lon2 = np.repeat(lon, len(lat))
 
-        lat2 = lat2[values != np.nan]
-        lon2 = lon2[values != np.nan]
-        values = values[values != np.nan]
+        lat2 = lat2[~np.isnan(values)]
+        lon2 = lon2[~np.isnan(values)]
+        values = values[~np.isnan(values)]
 
         # TODO: Document how you do this cartesian product. Also maybe switch to the faster version you bookmarked.
         # points = np.transpose([np.tile(lat, len(lon)), np.repeat(lon, len(lat))])
+
+        nan = 0
+        notnan = 0
+        for index, x in np.ndenumerate(values):
+            if not np.isnan(x):
+                notnan += 1
+            else:
+                nan += 1
+
+        logger.debug('nan = {}'.format(nan))
+        logger.debug('notnan = {}'.format(notnan))
 
         grid_x, grid_y = np.mgrid[min_lat:max_lat:1000j, min_lon:max_lon:1000j]
         gridded_data = griddata((lat2, lon2), values, (grid_x, grid_y), method='cubic')
