@@ -39,19 +39,18 @@ class MeanDynamicTopographyDataReader(object):
 
         values = np.array(self.MDT_dataset.variables['mdt'])
 
-        import matplotlib.pyplot as plt
-        import cartopy.crs as ccrs
+        # import matplotlib.pyplot as plt
+        # import cartopy.crs as ccrs
 
-        ax = plt.axes(projection=ccrs.PlateCarree())
-        values[values < -100] = 0
-        plt.contourf(lon, lat, np.reshape(values, (len(lat), len(lon))), 25, transform=ccrs.PlateCarree())
+        # ax = plt.axes(projection=ccrs.Orthographic(central_latitude=-90))
+        # values[values < -100] = 0
+        # ax.set_extent([-180, 180, -90, -60], ccrs.PlateCarree())
+        # plt.pcolormesh(lon, lat, np.reshape(values, (len(lat), len(lon))))
         # plt.contourf(grid_x, grid_y, gridded_data, 60, transform=ccrs.PlateCarree())
-        ax.coastlines()
-        plt.colorbar()
-        plt.show()
-
-        return
-
+        # plt.contourf(lon, lat, np.reshape(values, (len(lat), len(lon))))
+        # ax.coastlines(resolution='110m')
+        # plt.colorbar()
+        # plt.show()
 
         values = np.reshape(np.transpose(values), (len(lat)*len(lon), ))
 
@@ -70,6 +69,11 @@ class MeanDynamicTopographyDataReader(object):
 
         logger.info('Interpolating MDT dataset... DONE!')
         logger.debug('{}'.format(gridded_data.shape))
+
+        import matplotlib.pyplot as plt
+        plt.contourf(grid_x, grid_y, gridded_data, 60)
+        plt.colorbar()
+        plt.show()
 
         # logger.debug('gridded_data: {}'.format(type(gridded_data)))
         # logger.debug('{}'.format(gridded_data))
