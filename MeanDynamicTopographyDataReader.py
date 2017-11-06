@@ -33,60 +33,42 @@ class MeanDynamicTopographyDataReader(object):
         min_lon = np.min(lon)
         max_lon = np.max(lon)
 
-        # TODO: Document how you do this cartesian product. Also maybe switch to the faster version:
-        # https://stackoverflow.com/questions/11144513/numpy-cartesian-product-of-x-and-y-array-points-into-single-array-of-2d-points
-        points = np.transpose([np.tile(lat, len(lon)), np.repeat(lon, len(lat))])
-
         values = np.array(self.MDT_dataset.variables['mdt'])
-
-        # import matplotlib.pyplot as plt
-        # import cartopy.crs as ccrs
-
-        # ax = plt.axes(projection=ccrs.Orthographic(central_latitude=-90))
-        # values[values < -100] = 0
-        # ax.set_extent([-180, 180, -90, -60], ccrs.PlateCarree())
-        # plt.pcolormesh(lon, lat, np.reshape(values, (len(lat), len(lon))))
-        # plt.contourf(grid_x, grid_y, gridded_data, 60, transform=ccrs.PlateCarree())
-        # plt.contourf(lon, lat, np.reshape(values, (len(lat), len(lon))))
-        # ax.coastlines(resolution='110m')
-        # plt.colorbar()
-        # plt.show()
-
         values = np.reshape(np.transpose(values), (len(lat)*len(lon), ))
+        values[values < -100] = np.nan
 
-        logger.debug('{}'.format(values[:50]))
-        # values[values == self.MDT_dataset.variables['mdt']._FillValue] = np.nan
-        values[values < -100] = 0
-        logger.debug('{}'.format(values[:50]))
+        lat2 = np.tile(lat, len(lon))
+        lon2 = np.repeat(lon, len(lat))
+
+        lat2 = lat2[values != np.nan]
+        lon2 = lon2[values != np.nan]
+        values = values[values != np.nan]
+
+        # TODO: Document how you do this cartesian product. Also maybe switch to the faster version you bookmarked.
+        # points = np.transpose([np.tile(lat, len(lon)), np.repeat(lon, len(lat))])
 
         grid_x, grid_y = np.mgrid[min_lat:max_lat:1000j, min_lon:max_lon:1000j]
-
-        logger.debug('lat: {}'.format(lat.shape))
-        logger.debug('lon: {}'.format(lon.shape))
-        logger.debug('points: {}'.format(points.shape))
-        logger.debug('values: {}'.format(values.shape))
-        gridded_data = griddata(points, values, (grid_x, grid_y), method='cubic')
+        gridded_data = griddata((lat2, lon2), values, (grid_x, grid_y), method='cubic')
 
         logger.info('Interpolating MDT dataset... DONE!')
-        logger.debug('{}'.format(gridded_data.shape))
+
+        nan = 0
+        notnan = 0
+        for index, x in np.ndenumerate(gridded_data):
+            if not np.isnan(x):
+                notnan += 1
+            else:
+                nan += 1
+
+        logger.debug('nan = {}'.format(nan))
+        logger.debug('notnan = {}'.format(notnan))
 
         import matplotlib.pyplot as plt
         plt.contourf(grid_x, grid_y, gridded_data, 60)
         plt.colorbar()
         plt.show()
 
-        # logger.debug('gridded_data: {}'.format(type(gridded_data)))
-        # logger.debug('{}'.format(gridded_data))
-        # gridded_data[gridded_data == np.nan] = 0
-        # gridded_data = np.ma.masked_equal(gridded_data, np.nan)
-        # logger.debug('{}'.format(gridded_data))
-
-        # fig, ax = plt.subplots()
-        # im = plt.imshow(gridded_data, extent=(min_lat, max_lat, min_lon, max_lon), origin='lower')
-        # fig.colorbar(im, ax=ax)
-        # plt.show()
-
-        return
+        return gridded_data
 
     def get_MDT(self, lat, lon):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
