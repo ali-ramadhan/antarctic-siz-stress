@@ -38,7 +38,27 @@ class MeanDynamicTopographyDataReader(object):
         points = np.transpose([np.tile(lat, len(lon)), np.repeat(lon, len(lat))])
 
         values = np.array(self.MDT_dataset.variables['mdt'])
+
+        import matplotlib.pyplot as plt
+        import cartopy.crs as ccrs
+
+        ax = plt.axes(projection=ccrs.PlateCarree())
+        values[values < -100] = 0
+        plt.contourf(lon, lat, np.reshape(values, (len(lat), len(lon))), 25, transform=ccrs.PlateCarree())
+        # plt.contourf(grid_x, grid_y, gridded_data, 60, transform=ccrs.PlateCarree())
+        ax.coastlines()
+        plt.colorbar()
+        plt.show()
+
+        return
+
+
         values = np.reshape(np.transpose(values), (len(lat)*len(lon), ))
+
+        logger.debug('{}'.format(values[:50]))
+        # values[values == self.MDT_dataset.variables['mdt']._FillValue] = np.nan
+        values[values < -100] = 0
+        logger.debug('{}'.format(values[:50]))
 
         grid_x, grid_y = np.mgrid[min_lat:max_lat:1000j, min_lon:max_lon:1000j]
 
@@ -46,17 +66,21 @@ class MeanDynamicTopographyDataReader(object):
         logger.debug('lon: {}'.format(lon.shape))
         logger.debug('points: {}'.format(points.shape))
         logger.debug('values: {}'.format(values.shape))
-        logger.debug('{}'.format(values[0:1000]))
         gridded_data = griddata(points, values, (grid_x, grid_y), method='cubic')
 
         logger.info('Interpolating MDT dataset... DONE!')
+        logger.debug('{}'.format(gridded_data.shape))
 
-        import matplotlib.pyplot as plt
+        # logger.debug('gridded_data: {}'.format(type(gridded_data)))
+        # logger.debug('{}'.format(gridded_data))
+        # gridded_data[gridded_data == np.nan] = 0
+        # gridded_data = np.ma.masked_equal(gridded_data, np.nan)
+        # logger.debug('{}'.format(gridded_data))
 
-        fig, ax = plt.subplots()
-        im = plt.imshow(gridded_data.T, extent=(min_lat, max_lat, min_lon, max_lon), origin='lower')
-        fig.colorbar(im, ax=ax)
-        plt.show()
+        # fig, ax = plt.subplots()
+        # im = plt.imshow(gridded_data, extent=(min_lat, max_lat, min_lon, max_lon), origin='lower')
+        # fig.colorbar(im, ax=ax)
+        # plt.show()
 
         return
 
