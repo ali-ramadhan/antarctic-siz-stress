@@ -28,13 +28,13 @@ if __name__ == '__main__':
     print(MDT.get_MDT(-60, 135+180))
     print(MDT.u_geo_mean(-60, 135+180))
 
-    sea_ice = SeaIceConcentrationDataReader()
-    print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
-    print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
-    print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
-
-    wind_vectors = OceanSurfaceWindVectorDataReader()
-    print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2015, 10, 10)))
-
-    seaice_drift = SeaIceMotionDataReader()
-    print(seaice_drift.seaice_drift_vector(-60, 20, datetime.date(2015, 1, 1)))
+    # sea_ice = SeaIceConcentrationDataReader()
+    # print(sea_ice.sea_ice_concentration(-60.0, 133.0, datetime.date(2015, 7, 31)))
+    # print(sea_ice.sea_ice_concentration(-71.4, 24.5, datetime.date(2015, 7, 31)))
+    # print(sea_ice.sea_ice_concentration(-70, 180, datetime.date(2015, 7, 31)))
+    #
+    # wind_vectors = OceanSurfaceWindVectorDataReader()
+    # print(wind_vectors.ocean_surface_wind_vector(-60, 20, datetime.date(2015, 10, 10)))
+    #
+    # seaice_drift = SeaIceMotionDataReader()
+    # print(seaice_drift.seaice_drift_vector(-60, 20, datetime.date(2015, 1, 1)))

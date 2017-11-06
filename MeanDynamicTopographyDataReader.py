@@ -18,11 +18,47 @@ class MeanDynamicTopographyDataReader(object):
         logger.info('Successfully loaded MDT dataset: %s', self.MDT_file_path)
         log_netCDF_dataset_metadata(self.MDT_dataset)
 
-    # def interpolate_MDT_dataset(self):
-    #     points = np.array([self.MDT_dataset.variables['lat']], [self.MDT_dataset.variables['lon']])
-    #     values = np.array(self.MDT_dataset.variables['mdt'])
-    #     grid_x, grid_y = np.mgrid[0:1:100j, 0:1:200j]
-    #     pass
+        self.interpolate_MDT_dataset()
+
+    def interpolate_MDT_dataset(self):
+        from scipy.interpolate import griddata
+
+        logger.info('Interpolating MDT dataset...')
+
+        lat = np.array(self.MDT_dataset.variables['lat'])
+        lon = np.array(self.MDT_dataset.variables['lon'])
+
+        min_lat = np.min(lat)
+        max_lat = np.max(lat)
+        min_lon = np.min(lon)
+        max_lon = np.max(lon)
+
+        # TODO: Document how you do this cartesian product. Also maybe switch to the faster version:
+        # https://stackoverflow.com/questions/11144513/numpy-cartesian-product-of-x-and-y-array-points-into-single-array-of-2d-points
+        points = np.transpose([np.tile(lat, len(lon)), np.repeat(lon, len(lat))])
+
+        values = np.array(self.MDT_dataset.variables['mdt'])
+        values = np.reshape(np.transpose(values), (len(lat)*len(lon), ))
+
+        grid_x, grid_y = np.mgrid[min_lat:max_lat:1000j, min_lon:max_lon:1000j]
+
+        logger.debug('lat: {}'.format(lat.shape))
+        logger.debug('lon: {}'.format(lon.shape))
+        logger.debug('points: {}'.format(points.shape))
+        logger.debug('values: {}'.format(values.shape))
+        logger.debug('{}'.format(values[0:1000]))
+        gridded_data = griddata(points, values, (grid_x, grid_y), method='cubic')
+
+        logger.info('Interpolating MDT dataset... DONE!')
+
+        import matplotlib.pyplot as plt
+
+        fig, ax = plt.subplots()
+        im = plt.imshow(gridded_data.T, extent=(min_lat, max_lat, min_lon, max_lon), origin='lower')
+        fig.colorbar(im, ax=ax)
+        plt.show()
+
+        return
 
     def get_MDT(self, lat, lon):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
