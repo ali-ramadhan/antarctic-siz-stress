@@ -60,7 +60,7 @@ class SeaIceMotionDataReader(object):
         #     file_contents = file.read()
         #
         # logger.info('Successfully read sea ice drift data.')
-
+        #
         # I thought we had to uninterleave the NSIDC ice motion binary data files according to the dataset's user guide.
         # logger.info('Uninterleaving NSIDC ice motion binary data file...')
         # xdim = 321
@@ -74,7 +74,7 @@ class SeaIceMotionDataReader(object):
         #             file_contents_uninterleaved[valsize*(xdim*ydim*j+i) + k] = file_contents[valsize*(i*ngrids+j) + k]
         #
         # logger.info('Uninterleaving done.')
-
+        #
         # Apparently this way of unpacking binary data does not work. Had to use np.fromfile below.
         # logger.debug('Unpacking binary (sea ice drift) data...')
         # total = 0
@@ -107,8 +107,10 @@ class SeaIceMotionDataReader(object):
         data = np.fromfile(dataset_filepath, dtype='<i2').reshape(321, 321, 3)
         logger.info('Successfully read sea ice motion data.')
 
-        u_wind = data[..., 1]/10  # [cm/s]
-        v_wind = data[..., 2]/10  # [cm/s]
+        # u_wind = data[..., 1]/10  # [cm/s]
+        u_wind = data[..., 1]/1000  # [m/s]
+        # v_wind = data[..., 2]/10  # [cm/s]
+        v_wind = data[..., 2]/1000  # [cm/s]
         wind_error = data[..., 0]/10  # [???]
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup...')
@@ -135,7 +137,8 @@ class SeaIceMotionDataReader(object):
         # import matplotlib.pyplot as plt
         # self.u_wind[self.u_wind == 0] = np.nan
         # self.v_wind[self.u_wind == 0] = np.nan
-        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width', width=0.001, scale=1000)
+        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width',
+        #            width=0.001, scale=1000)
         # plt.gca().invert_yaxis()
         # plt.show()
 
@@ -162,19 +165,20 @@ class SeaIceMotionDataReader(object):
         lat, lon = np.deg2rad([lat, lon])
 
         # EASE-Grid coordinate transformation
-        # http: // nsidc.org / data / ease / ease_grid.html
+        # http://nsidc.org/data/ease/ease_grid.html
         # h = np.cos(np.pi/4 - lat/2)  # Particular scale along meridians
         # k = np.csc(np.pi/4 - lat/2)  # Particular scale along parallels
         col = +2*R/C * np.sin(lon) * np.cos(np.pi/4 - lat/2) + r0  # column coordinate
         row = -2*R/C * np.cos(lon) * np.cos(np.pi/4 - lat/2) + s0  # row coordinate
 
         row, col = int(row), int(col)
-        u_wind = self.u_wind[row][col]
-        v_wind = self.v_wind[row][col]
+        u_motion = self.u_wind[row][col]
+        v_motion = self.v_wind[row][col]
         lat_rc = self.lat[row][col]
         lon_rc = self.lon[row][col]
 
         logger.debug('row = {}, col = {}'.format(row, col))
         logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
-        logger.debug('u_wind = {}, v_wind = {}'.format(u_wind, v_wind))
-        print('{}'.format(self.u_wind[row]))
+        logger.debug('u_motion = {}, v_motion = {}'.format(u_motion, v_motion))
+
+        return np.array([u_motion, v_motion])
