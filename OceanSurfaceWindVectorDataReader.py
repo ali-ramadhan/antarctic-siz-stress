@@ -24,14 +24,25 @@ class OceanSurfaceWindVectorDataReader(object):
             self.current_product = product
             self.current_date = None
             self.current_OSWV_dataset = None
+
         else:
             logger.info('OceanSurfaceWindVectorDataReader object initializing...')
             self.current_product = product
             self.current_date = date
+
             if self.current_product is OSWVProduct.NCEP:
                 self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+
+                self.lats = np.array(self.current_uwind_dataset.variables['lat'])
+                self.lons = np.array(self.current_uwind_dataset.variables['lon'])
+
+                self.day_of_year = date.timetuple().tm_yday
+                self.uwind = np.array(self.current_uwind_dataset.variables['uwnd'][self.day_of_year])
+                self.vwind = np.array(self.current_vwind_dataset.variables['vwnd'][self.day_of_year])
+
             elif self.current_product is OSWVProduct.CCMP:
                 self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+
             else:
                 logger.error('Invalid value for current_product: {}'.format(self.current_product))
                 raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
@@ -87,11 +98,25 @@ class OceanSurfaceWindVectorDataReader(object):
                 self.current_date = date
                 self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
 
+                self.lats = np.array(self.current_uwind_dataset.variables['lat'])
+                self.lons = np.array(self.current_uwind_dataset.variables['lon'])
+
+                self.day_of_year = date.timetuple().tm_yday
+                self.uwind = np.array(self.current_uwind_dataset.variables['uwnd'][self.day_of_year])
+                self.vwind = np.array(self.current_vwind_dataset.variables['vwnd'][self.day_of_year])
+
             if date != self.current_date:
                 logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
-                logger.info('Changing OSWV dataset...')
+                logger.info('Changing NCEP OSWV dataset...')
                 self.current_date = date
                 self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+
+                self.lats = np.array(self.current_uwind_dataset.variables['lat'])
+                self.lons = np.array(self.current_uwind_dataset.variables['lon'])
+
+                self.day_of_year = date.timetuple().tm_yday
+                self.uwind = np.array(self.current_uwind_dataset.variables['uwnd'][self.day_of_year])
+                self.vwind = np.array(self.current_vwind_dataset.variables['vwnd'][self.day_of_year])
 
             lon = lon + 180  # Change from our convention lon = [-180, 180] to [0, 360]
 
@@ -99,17 +124,16 @@ class OceanSurfaceWindVectorDataReader(object):
             assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
             day_of_year = date.timetuple().tm_yday
-            idx_lat = np.abs(np.array(self.current_uwind_dataset.variables['lat']) - lat).argmin()
-            idx_lon = np.abs(np.array(self.current_uwind_dataset.variables['lon']) - lon).argmin()
+            idx_lat = np.abs(self.lats - lat).argmin()
+            idx_lon = np.abs(self.lons - lon).argmin()
 
             logger.debug("lat = %f, lon = %f", lat, lon)
             logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-            logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.current_uwind_dataset.variables['lat'][idx_lat],
-                         self.current_uwind_dataset.variables['lon'][idx_lon])
+            logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.lats[idx_lat], self.lons[idx_lon])
             logger.debug('time = {}'.format(self.current_uwind_dataset.variables['time'][day_of_year]))
 
-            u_wind = self.current_uwind_dataset.variables['uwnd'][day_of_year][idx_lat][idx_lon]
-            v_wind = self.current_vwind_dataset.variables['vwnd'][day_of_year][idx_lat][idx_lon]
+            u_wind = self.uwind[idx_lat][idx_lon]
+            v_wind = self.vwind[idx_lat][idx_lon]
 
             return np.array([u_wind, v_wind])
 
@@ -122,7 +146,7 @@ class OceanSurfaceWindVectorDataReader(object):
 
             if date != self.current_date:
                 logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
-                logger.info('Changing OSWV dataset...')
+                logger.info('Changing CCMP OSWV dataset...')
                 self.current_date = date
                 self.current_OSWV_dataset = self.load_OSWV_dataset(date)
 

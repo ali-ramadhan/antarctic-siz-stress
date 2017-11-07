@@ -105,7 +105,6 @@ class MeanDynamicTopographyDataReader(object):
 
         return MDT_value
 
-    @profile
     def u_geo_mean(self, lat, lon):
         lon = lon + 180  # Change from our convention lon = [-180, 180] to [0, 360]
 
