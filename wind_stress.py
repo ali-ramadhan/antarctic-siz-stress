@@ -66,7 +66,7 @@ if __name__ == '__main__':
             tau = np.array([0, 0])
             u_Ekman = np.array([0.001, 0.001])
 
-            while tau_error > 1e-10:
+            while tau_error > 1e-5:
                 iter_count = iter_count + 1
                 if iter_count > 50:
                     logger.warning('iter_acount exceeded 50 during calculation of tau and u_Ekman.')
@@ -87,9 +87,6 @@ if __name__ == '__main__':
             tau_y[i][j] = tau[1]
 
     import matplotlib.pyplot as plt
-    print(lats.shape)
-    print(lons.shape)
-    print(tau_x.shape)
     plt.contourf(lons, lats, tau_x, 25)
     plt.colorbar()
     plt.show()

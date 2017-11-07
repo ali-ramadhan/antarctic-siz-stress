@@ -85,7 +85,8 @@ class SeaIceConcentrationDataReader(object):
         lat_xy = self.lats[idx_y][idx_x]
         lon_xy = self.lons[idx_y][idx_x]
 
-        if np.abs(lat - lat_xy) > 0.5 or np.abs(lon - lon_xy) > 0.5:
+        if (np.abs(lat - lat_xy) > 0.5 or np.abs(lon - lon_xy) > 0.5) \
+                and np.abs(lat) - 180 > 0.5 and np.abs(lat_xy) - 180 > 0.5:
             logger.warning('Lat or lon obtained from SIC dataset differ by more than 0.5 deg from input lat/lon!')
             logger.warning("lat = %f, lon = %f (input)", lat, lon)
             logger.warning("x = %f, y = %f (polar stereographic)", x, y)
