@@ -35,8 +35,7 @@ if __name__ == '__main__':
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
     seaice_motion = SeaIceMotionDataReader(test_date)
 
-    lat = -65
-    lon = -175
+    R_45deg = np.array([[np.cos(np.pi / 4), -np.sin(np.pi / 4)], [np.sin(np.pi / 4), np.cos(np.pi / 4)]])
 
     n_lat = int((lat_max - lat_min) / lat_step)
     n_lon = int((lon_max - lon_min) / lon_step)
@@ -44,29 +43,58 @@ if __name__ == '__main__':
     lats = np.linspace(lat_min, lat_max, n_lat)
     lons = np.linspace(lon_min, lon_max, n_lon)
 
-    tau = np.zeros(len(lats), len(lons))
+    logger.info('lat_min = {}, lat_max = {}, lat_step = {}, n_lat = {}'.format(lat_min, lat_max, lat_step, n_lat))
+    logger.info('lon_min = {}, lon_max = {}, lon_step = {}, n_lon = {}'.format(lon_min, lon_max, lon_step, n_lon))
 
-    u_geo_mean = mdt.u_geo_mean(lat, lon)
-    u_wind = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date)
-    alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date)
-    u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date)
+    tau_x = np.zeros((len(lats), len(lons)))
+    tau_y = np.zeros((len(lats), len(lons)))
 
-    print('u_geo_mean = {}'.format(u_geo_mean))
-    print('wind = {}'.format(u_wind))
-    print('SIC = {}'.format(alpha))
-    print('SIM = {}'.format(u_ice))
+    for i in range(len(lats)):
+        lat = lats[i]
+        logger.info('lat = {}'.format(lat))
 
-    R_45deg = np.array([[np.cos(np.pi / 4), -np.sin(np.pi / 4)], [np.sin(np.pi / 4), np.cos(np.pi / 4)]])
+        for j in range(len(lons)):
+            lon = lons[j]
 
-    tau_error = 1
-    tau = np.array([0, 0])
-    u_Ekman = np.array([0.001, 0.001])
-    while tau_error > 1e-10:
-        tau_air = rho_air * C_air * np.linalg.norm(u_wind) * u_wind
+            u_geo_mean = mdt.u_geo_mean(lat, lon)
+            u_wind = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date)
+            alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date)
+            u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date)
 
-        u_rel = u_ice - (u_geo_mean - u_Ekman)
-        tau_ice = rho_0 * C_seawater * np.linalg.norm(u_rel) * u_rel
+            # print('u_geo_mean = {}'.format(u_geo_mean))
+            # print('wind = {}'.format(u_wind))
+            # print('SIC = {}'.format(alpha))
+            # print('SIM = {}'.format(u_ice))
 
-        tau_error = np.linalg.norm(tau - (alpha * tau_ice + (1 - alpha) * tau_air))
-        tau = alpha * tau_ice + (1 - alpha) * tau_air
-        u_Ekman = (np.sqrt(2) / (f_0 * rho_0 * D_e)) * np.matmul(R_45deg, tau)
+            iter_count = 0
+            tau_error = 1
+            tau = np.array([0, 0])
+            u_Ekman = np.array([0.001, 0.001])
+
+            while tau_error > 1e-10:
+                iter_count = iter_count + 1
+                if iter_count > 50:
+                    logger.warning('iter_acount exceeded 50 during calculation of tau and u_Ekman.')
+                    logger.warning('tau = {}, u_Ekman = {}, tau_error = {}'.format(tau, u_Ekman, tau_error))
+                    break
+
+                tau_air = rho_air * C_air * np.linalg.norm(u_wind) * u_wind
+
+                u_rel = u_ice - (u_geo_mean - u_Ekman)
+                tau_ice = rho_0 * C_seawater * np.linalg.norm(u_rel) * u_rel
+
+                tau_error = np.linalg.norm(tau - (alpha * tau_ice + (1 - alpha) * tau_air))
+                tau = alpha * tau_ice + (1 - alpha) * tau_air
+                u_Ekman = (np.sqrt(2) / (f_0 * rho_0 * D_e)) * np.matmul(R_45deg, tau)
+
+            # print('tau = {}'.format(tau))
+            tau_x[i][j] = tau[0]
+            tau_y[i][j] = tau[1]
+
+    import matplotlib.pyplot as plt
+    print(lats.shape)
+    print(lons.shape)
+    print(tau_x.shape)
+    plt.contourf(lons, lats, tau_x, 25)
+    plt.colorbar()
+    plt.show()

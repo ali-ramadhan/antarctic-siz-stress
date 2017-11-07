@@ -26,9 +26,9 @@ rho_0 = 1027.5  # "reference" density [kg/m^3]
 D_e = 20  # Ekman layer depth [m]
 
 lat_min = -70
-lat_max = -50
+lat_max = -55
 lon_min = -180
 lon_max = 180
 
-lat_step = 0.25
-lon_step = 0.25
+lat_step = 0.5
+lon_step = 1
