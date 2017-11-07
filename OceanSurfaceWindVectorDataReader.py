@@ -80,33 +80,21 @@ class OceanSurfaceWindVectorDataReader(object):
             raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
     def ocean_surface_wind_vector(self, lat, lon, date):
-        if self.current_OSWV_dataset is None:
-            logger.info('ocean_surface_wind_vector called with no current dataset loaded.')
-            logger.info('Loading ocean surface wind vector dataset for date requested: {}'.format(date))
-            self.current_date = date
-
-            if self.current_product is OSWVProduct.NCEP:
-                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
-            elif self.current_product is OSWVProduct.CCMP:
-                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
-            else:
-                logger.error('Invalid value for current_product: {}'.format(self.current_product))
-                raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
-
-        if date != self.current_date:
-            logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
-            logger.info('Changing OSWV dataset...')
-            self.current_date = date
-
-            if self.current_product is OSWVProduct.NCEP:
-                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
-            elif self.current_product is OSWVProduct.CCMP:
-                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
-            else:
-                logger.error('Invalid value for current_product: {}'.format(self.current_product))
-                raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
-
         if self.current_product is OSWVProduct.NCEP:
+            if self.current_uwind_dataset is None or self.current_vwind_dataset is None:
+                logger.info('ocean_surface_wind_vector called with no current dataset loaded.')
+                logger.info('Loading ocean surface wind vector dataset for date requested: {}'.format(date))
+                self.current_date = date
+                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+
+            if date != self.current_date:
+                logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
+                logger.info('Changing OSWV dataset...')
+                self.current_date = date
+                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+
+            lon = lon + 180  # Change from our convention lon = [-180, 180] to [0, 360]
+
             assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
             assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
@@ -124,7 +112,20 @@ class OceanSurfaceWindVectorDataReader(object):
             v_wind = self.current_vwind_dataset.variables['vwnd'][day_of_year][idx_lat][idx_lon]
 
             return np.array([u_wind, v_wind])
+
         elif self.current_product is OSWVProduct.CCMP:
+            if self.current_OSWV_dataset is None:
+                logger.info('ocean_surface_wind_vector called with no current dataset loaded.')
+                logger.info('Loading ocean surface wind vector dataset for date requested: {}'.format(date))
+                self.current_date = date
+                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+
+            if date != self.current_date:
+                logger.info('OSWV at different date requested: {} -> {}.'.format(self.current_date, date))
+                logger.info('Changing OSWV dataset...')
+                self.current_date = date
+                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+
             assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
             assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
@@ -140,6 +141,7 @@ class OceanSurfaceWindVectorDataReader(object):
             v_wind = self.current_OSWV_dataset.variables['vwnd'][0][idx_lat][idx_lon]
 
             return np.array([u_wind, v_wind])
+
         else:
             logger.error('Invalid value for current_product: {}'.format(self.current_product))
             raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
