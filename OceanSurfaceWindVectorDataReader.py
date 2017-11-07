@@ -18,6 +18,24 @@ class OceanSurfaceWindVectorDataReader(object):
     oswv_ccmp_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
     oswv_ncep_data_dir_path = path.join(data_dir_path, 'ncep.reanalysis.dailyavgs', 'surface_gauss')
 
+    def __init__(self, date=None, product=OSWVProduct.NCEP):
+        if date is None:
+            logger.info('OceanSurfaceWindVectorDataReader object initialized but no dataset was loaded.')
+            self.current_product = product
+            self.current_date = None
+            self.current_OSWV_dataset = None
+        else:
+            logger.info('OceanSurfaceWindVectorDataReader object initializing...')
+            self.current_product = product
+            self.current_date = date
+            if self.current_product is OSWVProduct.NCEP:
+                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
+            elif self.current_product is OSWVProduct.CCMP:
+                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
+            else:
+                logger.error('Invalid value for current_product: {}'.format(self.current_product))
+                raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
+
     def date_to_OSWV_dataset_filepath(self, date):
         if self.current_product is OSWVProduct.NCEP:
             uwind_filepath = path.join(self.oswv_ncep_data_dir_path, 'uwnd.10m.gauss.' + str(date.year) + '.nc')
@@ -60,27 +78,6 @@ class OceanSurfaceWindVectorDataReader(object):
         else:
             logger.error('Invalid value for current_product: {}'.format(self.current_product))
             raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
-
-    def __init__(self, date=None, product=OSWVProduct.NCEP):
-        logger.warning('Watch out!')
-        print('TRUTH:')
-        print(logger.propagate)
-        if date is None:
-            logger.info('OceanSurfaceWindVectorDataReader object initialized but no dataset was loaded.')
-            self.current_product = product
-            self.current_date = None
-            self.current_OSWV_dataset = None
-        else:
-            logger.info('OceanSurfaceWindVectorDataReader object initializing...')
-            self.current_product = product
-            self.current_date = date
-            if self.current_product is OSWVProduct.NCEP:
-                self.current_uwind_dataset, self.current_vwind_dataset = self.load_OSWV_dataset(date)
-            elif self.current_product is OSWVProduct.CCMP:
-                self.current_OSWV_dataset = self.load_OSWV_dataset(date)
-            else:
-                logger.error('Invalid value for current_product: {}'.format(self.current_product))
-                raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
     def ocean_surface_wind_vector(self, lat, lon, date):
         if self.current_OSWV_dataset is None:
