@@ -8,12 +8,36 @@ logger = logging.getLogger(__name__)
 
 class SeaIceMotionDataReader(object):
     from constants import data_dir_path
-    seaice_drift_path = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
+
+    seaice_motion_path = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
+
+    def __init__(self, date=None):
+        logger.info('Loading south grid...')
+        self.south_grid = self.load_south_grid()
+        self.south_grid_lats = 321
+        self.south_grid_lons = 321
+
+        self.dataset_loaded = False
+        self.u_wind = None
+        self.v_wind = None
+        self.wind_error = None
+        self.x = None
+        self.y = None
+        self.lat = None
+        self.lon = None
+
+        if date is None:
+            logger.info('SeaIceConcentrationDataReader object initialized but no dataset was loaded.')
+            self.current_date = None
+        else:
+            self.current_date = date
+            self.load_SIM_dataset(date)
+            self.dataset_loaded = True
 
     def date_to_SIM_filepath(self, date):
-        filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday) + '.s.v3.bin'
+        filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday).zfill(3) + '.s.v3.bin'
         # filename = 'icemotion.grid.daily.' + str(date.year) + '170.s.v3.bin'
-        return path.join(self.seaice_drift_path, str(date.year), filename)
+        return path.join(self.seaice_motion_path, str(date.year), filename)
 
     def load_south_grid(self):
         from constants import data_dir_path
@@ -30,14 +54,7 @@ class SeaIceMotionDataReader(object):
 
         return south_grid
 
-    def __init__(self):
-        self.south_grid = self.load_south_grid()
-        self.south_grid_lats = 321
-        self.south_grid_lons = 321
-
-        test_dataset_date = datetime.date(2015, 6, 29)
-        test_dataset_filepath = self.date_to_SIM_filepath(test_dataset_date)
-
+    def load_SIM_dataset(self, date):
         # logger.debug('Reading in sea ice drift dataset: {}'.format(test_dataset_filepath))
         # with open(test_dataset_filepath, mode='rb') as file:
         #     file_contents = file.read()
@@ -84,8 +101,10 @@ class SeaIceMotionDataReader(object):
         #
         # logger.debug('total = {}, coast = {}, large = {}, valid = {}'.format(total, coast, large, valid))
 
-        logger.debug('Reading in sea ice motion dataset: {}'.format(test_dataset_filepath))
-        data = np.fromfile(test_dataset_filepath, dtype='<i2').reshape(321, 321, 3)
+        dataset_filepath = self.date_to_SIM_filepath(date)
+
+        logger.debug('Reading in sea ice motion dataset: {}'.format(dataset_filepath))
+        data = np.fromfile(dataset_filepath, dtype='<i2').reshape(321, 321, 3)
         logger.info('Successfully read sea ice motion data.')
 
         u_wind = data[..., 1]/10  # [cm/s]
@@ -111,7 +130,7 @@ class SeaIceMotionDataReader(object):
                 self.x[i][j] = self.south_grid[i * self.south_grid_lats + j][0]
                 self.y[i][j] = self.south_grid[i * self.south_grid_lats + j][1]
 
-        logger.debug('Lookup arrays built.')
+        logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
         # import matplotlib.pyplot as plt
         # self.u_wind[self.u_wind == 0] = np.nan
@@ -120,8 +139,20 @@ class SeaIceMotionDataReader(object):
         # plt.gca().invert_yaxis()
         # plt.show()
 
-    def seaice_drift_vector(self, lat, lon, day):
+    def seaice_motion_vector(self, lat, lon, date):
         from constants import R
+
+        if self.dataset_loaded is False:
+            logger.info('seaice_motion_vector called with no current dataset loaded.')
+            logger.info('Loading sea ice concentration dataset for date requested: {}'.format(date))
+            self.current_date = date
+            self.load_SIM_dataset(date)
+
+        if date != self.current_date:
+            logger.info('SIM at different date requested: {} -> {}.'.format(self.current_date, date))
+            logger.info('Changing SIC dataset...')
+            self.current_date = date
+            self.load_SIM_dataset(date)
 
         C = 25e3  # nominal cell size [m]
         r0 = 160.0  # map origin column
@@ -134,8 +165,8 @@ class SeaIceMotionDataReader(object):
         # http: // nsidc.org / data / ease / ease_grid.html
         # h = np.cos(np.pi/4 - lat/2)  # Particular scale along meridians
         # k = np.csc(np.pi/4 - lat/2)  # Particular scale along parallels
-        col = 2*R/C * np.sin(lon) * np.cos(np.pi/4 - lat/2) + r0
-        row = -2*R/C * np.cos(lon) * np.cos(np.pi/4 - lat/2) + s0
+        col = +2*R/C * np.sin(lon) * np.cos(np.pi/4 - lat/2) + r0  # column coordinate
+        row = -2*R/C * np.cos(lon) * np.cos(np.pi/4 - lat/2) + s0  # row coordinate
 
         row, col = int(row), int(col)
         u_wind = self.u_wind[row][col]
@@ -146,3 +177,4 @@ class SeaIceMotionDataReader(object):
         logger.debug('row = {}, col = {}'.format(row, col))
         logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
         logger.debug('u_wind = {}, v_wind = {}'.format(u_wind, v_wind))
+        print('{}'.format(self.u_wind[row]))
