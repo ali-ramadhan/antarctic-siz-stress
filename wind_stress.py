@@ -61,11 +61,6 @@ if __name__ == '__main__':
             alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date)
             u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date)
 
-            # print('u_geo_mean = {}'.format(u_geo_mean))
-            # print('wind = {}'.format(u_wind))
-            # print('SIC = {}'.format(alpha))
-            # print('SIM = {}'.format(u_ice))
-
             iter_count = 0
             tau_error = 1
             tau = np.array([0, 0])

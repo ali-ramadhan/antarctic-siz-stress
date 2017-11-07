@@ -30,5 +30,5 @@ lat_max = -55
 lon_min = -180
 lon_max = 180
 
-lat_step = 0.5
-lon_step = 1
+lat_step = 1
+lon_step = 2
