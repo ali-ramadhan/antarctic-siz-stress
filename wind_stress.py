@@ -4,6 +4,7 @@
 # TODO: Use propoer docstrings for functions.
 # TODO: Estimate tau_error.
 # TODO: Calculate wind stress curl field. Gotta interpolate your tau field first.
+# TODO: Output more statistics?
 
 # Conventions
 # Latitude = -90 to +90

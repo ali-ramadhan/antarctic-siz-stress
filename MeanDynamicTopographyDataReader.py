@@ -88,6 +88,9 @@ class MeanDynamicTopographyDataReader(object):
         return gridded_data
 
     def get_MDT(self, lat, lon):
+        if lon < 0:
+            lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
+
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
@@ -106,7 +109,8 @@ class MeanDynamicTopographyDataReader(object):
         return MDT_value
 
     def u_geo_mean(self, lat, lon):
-        lon = lon + 180  # Change from our convention lon = [-180, 180] to [0, 360]
+        if lon < 0:
+            lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
