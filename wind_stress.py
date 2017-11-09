@@ -18,6 +18,7 @@ import logging.config
 logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
 
+np.set_printoptions(precision=4)
 
 if __name__ == '__main__':
     from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
@@ -27,7 +28,7 @@ if __name__ == '__main__':
 
     from constants import lat_min, lat_max, lat_step, lon_min, lon_max, lon_step
     from constants import rho_air, rho_seawater, C_air, C_seawater
-    from constants import f_0, rho_0, D_e
+    from constants import Omega, rho_0, D_e
 
     test_date = datetime.date(2015, 7, 1)
 
@@ -54,6 +55,8 @@ if __name__ == '__main__':
         lat = lats[i]
         logger.info('lat = {}'.format(lat))
 
+        f = 2*Omega*np.sin(np.deg2rad(lat))
+
         for j in range(len(lons)):
             lon = lons[j]
 
@@ -67,13 +70,12 @@ if __name__ == '__main__':
                 tau_y[i][j] = np.nan
                 continue
 
-            np.set_printoptions(precision=4)
             iter_count = 0
             tau_residual = np.array([1, 1])
             tau_relative_error = 1
             tau = np.array([0, 0])
             u_Ekman = np.array([0.001, 0.001])
-            omega = 0.01
+            omega = 0.01  # Richardson relaxation parameter
 
             while np.linalg.norm(tau_residual) > 1e-5:
                 iter_count = iter_count + 1
@@ -93,7 +95,7 @@ if __name__ == '__main__':
 
                 tau_air = rho_air * C_air * np.linalg.norm(u_wind) * u_wind
 
-                u_Ekman = (np.sqrt(2) / (f_0 * rho_0 * D_e)) * np.matmul(R_45deg, tau)
+                u_Ekman = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(R_45deg, tau)
                 u_rel = u_ice - (u_geo_mean - u_Ekman)
                 tau_ice = rho_0 * C_seawater * np.linalg.norm(u_rel) * u_rel
                 tau = alpha * tau_ice + (1 - alpha) * tau_air
