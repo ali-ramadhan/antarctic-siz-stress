@@ -43,9 +43,9 @@ class SeaIceConcentrationDataReader(object):
         from utils import log_netCDF_dataset_metadata
 
         dataset_filepath = self.date_to_SIC_dataset_filepath(date)
-        logger.info('Loading sea ice concentration dataset: %s', dataset_filepath)
+        logger.info('Loading sea ice concentration dataset: {}'.format(dataset_filepath))
         dataset = netCDF4.Dataset(dataset_filepath)
-        logger.info('Successfully loaded sea ice concentration dataset: %s', dataset_filepath)
+        logger.info('Successfully loaded sea ice concentration dataset: {}'.format(dataset_filepath))
         log_netCDF_dataset_metadata(dataset)
         return dataset
 
@@ -88,10 +88,10 @@ class SeaIceConcentrationDataReader(object):
         if (np.abs(lat - lat_xy) > 0.5 or np.abs(lon - lon_xy) > 0.5) \
                 and np.abs(lat) - 180 > 0.5 and np.abs(lat_xy) - 180 > 0.5:
             logger.warning('Lat or lon obtained from SIC dataset differ by more than 0.5 deg from input lat/lon!')
-            logger.warning("lat = %f, lon = %f (input)", lat, lon)
-            logger.warning("x = %f, y = %f (polar stereographic)", x, y)
-            logger.warning("idx_x = %d, idx_y = %d", idx_x, idx_y)
-            logger.warning("lat_xy = %f, lon_xy = %f (from SIC dataset)", lat_xy, lon_xy)
+            logger.warning("lat = {}, lon = {} (input)", lat, lon)
+            logger.warning("x = {}, y = {} (polar stereographic)", x, y)
+            logger.warning("idx_x = {}, idx_y = {}", idx_x, idx_y)
+            logger.warning("lat_xy = {}, lon_xy = {} (from SIC dataset)", lat_xy, lon_xy)
 
         alpha = self.alpha[idx_y][idx_x]
 

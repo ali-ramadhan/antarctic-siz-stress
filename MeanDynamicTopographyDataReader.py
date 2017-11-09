@@ -13,9 +13,9 @@ class MeanDynamicTopographyDataReader(object):
     def __init__(self):
         from utils import log_netCDF_dataset_metadata
 
-        logger.info('MeanDynamicTopographyDataReader initializing. Loading MDT dataset: %s', self.MDT_file_path)
+        logger.info('MeanDynamicTopographyDataReader initializing. Loading MDT dataset: {}'.format(self.MDT_file_path))
         self.MDT_dataset = netCDF4.Dataset(self.MDT_file_path)
-        logger.info('Successfully loaded MDT dataset: %s', self.MDT_file_path)
+        logger.info('Successfully loaded MDT dataset: {}'.format(self.MDT_file_path))
         log_netCDF_dataset_metadata(self.MDT_dataset)
 
         self.lats = np.array(self.MDT_dataset.variables['lat'])
@@ -99,10 +99,9 @@ class MeanDynamicTopographyDataReader(object):
         idx_lat = np.abs(np.array(self.MDT_dataset.variables['lat']) - lat).argmin()
         idx_lon = np.abs(np.array(self.MDT_dataset.variables['lon']) - lon).argmin()
 
-        logger.debug("lat = %f, lon = %f", lat, lon)
-        logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.MDT_dataset.variables['lat'][idx_lat],
-                     self.MDT_dataset.variables['lon'][idx_lon])
+        logger.debug("lat = {}, lon = {}".format(lat, lon))
+        logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
+        logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
 
         MDT_value = self.MDT_dataset.variables['mdt'][0][idx_lat][idx_lon]
 
@@ -120,9 +119,9 @@ class MeanDynamicTopographyDataReader(object):
         idx_lat = np.abs(self.lats - lat).argmin()
         idx_lon = np.abs(self.lons - lon).argmin()
 
-        logger.debug("lat = %f, lon = %f", lat, lon)
-        logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-        logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.lats[idx_lat], self.lons[idx_lon])
+        logger.debug("lat = {}, lon = {}".format(lat, lon))
+        logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
+        logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
 
         u_geo_mean = self.u[idx_lat][idx_lon]
         v_geo_mean = self.v[idx_lat][idx_lon]

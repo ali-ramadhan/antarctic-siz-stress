@@ -41,10 +41,10 @@ def log_netCDF_dataset_metadata(dataset):
 
         var_string = var_string + str(var_type) + ' ' + var_name + var_dim_str + ', '
 
-    logger.info('Title: %s', dataset.title)
-    logger.info('Data model: %s', dataset.data_model)
-    logger.info('Dimensions: %s', dim_string)
-    logger.info('Variables: %s', var_string[:-2])
+    logger.info('Title: {:s}'.format(dataset.title))
+    logger.info('Data model: {:s}'.format(dataset.data_model))
+    logger.info('Dimensions: {:s}'.format(dim_string))
+    logger.info('Variables: {:s}'.format(var_string[:-2]))
 
 
 def latlon_to_polar_stereographic_xy(lat, lon):
@@ -84,7 +84,7 @@ def latlon_to_polar_stereographic_xy(lat, lon):
         t_c = np.tan(np.pi/4 - sl/2) / ((1 - e*np.sin(sl)) / (1 + e*np.sin(sl)))**(e/2)
         m_c = np.cos(sl) / np.sqrt(1 - e*e * (np.sin(sl)**2))
         rho = R_E * m_c * (t/t_c)
-        logger.debug("rho = %f, m_c = %f, t = %f, t_c = %f", rho, m_c, t, t_c)
+        logger.debug('rho = {:f}, m_c = {:f}, t = {:f}, t_c = {:f}'.format(rho, m_c, t, t_c))
 
     x = rho * sgn * np.sin(sgn * lon)
     y = -rho * sgn * np.cos(sgn * lon)

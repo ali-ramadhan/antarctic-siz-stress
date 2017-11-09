@@ -69,21 +69,21 @@ class OceanSurfaceWindVectorDataReader(object):
 
             logger.info('Loading NCEP uwind dataset: {}'.format(uwind_dataset_filepath))
             uwind_dataset = netCDF4.Dataset(uwind_dataset_filepath)
-            logger.info('Successfully loaded NCEP uwind dataset: %s', uwind_dataset_filepath)
+            logger.info('Successfully loaded NCEP uwind dataset: {}'.format(uwind_dataset_filepath))
             log_netCDF_dataset_metadata(uwind_dataset)
 
             logger.info('Loading NCEP vwind dataset: {}'.format(vwind_dataset_filepath))
             vwind_dataset = netCDF4.Dataset(vwind_dataset_filepath)
-            logger.info('Successfully loaded NCEP vwind dataset: %s', vwind_dataset_filepath)
+            logger.info('Successfully loaded NCEP vwind dataset: {}'.format(vwind_dataset_filepath))
             log_netCDF_dataset_metadata(vwind_dataset)
 
             return uwind_dataset, vwind_dataset
         elif self.current_product is OSWVProduct.CCMP:
             dataset_filepath = self.date_to_OSWV_dataset_filepath(date)
-            logger.info('Loading ocean surface wind vector CCMP dataset: %s', dataset_filepath)
+            logger.info('Loading ocean surface wind vector CCMP dataset: {}'.format(dataset_filepath))
             dataset = netCDF4.Dataset(dataset_filepath)
             dataset.set_auto_mask(False)  # TODO: Why is most of the CCMP wind data masked?
-            logger.info('Successfully ocean surface wind vector CCMP dataset: %s', dataset_filepath)
+            logger.info('Successfully ocean surface wind vector CCMP dataset: {}'.format(dataset_filepath))
             log_netCDF_dataset_metadata(dataset)
             return dataset
         else:
@@ -127,9 +127,9 @@ class OceanSurfaceWindVectorDataReader(object):
             idx_lat = np.abs(self.lats - lat).argmin()
             idx_lon = np.abs(self.lons - lon).argmin()
 
-            logger.debug("lat = %f, lon = %f", lat, lon)
-            logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-            logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.lats[idx_lat], self.lons[idx_lon])
+            logger.debug("lat = {}, lon = {}".format(lat, lon))
+            logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
+            logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
             logger.debug('time = {}'.format(self.current_uwind_dataset.variables['time'][day_of_year]))
 
             u_wind = self.uwind[idx_lat][idx_lon]
@@ -156,10 +156,11 @@ class OceanSurfaceWindVectorDataReader(object):
             idx_lat = np.abs(np.array(self.current_OSWV_dataset.variables['lat']) - lat).argmin()
             idx_lon = np.abs(np.array(self.current_OSWV_dataset.variables['lon']) - lon).argmin()
 
-            logger.debug("lat = %f, lon = %f", lat, lon)
-            logger.debug("idx_lat = %d, idx_lon = %d", idx_lat, idx_lon)
-            logger.debug("lat[idx_lat] = %f, lon[idx_lon] = %f", self.current_OSWV_dataset.variables['lat'][idx_lat],
-                         self.current_OSWV_dataset.variables['lon'][idx_lon])
+            logger.debug("lat = {}, lon = {}".format(lat, lon))
+            logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
+            logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}"
+                         .format(self.current_OSWV_dataset.variables['lat'][idx_lat],
+                                 self.current_OSWV_dataset.variables['lon'][idx_lon]))
 
             u_wind = self.current_OSWV_dataset.variables['uwnd'][0][idx_lat][idx_lon]
             v_wind = self.current_OSWV_dataset.variables['vwnd'][0][idx_lat][idx_lon]
