@@ -97,31 +97,31 @@ if __name__ == '__main__':
     tau_dataset.title = 'Antarctic sea ice zone surface stress'
     tau_dataset.institution = 'Department of Earth, Atmospheric, and Planetary Science, ' \
                               'Massachusetts Institute of Technology'
-    tau_dataset.history = 'Created ' + datetime.time.ctime(datetime.time.time()) + '.'
+    # tau_dataset.history = 'Created ' + datetime.time.ctime(datetime.time.time()) + '.'
 
     tau_dataset.createDimension('time', None)
-    tau_dataset.createDimension('latitude', len(lats))
-    tau_dataset.createDimension('longitude', len(lons))
+    tau_dataset.createDimension('lat', len(lats))
+    tau_dataset.createDimension('lon', len(lons))
 
     time_var = tau_dataset.createVariable('time', np.float64, ('time',))
     time_var.units = 'hours since 0001-01-01 00:00:00'
     time_var.calendar = 'gregorian'
 
-    lat_var = tau_dataset.createVariable('latitudes', np.float32, ('latitude',))
+    lat_var = tau_dataset.createVariable('lat', np.float32, ('lat',))
     lat_var.units = 'degrees south'
     lat_var[:] = lats
 
-    lon_var = tau_dataset.createVariable('latitudes', np.float32, ('longitude',))
+    lon_var = tau_dataset.createVariable('lon', np.float32, ('lon',))
     lat_var.units = 'degrees west/east'
     lon_var[:] = lons
 
-    tau_var = tau_dataset.createVariable('tau_x', float, ('latitude', 'longitude'), zlib=True)
+    tau_var = tau_dataset.createVariable('tau_x', float, ('lat', 'lon'), zlib=True)
     tau_var.units = 'N/m^2'
     tau_var.long_name = 'Zonal surface stress'
     tau_var.positive = 'up'
     tau_var[:] = tau_x
 
-    tau_var = tau_dataset.createVariable('tau_y', float, ('latitude', 'longitude'), zlib=True)
+    tau_var = tau_dataset.createVariable('tau_y', float, ('lat', 'lon'), zlib=True)
     tau_var.units = 'N/m^2'
     tau_var.long_name = 'Meridional surface stress'
     tau_var.positive = 'up'
