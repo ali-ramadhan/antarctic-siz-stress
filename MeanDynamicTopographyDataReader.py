@@ -123,4 +123,7 @@ class MeanDynamicTopographyDataReader(object):
         u_geo_mean = self.u[idx_lat][idx_lon]
         v_geo_mean = self.v[idx_lat][idx_lon]
 
+        if u_geo_mean < -100 or v_geo_mean < -100:
+            return np.array([np.nan, np.nan])
+
         return np.array([u_geo_mean, v_geo_mean])

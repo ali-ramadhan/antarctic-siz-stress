@@ -93,5 +93,9 @@ class SeaIceConcentrationDataReader(object):
             logger.warning("idx_x = %d, idx_y = %d", idx_x, idx_y)
             logger.warning("lat_xy = %f, lon_xy = %f (from SIC dataset)", lat_xy, lon_xy)
 
-        # TODO: check for masked values, etc.
-        return self.alpha[idx_y][idx_x]
+        alpha = self.alpha[idx_y][idx_x]
+
+        if alpha > 1:
+            return np.nan
+
+        return alpha
