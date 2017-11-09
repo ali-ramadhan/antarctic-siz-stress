@@ -61,30 +61,95 @@ if __name__ == '__main__':
             alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date)
             u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date)
 
+            if np.isnan(alpha) or np.isnan(u_geo_mean[0]):
+                tau_x[i][j] = np.nan
+                tau_y[i][j] = np.nan
+                continue
+
+            np.set_printoptions(precision=4)
             iter_count = 0
-            tau_error = 1
+            tau_residual = np.array([1, 1])
+            tau_relative_error = 1
             tau = np.array([0, 0])
             u_Ekman = np.array([0.001, 0.001])
+            omega = 0.01
 
-            while tau_error > 1e-5:
+            while np.linalg.norm(tau_residual) > 1e-5:
                 iter_count = iter_count + 1
                 if iter_count > 50:
                     logger.warning('iter_acount exceeded 50 during calculation of tau and u_Ekman.')
-                    logger.warning('tau = {}, u_Ekman = {}, tau_error = {}'.format(tau, u_Ekman, tau_error))
+                    logger.warning('tau = {}, u_Ekman = {}, tau_residual = {}, tau_rel_error = {:.4f}'
+                                   .format(tau, u_Ekman, tau_residual, tau_relative_error))
                     break
+
+                if np.linalg.norm(tau) > 10:
+                    logger.warning('Large tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
+                                   .format(tau, u_geo_mean, u_wind, alpha, u_ice))
+                    iter_count = 0
+                    tau_error = 1
+                    tau_relative_error = 1
+                    tau = np.array([0, 0])
 
                 tau_air = rho_air * C_air * np.linalg.norm(u_wind) * u_wind
 
+                u_Ekman = (np.sqrt(2) / (f_0 * rho_0 * D_e)) * np.matmul(R_45deg, tau)
                 u_rel = u_ice - (u_geo_mean - u_Ekman)
                 tau_ice = rho_0 * C_seawater * np.linalg.norm(u_rel) * u_rel
-
-                tau_error = np.linalg.norm(tau - (alpha * tau_ice + (1 - alpha) * tau_air))
                 tau = alpha * tau_ice + (1 - alpha) * tau_air
-                u_Ekman = (np.sqrt(2) / (f_0 * rho_0 * D_e)) * np.matmul(R_45deg, tau)
 
-            # print('tau = {}'.format(tau))
+                tau_residual = tau - (alpha * tau_ice + (1 - alpha) * tau_air)
+
+                tau_relative_error = np.linalg.norm(tau_residual)/np.linalg.norm(tau)
+
+                tau = tau + omega*tau_residual
+
             tau_x[i][j] = tau[0]
             tau_y[i][j] = tau[1]
+
+            # # Complex version using the modified Richardson iterative method
+            # u_geo_mean = u_geo_mean[0] + 1j*u_geo_mean[1]
+            # u_wind = u_wind[0] + 1j*u_wind[1]
+            # u_ice = u_ice[0] + 1j*u_ice[1]
+            #
+            # tau_air = rho_air * C_air * np.linalg.norm(u_wind) * u_wind
+            #
+            # iter_count = 0
+            # tau_error = 1
+            # tau_relative_error = 1
+            # tau = 0 + 1j*0
+            # u_Ekman = 0 + 1j*0
+            # omega = 0.01  # Richardson relaxation parameter
+            #
+            # while tau_relative_error > 1e-5:
+            #     iter_count = iter_count + 1
+            #     if iter_count > 50:
+            #         logger.warning('iter_acount exceeded 50 during calculation of tau and u_Ekman.')
+            #         logger.warning('tau = {:.4f}, u_Ekman = {:.4f}, tau_rel_error = {:.4f}'
+            #                        .format(tau, u_Ekman, tau_relative_error))
+            #         break
+            #
+            #     if np.linalg.norm(tau) > 10:
+            #         logger.warning('Large tau:')
+            #         logger.warning('tau = {:.4f}, u_geo_mean = {:.4f}, u_wind = {:.4f}, alpha = {:.4f}, u_ice = {:.4f}'
+            #                        .format(tau, u_geo_mean, u_wind, alpha, u_ice))
+            #
+            #     u_Ekman = (np.sqrt(2) / (f_0 * rho_0 * D_e)) * np.exp(-1j * np.pi / 4) * tau
+            #     u_rel = u_ice - (u_geo_mean - u_Ekman)
+            #     tau_ice = rho_0 * C_seawater * np.linalg.norm(u_rel) * u_rel
+            #
+            #     tau_error = tau - (alpha * tau_ice + (1 - alpha) * tau_air)
+            #     tau_residual = tau - tau_error
+            #     tau = tau + omega*tau_residual
+            #
+            #     tau_relative_error = np.linalg.norm(tau_error) / np.linalg.norm(tau)
+            #     # omega = 0.75*omega
+            #
+            # if np.isnan(np.real(tau)) or np.isnan(np.imag(tau)):
+            #     logger.warning('tau = {:.4f}, u_geo_mean = {:.4f}, u_wind = {:.4f}, alpha = {:.4f}, u_ice = {:.4f}'
+            #                   .format(tau, u_geo_mean, u_wind, alpha, u_ice))
+            #
+            # tau_x[i][j] = np.real(tau)
+            # tau_y[i][j] = np.imag(tau)
 
     import matplotlib.pyplot as plt
     plt.contourf(lons, lats, tau_x, 25)
