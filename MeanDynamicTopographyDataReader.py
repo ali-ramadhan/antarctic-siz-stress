@@ -87,7 +87,7 @@ class MeanDynamicTopographyDataReader(object):
 
         return gridded_data
 
-    def get_MDT(self, lat, lon):
+    def mean_dynamic_topography(self, lat: float, lon: float) -> float:
         if lon < 0:
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
@@ -107,7 +107,7 @@ class MeanDynamicTopographyDataReader(object):
 
         return MDT_value
 
-    def u_geo_mean(self, lat, lon):
+    def u_geo_mean(self, lat: float, lon: float) -> np.ndarray:
         if lon < 0:
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
@@ -126,6 +126,7 @@ class MeanDynamicTopographyDataReader(object):
         u_geo_mean = self.u[idx_lat][idx_lon]
         v_geo_mean = self.v[idx_lat][idx_lon]
 
+        # TODO: Properly check for masked values.
         if u_geo_mean < -100 or v_geo_mean < -100:
             return np.array([np.nan, np.nan])
 
