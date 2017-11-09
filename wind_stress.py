@@ -37,8 +37,8 @@ if __name__ == '__main__':
 
     R_45deg = np.array([[np.cos(np.pi / 4), -np.sin(np.pi / 4)], [np.sin(np.pi / 4), np.cos(np.pi / 4)]])
 
-    n_lat = int((lat_max - lat_min) / lat_step)
-    n_lon = int((lon_max - lon_min) / lon_step)
+    n_lat = int((lat_max - lat_min) / lat_step) + 1
+    n_lon = int((lon_max - lon_min) / lon_step) + 1
 
     lats = np.linspace(lat_min, lat_max, n_lat)
     lons = np.linspace(lon_min, lon_max, n_lon)
@@ -98,10 +98,13 @@ if __name__ == '__main__':
                 tau = alpha * tau_ice + (1 - alpha) * tau_air
 
                 tau_residual = tau - (alpha * tau_ice + (1 - alpha) * tau_air)
-
                 tau_relative_error = np.linalg.norm(tau_residual)/np.linalg.norm(tau)
 
                 tau = tau + omega*tau_residual
+
+                if np.isnan(tau[0]) or np.isnan(tau[1]):
+                    logger.warning('tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
+                                   .format(tau, u_geo_mean, u_wind, alpha, u_ice))
 
             tau_x[i][j] = tau[0]
             tau_y[i][j] = tau[1]
