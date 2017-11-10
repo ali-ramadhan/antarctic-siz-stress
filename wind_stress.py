@@ -26,21 +26,19 @@ if __name__ == '__main__':
     from SeaIceConcentrationDataReader import SeaIceConcentrationDataReader
     from SeaIceMotionDataReader import SeaIceMotionDataReader
 
-    from constants import lat_min, lat_max, lat_step, lon_min, lon_max, lon_step
+    from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
     from constants import rho_air, rho_seawater, C_air, C_seawater
     from constants import Omega, rho_0, D_e
 
     test_date = datetime.date(2015, 7, 1)
 
     mdt = MeanDynamicTopographyDataReader()
+    exit()
     seaice_conc = SeaIceConcentrationDataReader(test_date)
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
     seaice_motion = SeaIceMotionDataReader(test_date)
 
     R_45deg = np.array([[np.cos(np.pi / 4), -np.sin(np.pi / 4)], [np.sin(np.pi / 4), np.cos(np.pi / 4)]])
-
-    n_lat = int((lat_max - lat_min) / lat_step) + 1
-    n_lon = int((lon_max - lon_min) / lon_step) + 1
 
     lats = np.linspace(lat_min, lat_max, n_lat)
     lons = np.linspace(lon_min, lon_max, n_lon)
@@ -53,9 +51,9 @@ if __name__ == '__main__':
 
     for i in range(len(lats)):
         lat = lats[i]
-        logger.info('lat = {}'.format(lat))
+        f = 2 * Omega * np.sin(np.deg2rad(lat))
 
-        f = 2*Omega*np.sin(np.deg2rad(lat))
+        logger.info('lat = {}'.format(lat))
 
         for j in range(len(lons)):
             lon = lons[j]

@@ -36,3 +36,6 @@ lon_max = 180
 
 lat_step = 0.25
 lon_step = 0.25
+
+n_lat = int((lat_max - lat_min) / lat_step) + 1
+n_lon = int((lon_max - lon_min) / lon_step) + 1

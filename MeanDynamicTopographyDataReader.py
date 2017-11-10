@@ -21,67 +21,45 @@ class MeanDynamicTopographyDataReader(object):
         self.lats = np.array(self.MDT_dataset.variables['lat'])
         self.lons = np.array(self.MDT_dataset.variables['lon'])
 
+        self.mdt = np.array(self.MDT_dataset.variables['mdt'][0])
         self.u = np.array(self.MDT_dataset.variables['u'][0])
         self.v = np.array(self.MDT_dataset.variables['v'][0])
 
-        # self.interpolate_MDT_dataset()
+        self.interpolate_mdt_dataset()
 
-    def interpolate_MDT_dataset(self):
+    def interpolate_mdt_dataset(self):
         from scipy.interpolate import griddata
+        from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
 
         logger.info('Interpolating MDT dataset...')
 
-        lat = np.array(self.MDT_dataset.variables['lat'])
-        lon = np.array(self.MDT_dataset.variables['lon'])
+        # TODO: Properly check for masked/filled values.
+        mdt_values = np.ma.array(self.mdt, mask=(self.mdt < -100), copy=True)
+        mdt_values = np.reshape(mdt_values, (len(self.lats)*len(self.lons), ))
 
-        min_lat = np.min(lat)
-        max_lat = np.max(lat)
-        min_lon = np.min(lon)
-        max_lon = np.max(lon)
+        lat2 = np.repeat(self.lats, len(self.lons))
+        lon2 = np.tile(self.lons, len(self.lats))
 
-        values = np.array(self.MDT_dataset.variables['mdt'])
-        values = np.reshape(np.transpose(values), (len(lat)*len(lon), ))
-        values[values < -100] = np.nan
+        lat2 = np.ma.masked_where(np.ma.getmask(mdt_values), lat2)
+        lon2 = np.ma.masked_where(np.ma.getmask(mdt_values), lon2)
 
-        lat2 = np.tile(lat, len(lon))
-        lon2 = np.repeat(lon, len(lat))
+        print(mdt_values.shape)
 
-        lat2 = lat2[~np.isnan(values)]
-        lon2 = lon2[~np.isnan(values)]
-        values = values[~np.isnan(values)]
+        lat2 = lat2[~lat2.mask]
+        lon2 = lon2[~lon2.mask]
+        mdt_values = mdt_values[~mdt_values.mask]
 
-        # TODO: Document how you do this cartesian product. Also maybe switch to the faster version you bookmarked.
-        # points = np.transpose([np.tile(lat, len(lon)), np.repeat(lon, len(lat))])
-
-        nan = 0
-        notnan = 0
-        for index, x in np.ndenumerate(values):
-            if not np.isnan(x):
-                notnan += 1
-            else:
-                nan += 1
-
-        logger.debug('nan = {}'.format(nan))
-        logger.debug('notnan = {}'.format(notnan))
-
-        grid_x, grid_y = np.mgrid[min_lat:max_lat:1000j, min_lon:max_lon:1000j]
-        gridded_data = griddata((lat2, lon2), values, (grid_x, grid_y), method='cubic')
+        # TODO: Properly convert lat = -180:180 to lat = 0:360. List comprehension then sort?
+        grid_x, grid_y = np.mgrid[lat_min:lat_max:n_lat*1j, 0:360:n_lon*1j]
+        gridded_data = griddata((lat2, lon2), mdt_values, (grid_x, grid_y), method='linear')
 
         logger.info('Interpolating MDT dataset... DONE!')
 
-        nan = 0
-        notnan = 0
-        for index, x in np.ndenumerate(gridded_data):
-            if not np.isnan(x):
-                notnan += 1
-            else:
-                nan += 1
-
-        logger.debug('nan = {}'.format(nan))
-        logger.debug('notnan = {}'.format(notnan))
+        # Loop through and mask values that are supposed to be land, etc.?
+        # Then plot residual field to check that interpolation matches
 
         import matplotlib.pyplot as plt
-        plt.contourf(grid_x, grid_y, gridded_data, 60)
+        plt.pcolormesh(grid_x, grid_y, gridded_data)
         plt.colorbar()
         plt.show()
 
@@ -96,14 +74,14 @@ class MeanDynamicTopographyDataReader(object):
 
         # Nearest neighbour interpolation
         # Find index of closest matching latitude and longitude
-        idx_lat = np.abs(np.array(self.MDT_dataset.variables['lat']) - lat).argmin()
-        idx_lon = np.abs(np.array(self.MDT_dataset.variables['lon']) - lon).argmin()
+        idx_lat = np.abs(self.lats - lat).argmin()
+        idx_lon = np.abs(self.lons - lon).argmin()
 
-        logger.debug("lat = {}, lon = {}".format(lat, lon))
-        logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
-        logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
+        logger.debug("lat = {:f}, lon = {:f}".format(lat, lon))
+        logger.debug("idx_lat = {:d}, idx_lon = {:d}".format(idx_lat, idx_lon))
+        logger.debug("lat[idx_lat] = {:f}, lon[idx_lon] = {:f}".format(self.lats[idx_lat], self.lons[idx_lon]))
 
-        MDT_value = self.MDT_dataset.variables['mdt'][0][idx_lat][idx_lon]
+        MDT_value = self.mdt[idx_lat][idx_lon]
 
         return MDT_value
 
