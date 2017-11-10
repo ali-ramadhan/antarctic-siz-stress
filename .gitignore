@@ -107,4 +107,4 @@ ENV/
 data/
 
 # Ignore netCDF files
-.nc
+*.nc
