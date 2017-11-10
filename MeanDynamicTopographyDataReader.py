@@ -25,11 +25,30 @@ class MeanDynamicTopographyDataReader(object):
         self.u = np.array(self.MDT_dataset.variables['u'][0])
         self.v = np.array(self.MDT_dataset.variables['v'][0])
 
+        self.mdt_interp = None
+        self.latgrid_interp = None
+        self.longrid_interp = None
         self.interpolate_mdt_dataset()
 
     def interpolate_mdt_dataset(self):
+        import pickle
+        from os.path import isfile
+        from constants import data_dir_path
+        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
 
-        # mdt_interp_filename = 'mdt_cnes_cls2013_global' + '_interp' +
+        mdt_interp_filename = 'mdt_cnes_cls2013_global' + '_interp_' \
+                              + 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
+                              + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
+        mdt_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', mdt_interp_filename)
+
+        if isfile(mdt_interp_filepath):
+            logger.info('Interpolated grid found. Unpickling: {:s}'.format(mdt_interp_filepath))
+            with open(mdt_interp_filepath, 'rb') as f:
+                mdt_interp_dict = pickle.load(f)
+                self.mdt_interp = mdt_interp_dict['mdt_interp']
+                self.latgrid_interp = mdt_interp_dict['latgrid_interp']
+                self.longrid_interp = mdt_interp_dict['longrid_interp']
+            return
 
         from scipy.interpolate import griddata
         logger.info('Interpolating MDT dataset...')
@@ -87,7 +106,20 @@ class MeanDynamicTopographyDataReader(object):
         # plt.colorbar()
         # plt.show()
 
-        return gridded_data
+        # Pickle the interpolated grid as a form of memoization to avoid having to recompute it again for the same
+        # gridpoints.
+        with open(mdt_interp_filepath, 'wb') as f:
+            logger.info('Pickling interpolated grid: {:s}'.format(mdt_interp_filepath))
+            mdt_interp_dict = {
+                'mdt_interp': mdt_interp,
+                'latgrid_interp': latgrid_interp,
+                'longrid_interp': longrid_interp
+            }
+            pickle.dump(mdt_interp_dict, f, pickle.HIGHEST_PROTOCOL)
+
+        self.mdt_interp = mdt_interp
+        self.latgrid_interp = latgrid_interp
+        self.longrid_interp = longrid_interp
 
     def mean_dynamic_topography(self, lat: float, lon: float) -> float:
         if lon < 0:
