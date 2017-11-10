@@ -91,5 +91,89 @@ def latlon_to_polar_stereographic_xy(lat, lon):
 
     return x, y
 
-def interpolate_dataset(pickle_filepath):
-    pass
+
+def convert_lon_range_to_0360(old_lon_min, old_lon_max):
+    # TODO: Properly convert lat = -180:180 to lat = 0:360. List comprehension then sort?
+    if old_lon_min == -180 and old_lon_max == 180:
+        return 0, 360
+
+
+def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, convertLat=False):
+    import pickle
+    from os.path import isfile
+
+    # Check if the data has already been interpolated for the same grid points before doing the interpolation again.
+    if isfile(pickle_filepath):
+        logger.info('Interpolated grid found. Unpickling: {:s}'.format(pickle_filepath))
+        with open(pickle_filepath, 'rb') as f:
+            data_interp_dict = pickle.load(f)
+            data_interp = data_interp_dict['data_interp']
+            latgrid_interp = data_interp_dict['latgrid_interp']
+            longrid_interp = data_interp_dict['longrid_interp']
+        return data_interp, latgrid_interp, longrid_interp
+
+    logger.info('Interpolating dataset...')
+
+    from scipy.interpolate import griddata
+    from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+
+    # Mask certain values (e.g. land, missing data) according to the mask value condition and reshape into a 1D array
+    # in preparation for griddata.
+    data_masked = np.ma.array(data, mask=mask_value_cond(data))
+    data_masked = np.reshape(data_masked, (len(lats) * len(lons),))
+
+    # Repeat the latitudes and tile the longitudes so that lat_masked[i], lon_masked[i] corresponds to data[i].
+    lat_masked = np.repeat(lats, len(lons))
+    lon_masked = np.tile(lons, len(lats))
+
+    # Mask the latitudes and longitudes that correspond to masked data values.
+    lat_masked = np.ma.masked_where(np.ma.getmask(data_masked), lat_masked)
+    lon_masked = np.ma.masked_where(np.ma.getmask(data_masked), lon_masked)
+
+    # Use the mask to remove all masked elements as griddata ignores masked data and cannot deal with NaN values.
+    lat_masked = lat_masked[~lat_masked.mask]
+    lon_masked = lon_masked[~lon_masked.mask]
+    data_masked = data_masked[~data_masked.mask]
+
+    if convertLat:
+        lon_min, lon_max = convert_lon_range_to_0360(lon_min, lon_max)
+
+    # Create grid of points we wish to evaluate the interpolation on.
+    latgrid_interp, longrid_interp = np.mgrid[lat_min:lat_max:n_lat*1j, lon_min:lon_max:n_lon*1j]
+
+    data_interp = griddata((lat_masked, lon_masked), data_masked, (latgrid_interp, longrid_interp), method='cubic')
+
+    # Since we get back interpolated values over the land, we must mask them or get rid of them. We do this by
+    # looping through the interpolated values and mask values that are supposed to be land by setting their value to
+    # np.nan. We do this by comparing each interpolated value mdt_interp[i][j] with the mdt_values value that is
+    # closest in latitude and longitude.
+    # We can also compute the residuals, that is the error between the interpolated values and the actual values
+    # which should be zero where an interpolation gridpoint coincides with an original gridpoint, and should be
+    # pretty small everywhere else.
+    # residual = np.zeros((n_lat, n_lon))
+    for i in range(n_lat):
+        for j in range(n_lon):
+            lat = latgrid_interp[i][j]
+            lon = longrid_interp[i][j]
+            closest_lat_idx = np.abs(lats - lat).argmin()
+            closest_lon_idx = np.abs(lons - lon).argmin()
+            closest_data = data[closest_lat_idx][closest_lon_idx]
+            # residual[i][j] = (closest_data - data[i][j]) / closest_data
+            if mask_value_cond(closest_data):
+                data_interp[i][j] = np.nan
+                # residual[i][j] = np.nan
+
+    logger.info('Interpolating dataset... DONE!')
+
+    # Pickle the interpolated grid as a form of memoization to avoid having to recompute it again for the same
+    # gridpoints.
+    with open(pickle_filepath, 'wb') as f:
+        logger.info('Pickling interpolated grid: {:s}'.format(pickle_filepath))
+        data_interp_dict = {
+            'data_interp': data_interp,
+            'latgrid_interp': latgrid_interp,
+            'longrid_interp': longrid_interp
+        }
+        pickle.dump(data_interp_dict, f, pickle.HIGHEST_PROTOCOL)
+
+    return data_interp, latgrid_interp, longrid_interp
