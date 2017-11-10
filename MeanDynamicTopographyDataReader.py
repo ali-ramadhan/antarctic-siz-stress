@@ -30,6 +30,8 @@ class MeanDynamicTopographyDataReader(object):
     def interpolate_mdt_dataset(self):
         from scipy.interpolate import griddata
         from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
+        
+        # mdt_interp_filename = 'mdt_cnes_cls2013_global' + '_interp' +
 
         logger.info('Interpolating MDT dataset...')
 
@@ -43,23 +45,33 @@ class MeanDynamicTopographyDataReader(object):
         lat2 = np.ma.masked_where(np.ma.getmask(mdt_values), lat2)
         lon2 = np.ma.masked_where(np.ma.getmask(mdt_values), lon2)
 
-        print(mdt_values.shape)
-
         lat2 = lat2[~lat2.mask]
         lon2 = lon2[~lon2.mask]
         mdt_values = mdt_values[~mdt_values.mask]
 
         # TODO: Properly convert lat = -180:180 to lat = 0:360. List comprehension then sort?
         grid_x, grid_y = np.mgrid[lat_min:lat_max:n_lat*1j, 0:360:n_lon*1j]
-        gridded_data = griddata((lat2, lon2), mdt_values, (grid_x, grid_y), method='linear')
+        gridded_data = griddata((lat2, lon2), mdt_values, (grid_x, grid_y), method='cubic')
 
         logger.info('Interpolating MDT dataset... DONE!')
 
+        error = np.zeros((n_lat, n_lon))
         # Loop through and mask values that are supposed to be land, etc.?
-        # Then plot residual field to check that interpolation matches
+        for i in range(n_lat):
+            for j in range(n_lon):
+                lat = grid_x[i][j]
+                lon = grid_y[i][j]
+                closest_lat_idx = np.abs(self.lats - lat).argmin()
+                closest_lon_idx = np.abs(self.lons - lon).argmin()
+                closest_mdt = self.mdt[closest_lat_idx][closest_lon_idx]
+                error[i][j] = (closest_mdt - gridded_data[i][j])/closest_mdt
+                if self.mdt[closest_lat_idx][closest_lon_idx] < -100:  # TODO: Properly check for masked/filled values.
+                    gridded_data[i][j] = np.nan
+                    error[i][j] = np.nan
 
+        # Then plot residual field to check that the interpolation matches
         import matplotlib.pyplot as plt
-        plt.pcolormesh(grid_x, grid_y, gridded_data)
+        plt.pcolormesh(grid_x, grid_y, np.log10(np.abs(error)))
         plt.colorbar()
         plt.show()
 
