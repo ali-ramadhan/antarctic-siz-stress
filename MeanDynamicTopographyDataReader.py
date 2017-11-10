@@ -36,11 +36,6 @@ class MeanDynamicTopographyDataReader(object):
         self.longrid_interp = None
         self.interpolate_u_geo_dataset()
 
-        import matplotlib.pyplot as plt
-        plt.pcolormesh(self.longrid_interp, self.latgrid_interp, self.ugeo_interp)
-        plt.colorbar()
-        plt.show()
-
     def interpolate_mdt_dataset(self):
         from utils import interpolate_dataset
         from constants import data_dir_path
@@ -85,7 +80,6 @@ class MeanDynamicTopographyDataReader(object):
         self.latgrid_interp = latgrid_interp
         self.longrid_interp = longrid_interp
 
-
     def mean_dynamic_topography(self, lat: float, lon: float) -> float:
         if lon < 0:
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
@@ -102,9 +96,28 @@ class MeanDynamicTopographyDataReader(object):
         logger.debug("idx_lat = {:d}, idx_lon = {:d}".format(idx_lat, idx_lon))
         logger.debug("lat[idx_lat] = {:f}, lon[idx_lon] = {:f}".format(self.lats[idx_lat], self.lons[idx_lon]))
 
-        MDT_value = self.mdt[idx_lat][idx_lon]
+        mdt_value = self.mdt[idx_lat][idx_lon]
+        return mdt_value
 
-        return MDT_value
+    def mean_dynamic_topograhy_interp(self, lat: float, lon: float) -> float:
+        if lon < 0:
+            lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
+
+        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
+        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
+
+        # Technically doing a nearest neighbour interpolation, but the interpolation should coincide exactly with
+        # the lat, lon values we use.
+        # Find index of closest matching latitude and longitude
+        idx_lat = np.abs(self.latgrid_interp - lat).argmin()
+        idx_lon = np.abs(self.longrid_interp - lon).argmin()
+
+        logger.debug("lat = {:f}, lon = {:f}".format(lat, lon))
+        logger.debug("idx_lat = {:d}, idx_lon = {:d}".format(idx_lat, idx_lon))
+        logger.debug("lat[idx_lat] = {:f}, lon[idx_lon] = {:f}".format(self.lats[idx_lat], self.lons[idx_lon]))
+
+        mdt_value = self.mdt_interp[idx_lat][idx_lon]
+        return mdt_value
 
     def u_geo_mean(self, lat: float, lon: float) -> np.ndarray:
         if lon < 0:
@@ -128,5 +141,26 @@ class MeanDynamicTopographyDataReader(object):
         # TODO: Properly check for masked values.
         if u_geo_mean < -100 or v_geo_mean < -100:
             return np.array([np.nan, np.nan])
+
+        return np.array([u_geo_mean, v_geo_mean])
+
+    def u_geo_mean_interp(self, lat: float, lon: float) -> np.ndarray:
+        if lon < 0:
+            lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
+
+        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
+        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
+
+        # Nearest neighbour interpolation
+        # Find index of closest matching latitude and longitude
+        idx_lat = np.abs(self.latgrid_interp - lat).argmin()
+        idx_lon = np.abs(self.longrid_interp - lon).argmin()
+
+        logger.debug("lat = {}, lon = {}".format(lat, lon))
+        logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
+        logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
+
+        u_geo_mean = self.ugeo_interp[idx_lat][idx_lon]
+        v_geo_mean = self.vgeo_interp[idx_lat][idx_lon]
 
         return np.array([u_geo_mean, v_geo_mean])
