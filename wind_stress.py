@@ -34,7 +34,6 @@ if __name__ == '__main__':
     test_date = datetime.date(2015, 7, 1)
 
     mdt = MeanDynamicTopographyDataReader()
-    exit()
     seaice_conc = SeaIceConcentrationDataReader(test_date)
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
     seaice_motion = SeaIceMotionDataReader(test_date)
@@ -59,7 +58,7 @@ if __name__ == '__main__':
         for j in range(len(lons)):
             lon = lons[j]
 
-            u_geo_mean = mdt.u_geo_mean(lat, lon)
+            u_geo_mean = mdt.u_geo_mean_interp(lat, lon)
             u_wind = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date)
             alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date)
             u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date)

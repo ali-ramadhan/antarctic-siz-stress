@@ -92,10 +92,6 @@ class MeanDynamicTopographyDataReader(object):
         idx_lat = np.abs(self.lats - lat).argmin()
         idx_lon = np.abs(self.lons - lon).argmin()
 
-        logger.debug("lat = {:f}, lon = {:f}".format(lat, lon))
-        logger.debug("idx_lat = {:d}, idx_lon = {:d}".format(idx_lat, idx_lon))
-        logger.debug("lat[idx_lat] = {:f}, lon[idx_lon] = {:f}".format(self.lats[idx_lat], self.lons[idx_lon]))
-
         mdt_value = self.mdt[idx_lat][idx_lon]
         return mdt_value
 
@@ -112,10 +108,6 @@ class MeanDynamicTopographyDataReader(object):
         idx_lat = np.abs(self.latgrid_interp - lat).argmin()
         idx_lon = np.abs(self.longrid_interp - lon).argmin()
 
-        logger.debug("lat = {:f}, lon = {:f}".format(lat, lon))
-        logger.debug("idx_lat = {:d}, idx_lon = {:d}".format(idx_lat, idx_lon))
-        logger.debug("lat[idx_lat] = {:f}, lon[idx_lon] = {:f}".format(self.lats[idx_lat], self.lons[idx_lon]))
-
         mdt_value = self.mdt_interp[idx_lat][idx_lon]
         return mdt_value
 
@@ -130,10 +122,6 @@ class MeanDynamicTopographyDataReader(object):
         # Find index of closest matching latitude and longitude
         idx_lat = np.abs(self.lats - lat).argmin()
         idx_lon = np.abs(self.lons - lon).argmin()
-
-        logger.debug("lat = {}, lon = {}".format(lat, lon))
-        logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
-        logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
 
         u_geo_mean = self.u_geo[idx_lat][idx_lon]
         v_geo_mean = self.v_geo[idx_lat][idx_lon]
@@ -151,14 +139,11 @@ class MeanDynamicTopographyDataReader(object):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
-        # Nearest neighbour interpolation
+        # Technically doing a nearest neighbour interpolation, but the interpolation should coincide exactly with
+        # the lat, lon values we use.
         # Find index of closest matching latitude and longitude
         idx_lat = np.abs(self.latgrid_interp - lat).argmin()
         idx_lon = np.abs(self.longrid_interp - lon).argmin()
-
-        logger.debug("lat = {}, lon = {}".format(lat, lon))
-        logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
-        logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
 
         u_geo_mean = self.ugeo_interp[idx_lat][idx_lon]
         v_geo_mean = self.vgeo_interp[idx_lat][idx_lon]

@@ -165,6 +165,10 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
 
     logger.info('Interpolating dataset... DONE!')
 
+    # We only need to store the list of lats and lons used.
+    latgrid_interp = latgrid_interp[:, 0]
+    longrid_interp = longrid_interp[0]
+
     # Pickle the interpolated grid as a form of memoization to avoid having to recompute it again for the same
     # gridpoints.
     with open(pickle_filepath, 'wb') as f:
