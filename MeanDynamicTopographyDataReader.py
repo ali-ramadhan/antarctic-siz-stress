@@ -46,6 +46,7 @@ class MeanDynamicTopographyDataReader(object):
                               + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
         mdt_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', mdt_interp_filename)
 
+        # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x < -100
 
         mdt_interp, latgrid_interp, longrid_interp = \
@@ -68,6 +69,7 @@ class MeanDynamicTopographyDataReader(object):
         ugeo_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', ugeo_interp_filename)
         vgeo_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', vgeo_interp_filename)
 
+        # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x < -100
 
         ugeo_interp, latgrid_interp, longrid_interp = \

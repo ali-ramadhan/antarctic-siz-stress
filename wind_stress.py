@@ -43,6 +43,7 @@ if __name__ == '__main__':
     lats = np.linspace(lat_min, lat_max, n_lat)
     lons = np.linspace(lon_min, lon_max, n_lon)
 
+    logger.info('Calculating surface stress field (tau_x, tau_y) for:')
     logger.info('lat_min = {}, lat_max = {}, lat_step = {}, n_lat = {}'.format(lat_min, lat_max, lat_step, n_lat))
     logger.info('lon_min = {}, lon_max = {}, lon_step = {}, n_lon = {}'.format(lon_min, lon_max, lon_step, n_lon))
 
@@ -51,9 +52,10 @@ if __name__ == '__main__':
 
     for i in range(len(lats)):
         lat = lats[i]
-        f = 2 * Omega * np.sin(np.deg2rad(lat))
+        f = 2*Omega * np.sin(np.deg2rad(lat))
 
-        logger.info('lat = {}'.format(lat))
+        progress_percent = 100 * (lat - lat_min)/(lat_max - lat_min)
+        logger.info('lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
 
         for j in range(len(lons)):
             lon = lons[j]
@@ -86,10 +88,7 @@ if __name__ == '__main__':
                 if np.linalg.norm(tau) > 10:
                     logger.warning('Large tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
                                    .format(tau, u_geo_mean, u_wind, alpha, u_ice))
-                    iter_count = 0
-                    tau_error = 1
-                    tau_relative_error = 1
-                    tau = np.array([0, 0])
+                    break
 
                 tau_air = rho_air * C_air * np.linalg.norm(u_wind) * u_wind
 
@@ -104,14 +103,14 @@ if __name__ == '__main__':
                 tau = tau + omega*tau_residual
 
                 if np.isnan(tau[0]) or np.isnan(tau[1]):
-                    logger.warning('tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
+                    logger.warning('NaN tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
                                    .format(tau, u_geo_mean, u_wind, alpha, u_ice))
 
             tau_x[i][j] = tau[0]
             tau_y[i][j] = tau[1]
 
     import matplotlib.pyplot as plt
-    plt.contourf(lons, lats, tau_x, 25)
+    plt.pcolormesh(lons, lats, tau_x)
     plt.colorbar()
     plt.show()
 
