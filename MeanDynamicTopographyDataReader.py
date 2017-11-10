@@ -28,52 +28,64 @@ class MeanDynamicTopographyDataReader(object):
         self.interpolate_mdt_dataset()
 
     def interpolate_mdt_dataset(self):
-        from scipy.interpolate import griddata
-        from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
-        
+
         # mdt_interp_filename = 'mdt_cnes_cls2013_global' + '_interp' +
 
+        from scipy.interpolate import griddata
         logger.info('Interpolating MDT dataset...')
 
         # TODO: Properly check for masked/filled values.
-        mdt_values = np.ma.array(self.mdt, mask=(self.mdt < -100), copy=True)
-        mdt_values = np.reshape(mdt_values, (len(self.lats)*len(self.lons), ))
+        # Mask land values and reshape into a 1D array in preparation for griddata.
+        mdt_masked = np.ma.array(self.mdt, mask=(self.mdt < -100), copy=True)
+        mdt_masked = np.reshape(mdt_masked, (len(self.lats)*len(self.lons), ))
 
-        lat2 = np.repeat(self.lats, len(self.lons))
-        lon2 = np.tile(self.lons, len(self.lats))
+        # Repeat the latitudes and tile the longitudes so that lat2[i], lon2[i] corresponds to mdt_values[i].
+        lat_masked = np.repeat(self.lats, len(self.lons))
+        lon_masked = np.tile(self.lons, len(self.lats))
 
-        lat2 = np.ma.masked_where(np.ma.getmask(mdt_values), lat2)
-        lon2 = np.ma.masked_where(np.ma.getmask(mdt_values), lon2)
+        # Mask the latitudes and longitudes that correspond to land values.
+        lat_masked = np.ma.masked_where(np.ma.getmask(mdt_masked), lat_masked)
+        lon_masked = np.ma.masked_where(np.ma.getmask(mdt_masked), lon_masked)
 
-        lat2 = lat2[~lat2.mask]
-        lon2 = lon2[~lon2.mask]
-        mdt_values = mdt_values[~mdt_values.mask]
+        # Use the mask to remove all masked elements as griddata ignores masked data and cannot deal with NaN values.
+        lat_masked = lat_masked[~lat_masked.mask]
+        lon_masked = lon_masked[~lon_masked.mask]
+        mdt_masked = mdt_masked[~mdt_masked.mask]
 
         # TODO: Properly convert lat = -180:180 to lat = 0:360. List comprehension then sort?
-        grid_x, grid_y = np.mgrid[lat_min:lat_max:n_lat*1j, 0:360:n_lon*1j]
-        gridded_data = griddata((lat2, lon2), mdt_values, (grid_x, grid_y), method='cubic')
+        # f = lambda lon: lon+360 if lon < 0 else lon
+        # Create grid of points we wish to evaluate the interpolation on.
+        latgrid_interp, longrid_interp = np.mgrid[lat_min:lat_max:n_lat*1j, 0:360:n_lon*1j]
+
+        mdt_interp = griddata((lat_masked, lon_masked), mdt_masked, (latgrid_interp, longrid_interp), method='cubic')
 
         logger.info('Interpolating MDT dataset... DONE!')
 
-        error = np.zeros((n_lat, n_lon))
-        # Loop through and mask values that are supposed to be land, etc.?
+        # Since we get back interpolated values over the land, we must mask them or get rid of them. We do this by
+        # looping through the interpolated values and mask values that are supposed to be land by setting their value to
+        # np.nan. We do this by comparing each interpolated value mdt_interp[i][j] with the mdt_values value that is
+        # closest in latitude and longitude.
+        # We can also compute the residuals, that is the error between the interpolated values and the actual values
+        # which should be zero where an interpolation gridpoint coincides with an original gridpoint, and should be
+        # pretty small everywhere else.
+        residual = np.zeros((n_lat, n_lon))
         for i in range(n_lat):
             for j in range(n_lon):
-                lat = grid_x[i][j]
-                lon = grid_y[i][j]
+                lat = latgrid_interp[i][j]
+                lon = longrid_interp[i][j]
                 closest_lat_idx = np.abs(self.lats - lat).argmin()
                 closest_lon_idx = np.abs(self.lons - lon).argmin()
                 closest_mdt = self.mdt[closest_lat_idx][closest_lon_idx]
-                error[i][j] = (closest_mdt - gridded_data[i][j])/closest_mdt
+                residual[i][j] = (closest_mdt - mdt_interp[i][j])/closest_mdt
                 if self.mdt[closest_lat_idx][closest_lon_idx] < -100:  # TODO: Properly check for masked/filled values.
-                    gridded_data[i][j] = np.nan
-                    error[i][j] = np.nan
+                    mdt_interp[i][j] = np.nan
+                    residual[i][j] = np.nan
 
-        # Then plot residual field to check that the interpolation matches
-        import matplotlib.pyplot as plt
-        plt.pcolormesh(grid_x, grid_y, np.log10(np.abs(error)))
-        plt.colorbar()
-        plt.show()
+        # Plot residual field to check that the interpolation matches
+        # import matplotlib.pyplot as plt
+        # plt.pcolormesh(latgrid_interp, longrid_interp, np.log10(np.abs(residual)))
+        # plt.colorbar()
+        # plt.show()
 
         return gridded_data
 
