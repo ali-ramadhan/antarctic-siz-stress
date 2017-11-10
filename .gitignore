@@ -105,3 +105,6 @@ ENV/
 
 # Ignore research data directory
 data/
+
+# Ignore netCDF files
+.nc
