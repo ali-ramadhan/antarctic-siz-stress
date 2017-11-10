@@ -1,10 +1,11 @@
 # TODO: Use the typing module.
 # TODO: Add test case units?
-# TODO: Switch from printf style logging to Python3 style formatting.
 # TODO: Use propoer docstrings for functions.
-# TODO: Estimate tau_error.
+# TODO: Estimate tau_error? Can you? NCEP Reanalysis doesn't really provide a "measurement error".
 # TODO: Calculate wind stress curl field. Gotta interpolate your tau field first.
-# TODO: Output more statistics?
+# TODO: Output more statistics during the analysis?
+# TODO: Stop pickling and start just saving as netCDF? Pickle might not be best for long-term storage. NetCDF is.
+# TODO: Is it possible to make a general purpose interpolate_dataset function for all my datasets?
 
 # Conventions
 # Latitude = -90 to +90

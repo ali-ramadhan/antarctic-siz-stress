@@ -90,3 +90,6 @@ def latlon_to_polar_stereographic_xy(lat, lon):
     y = -rho * sgn * np.cos(sgn * lon)
 
     return x, y
+
+def interpolate_dataset(pickle_filepath):
+    pass
