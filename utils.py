@@ -98,7 +98,8 @@ def convert_lon_range_to_0360(old_lon_min, old_lon_max):
         return 0, 360
 
 
-def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, convertLat=False):
+def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, convert_lat_range=False, tile_lat_lon=True,
+                        convert_latlon_to_xy=False):
     import pickle
     from os.path import isfile
 
@@ -120,11 +121,22 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
     # Mask certain values (e.g. land, missing data) according to the mask value condition and reshape into a 1D array
     # in preparation for griddata.
     data_masked = np.ma.array(data, mask=mask_value_cond(data))
+
+    import matplotlib.pyplot as plt
+    plt.pcolormesh(lats, lons, data_masked)
+    plt.colorbar()
+    plt.show()
+
     data_masked = np.reshape(data_masked, (len(lats) * len(lons),))
 
-    # Repeat the latitudes and tile the longitudes so that lat_masked[i], lon_masked[i] corresponds to data[i].
-    lat_masked = np.repeat(lats, len(lons))
-    lon_masked = np.tile(lons, len(lats))
+    # Repeat the latitudes and tile the longitudes so that lat_masked[i], lon_masked[i] corresponds to data[i]. This
+    # doesn't need to be done if lat and lon are already 2D arrays like for the sea ice concentration dataset.
+    if tile_lat_lon:
+        lat_masked = np.repeat(lats, len(lons))
+        lon_masked = np.tile(lons, len(lats))
+    else:
+        lat_masked = np.reshape(lats, (len(lats) * len(lons),))
+        lon_masked = np.reshape(lons, (len(lats) * len(lons),))
 
     # Mask the latitudes and longitudes that correspond to masked data values.
     lat_masked = np.ma.masked_where(np.ma.getmask(data_masked), lat_masked)
@@ -135,13 +147,28 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
     lon_masked = lon_masked[~lon_masked.mask]
     data_masked = data_masked[~data_masked.mask]
 
-    if convertLat:
+    if convert_lat_range:
         lon_min, lon_max = convert_lon_range_to_0360(lon_min, lon_max)
 
     # Create grid of points we wish to evaluate the interpolation on.
     latgrid_interp, longrid_interp = np.mgrid[lat_min:lat_max:n_lat*1j, lon_min:lon_max:n_lon*1j]
 
-    data_interp = griddata((lat_masked, lon_masked), data_masked, (latgrid_interp, longrid_interp), method='cubic')
+    if convert_latlon_to_xy:
+        for i in range(len(lat_masked)):
+            lat_masked[i], lon_masked[i] = latlon_to_polar_stereographic_xy(lat_masked[i], lon_masked[i])
+
+        for i in range(n_lat):
+            for j in range(n_lon):
+                x, y = latlon_to_polar_stereographic_xy(latgrid_interp[i][j], longrid_interp[i][j])
+                latgrid_interp[i][j] = x
+                longrid_interp[i][j] = y
+
+    data_interp = griddata((lat_masked, lon_masked), data_masked, (latgrid_interp, longrid_interp), method='nearest')
+
+    import matplotlib.pyplot as plt
+    plt.pcolormesh(latgrid_interp, longrid_interp, data_interp)
+    plt.colorbar()
+    plt.show()
 
     # Since we get back interpolated values over the land, we must mask them or get rid of them. We do this by
     # looping through the interpolated values and mask values that are supposed to be land by setting their value to

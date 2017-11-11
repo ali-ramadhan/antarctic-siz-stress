@@ -12,27 +12,26 @@ class SeaIceConcentrationDataReader(object):
     sic_data_dir_path = path.join(data_dir_path, 'NOAA_NSIDC_G02202_V3_SEA_ICE_CONCENTRATION', 'south', 'daily')
 
     def __init__(self, date=None):
+        self.current_SIC_dataset = None
+        self.current_date = None
+        self.lats = None
+        self.lons = None
+        self.xgrid = None
+        self.ygrid = None
+        self.alpha = None
+
+        self.alpha_interp = None
+        self.xgrid_interp = None
+        self.ygrid_interp = None
+
         if date is None:
             logger.info('SeaIceConcentrationDataReader object initialized but no dataset was loaded.')
-            self.current_SIC_dataset = None
-            self.current_date = None
-
-            self.lats = None
-            self.lons = None
-            self.xgrid = None
-            self.ygrid = None
-            self.alpha = None
-
         else:
             logger.info('SeaIceConcentrationDataReader object initializing...')
-            self.current_SIC_dataset = self.load_SIC_dataset(date)
             self.current_date = date
+            self.current_SIC_dataset = self.load_SIC_dataset(date)
 
-            self.lats = np.array(self.current_SIC_dataset.variables['latitude'])
-            self.lons = np.array(self.current_SIC_dataset.variables['longitude'])
-            self.xgrid = np.array(self.current_SIC_dataset.variables['xgrid'])
-            self.ygrid = np.array(self.current_SIC_dataset.variables['ygrid'])
-            self.alpha = np.array(self.current_SIC_dataset.variables['goddard_nt_seaice_conc'][0])
+            self.interpolate_sea_ice_concentration_dataset()
 
     def date_to_SIC_dataset_filepath(self, date):
         filename = 'seaice_conc_daily_sh_f17_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
@@ -47,7 +46,48 @@ class SeaIceConcentrationDataReader(object):
         dataset = netCDF4.Dataset(dataset_filepath)
         logger.info('Successfully loaded sea ice concentration dataset: {}'.format(dataset_filepath))
         log_netCDF_dataset_metadata(dataset)
+
+        self.lats = np.array(dataset.variables['latitude'])
+        self.lons = np.array(dataset.variables['longitude'])
+        self.xgrid = np.array(dataset.variables['xgrid'])
+        self.ygrid = np.array(dataset.variables['ygrid'])
+        self.alpha = np.array(dataset.variables['goddard_nt_seaice_conc'][0])
+
         return dataset
+
+    def interpolate_sea_ice_concentration_dataset(self):
+        from utils import interpolate_dataset
+        from constants import data_dir_path
+        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+
+        interp_filename_prefix = 'seaice_conc_daily_sh_f17_' + str(self.current_date.year) \
+                                 + str(self.current_date.month).zfill(2) + str(self.current_date.day).zfill(2) \
+                                 + '_v03r00'
+
+        interp_filename_suffix = 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
+            + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
+
+        alpha_interp_filename = interp_filename_prefix + '_interp_alpha_' + interp_filename_suffix
+        # x_interp_filename = interp_filename_prefix + '_interp_x_' + interp_filename_suffix
+        # y_interp_filename = interp_filename_prefix + '_interp_y_' + interp_filename_suffix
+        alpha_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', alpha_interp_filename)
+        # x_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', x_interp_filename)
+        # y_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', y_interp_filename)
+
+        # TODO: Properly check for masked/filled values.
+        mask_value_cond = lambda x: x > 1
+
+        alpha_interp, xgrid_interp, ygrid_interp = \
+            interpolate_dataset(self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, True, True, True)
+
+        self.alpha_interp = alpha_interp
+        self.xgrid_interp = xgrid_interp
+        self.ygrid_interp = ygrid_interp
+
+        import matplotlib.pyplot as plt
+        plt.pcolormesh(ygrid_interp, xgrid_interp, alpha_interp)
+        plt.colorbar()
+        plt.show()
 
     def sea_ice_concentration(self, lat, lon, date):
         from utils import latlon_to_polar_stereographic_xy
@@ -61,23 +101,11 @@ class SeaIceConcentrationDataReader(object):
             self.current_SIC_dataset = self.load_SIC_dataset(date)
             self.current_date = date
 
-            self.lats = np.array(self.current_SIC_dataset.variables['latitude'])
-            self.lons = np.array(self.current_SIC_dataset.variables['longitude'])
-            self.xgrid = np.array(self.current_SIC_dataset.variables['xgrid'])
-            self.ygrid = np.array(self.current_SIC_dataset.variables['ygrid'])
-            self.alpha = np.array(self.current_SIC_dataset.variables['goddard_nt_seaice_conc'][0])
-
         if date != self.current_date:
             logger.info('SIC at different date requested: {} -> {}.'.format(self.current_date, date))
             logger.info('Changing SIC dataset...')
             self.current_SIC_dataset = self.load_SIC_dataset(date)
             self.current_date = date
-
-            self.lats = np.array(self.current_SIC_dataset.variables['latitude'])
-            self.lons = np.array(self.current_SIC_dataset.variables['longitude'])
-            self.xgrid = np.array(self.current_SIC_dataset.variables['xgrid'])
-            self.ygrid = np.array(self.current_SIC_dataset.variables['ygrid'])
-            self.alpha = np.array(self.current_SIC_dataset.variables['goddard_nt_seaice_conc'][0])
 
         x, y = latlon_to_polar_stereographic_xy(lat, lon)
         idx_x = np.abs(self.xgrid - x).argmin()
@@ -95,6 +123,7 @@ class SeaIceConcentrationDataReader(object):
 
         alpha = self.alpha[idx_y][idx_x]
 
+        # TODO: Properly check for masked values.
         if alpha > 1:
             return np.nan
 

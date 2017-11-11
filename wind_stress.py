@@ -35,6 +35,7 @@ if __name__ == '__main__':
 
     mdt = MeanDynamicTopographyDataReader()
     seaice_conc = SeaIceConcentrationDataReader(test_date)
+    exit()
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
     seaice_motion = SeaIceMotionDataReader(test_date)
 
