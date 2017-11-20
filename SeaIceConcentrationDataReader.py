@@ -78,16 +78,16 @@ class SeaIceConcentrationDataReader(object):
         mask_value_cond = lambda x: x > 1
 
         alpha_interp, xgrid_interp, ygrid_interp = \
-            interpolate_dataset(self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, True, True, True)
+            interpolate_dataset(self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, False, True)
 
         self.alpha_interp = alpha_interp
         self.xgrid_interp = xgrid_interp
         self.ygrid_interp = ygrid_interp
 
-        import matplotlib.pyplot as plt
-        plt.pcolormesh(ygrid_interp, xgrid_interp, alpha_interp)
-        plt.colorbar()
-        plt.show()
+        # import matplotlib.pyplot as plt
+        # plt.pcolormesh(ygrid_interp, xgrid_interp, alpha_interp)
+        # plt.colorbar()
+        # plt.show()
 
     def sea_ice_concentration(self, lat, lon, date):
         from utils import latlon_to_polar_stereographic_xy

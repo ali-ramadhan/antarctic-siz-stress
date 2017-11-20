@@ -98,8 +98,8 @@ def convert_lon_range_to_0360(old_lon_min, old_lon_max):
         return 0, 360
 
 
-def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, convert_lat_range=False, tile_lat_lon=True,
-                        convert_latlon_to_xy=False):
+def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, convert_lon_range_to_0360=False,
+                        polar_stereographic_grid=False):
     import pickle
     from os.path import isfile
 
@@ -114,6 +114,8 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
         return data_interp, latgrid_interp, longrid_interp
 
     logger.info('Interpolating dataset...')
+    logger.info('data.shape={}')
+    logger.info('Options: convert_lon_range_to_0360={}, '.format(convert_lon_range_to_0360))
 
     from scipy.interpolate import griddata
     from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
@@ -122,6 +124,7 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
     # in preparation for griddata.
     data_masked = np.ma.array(data, mask=mask_value_cond(data))
 
+    logger.info('Plotting masked data.')
     import matplotlib.pyplot as plt
     plt.pcolormesh(lats, lons, data_masked)
     plt.colorbar()
@@ -129,14 +132,10 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
 
     data_masked = np.reshape(data_masked, (len(lats) * len(lons),))
 
-    # Repeat the latitudes and tile the longitudes so that lat_masked[i], lon_masked[i] corresponds to data[i]. This
-    # doesn't need to be done if lat and lon are already 2D arrays like for the sea ice concentration dataset.
-    if tile_lat_lon:
-        lat_masked = np.repeat(lats, len(lons))
-        lon_masked = np.tile(lons, len(lats))
-    else:
-        lat_masked = np.reshape(lats, (len(lats) * len(lons),))
-        lon_masked = np.reshape(lons, (len(lats) * len(lons),))
+    # Repeat the latitudes and tile the longitudes so that lat_masked[i], lon_masked[i] corresponds to data[i].
+    # TODO: I had to flip the tiled and repeated axes for alpha.
+    lat_masked = np.tile(lats, len(lons))
+    lon_masked = np.repeat(lons, len(lats))
 
     # Mask the latitudes and longitudes that correspond to masked data values.
     lat_masked = np.ma.masked_where(np.ma.getmask(data_masked), lat_masked)
@@ -147,24 +146,45 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
     lon_masked = lon_masked[~lon_masked.mask]
     data_masked = data_masked[~data_masked.mask]
 
-    if convert_lat_range:
+    if convert_lon_range_to_0360:
         lon_min, lon_max = convert_lon_range_to_0360(lon_min, lon_max)
 
     # Create grid of points we wish to evaluate the interpolation on.
-    latgrid_interp, longrid_interp = np.mgrid[lat_min:lat_max:n_lat*1j, lon_min:lon_max:n_lon*1j]
+    if polar_stereographic_grid:
+        x_min = lats.min()
+        x_max = lats.max()
+        y_min = lons.min()
+        y_max = lons.max()
+        latgrid_interp, longrid_interp = np.mgrid[x_min:x_max:1000*1j, y_min:y_max:1000*1j]
+    else:
+        latgrid_interp, longrid_interp = np.mgrid[lat_min:lat_max:n_lat*1j, lon_min:lon_max:n_lon*1j]
 
-    if convert_latlon_to_xy:
-        for i in range(len(lat_masked)):
-            lat_masked[i], lon_masked[i] = latlon_to_polar_stereographic_xy(lat_masked[i], lon_masked[i])
+    # if polar_stereographic_grid:
+    #     # for i in range(len(lat_masked)):
+    #     #     lat_masked[i], lon_masked[i] = latlon_to_polar_stereographic_xy(lat_masked[i], lon_masked[i])
+    #
+    #     for i in range(n_lat):
+    #         for j in range(n_lon):
+    #             x, y = latlon_to_polar_stereographic_xy(latgrid_interp[i][j], longrid_interp[i][j])
+    #             latgrid_interp[i][j] = x
+    #             longrid_interp[i][j] = y
 
-        for i in range(n_lat):
-            for j in range(n_lon):
-                x, y = latlon_to_polar_stereographic_xy(latgrid_interp[i][j], longrid_interp[i][j])
-                latgrid_interp[i][j] = x
-                longrid_interp[i][j] = y
+    logger.info('Masked latitude grid: min={:.2f}, max={:.2f}, shape={}'.format(lat_masked.min(), lat_masked.max(), lat_masked.shape))
+    logger.info('Masked longitude grid: min={:.2f}, max={:.2f}, shape={}'.format(lon_masked.min(), lon_masked.max(),
+                                                                              lon_masked.shape))
+    logger.info('Masked data grid: min={:.2f}, max={:.2f}, shape={}'.format(data_masked.min(), data_masked.max(),
+                                                                              data_masked.shape))
 
-    data_interp = griddata((lat_masked, lon_masked), data_masked, (latgrid_interp, longrid_interp), method='nearest')
+    logger.info('Latitude interpolation grid: min={:.2f}, max={:.2f}, shape={}'.format(latgrid_interp.min(),
+                                                                                     latgrid_interp.max(),
+                                                                                     latgrid_interp.shape))
+    logger.info('Longitude interpolation grid: min={:.2f}, max={:.2f}, shape={}'.format(longrid_interp.min(),
+                                                                                      longrid_interp.max(),
+                                                                                      longrid_interp.shape))
 
+    data_interp = griddata((lat_masked, lon_masked), data_masked, (latgrid_interp, longrid_interp), method='cubic')
+
+    logger.info('Plotting interpolated data.')
     import matplotlib.pyplot as plt
     plt.pcolormesh(latgrid_interp, longrid_interp, data_interp)
     plt.colorbar()
@@ -178,17 +198,27 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, conv
     # which should be zero where an interpolation gridpoint coincides with an original gridpoint, and should be
     # pretty small everywhere else.
     # residual = np.zeros((n_lat, n_lon))
-    for i in range(n_lat):
-        for j in range(n_lon):
+    for i in range(latgrid_interp.shape[0]):
+        for j in range(latgrid_interp.shape[1]):
             lat = latgrid_interp[i][j]
             lon = longrid_interp[i][j]
             closest_lat_idx = np.abs(lats - lat).argmin()
             closest_lon_idx = np.abs(lons - lon).argmin()
-            closest_data = data[closest_lat_idx][closest_lon_idx]
+            # TODO: Had to flip the lat/lon index down here for alpha!
+            closest_data = data[closest_lon_idx][closest_lat_idx]
             # residual[i][j] = (closest_data - data[i][j]) / closest_data
             if mask_value_cond(closest_data):
                 data_interp[i][j] = np.nan
                 # residual[i][j] = np.nan
+
+    logger.info('Plotting masked interpolated data.')
+    import matplotlib.pyplot as plt
+    latgrid_interp = np.ma.masked_where(np.isnan(latgrid_interp), latgrid_interp)
+    longrid_interp = np.ma.masked_where(np.isnan(longrid_interp), longrid_interp)
+    data_interp = np.ma.masked_where(np.isnan(data_interp), data_interp)
+    plt.pcolormesh(latgrid_interp, longrid_interp, data_interp)
+    plt.colorbar()
+    plt.show()
 
     logger.info('Interpolating dataset... DONE!')
 
