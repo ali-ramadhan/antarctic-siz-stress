@@ -71,8 +71,10 @@ class SeaIceConcentrationDataReader(object):
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x > 1
 
+        repeat0tile1 = False
+        convert_lon_range = False
         alpha_interp, xgrid_interp, ygrid_interp = interpolate_dataset(self.alpha, self.xgrid, self.ygrid,
-            alpha_interp_filepath, mask_value_cond, 'linear', False, False, True)
+            alpha_interp_filepath, mask_value_cond, 'polar_stereographic', 'linear', repeat0tile1, convert_lon_range)
 
         self.alpha_interp = alpha_interp
         self.xgrid_interp = xgrid_interp

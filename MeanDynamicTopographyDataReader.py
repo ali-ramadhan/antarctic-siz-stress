@@ -49,8 +49,10 @@ class MeanDynamicTopographyDataReader(object):
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x < -100
 
-        mdt_interp, latgrid_interp, longrid_interp = \
-            interpolate_dataset(self.mdt, self.lats, self.lons, mdt_interp_filepath, mask_value_cond, True)
+        repeat0tile1 = True
+        convert_lon_range = False
+        mdt_interp, latgrid_interp, longrid_interp = interpolate_dataset(self.mdt, self.lats, self.lons,
+            mdt_interp_filepath, mask_value_cond, 'latlon', 'cubic', repeat0tile1, convert_lon_range)
 
         self.mdt_interp = mdt_interp
         self.latgrid_interp = latgrid_interp
@@ -72,10 +74,12 @@ class MeanDynamicTopographyDataReader(object):
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x < -100
 
-        ugeo_interp, latgrid_interp, longrid_interp = \
-            interpolate_dataset(self.u_geo, self.lats, self.lons, ugeo_interp_filepath, mask_value_cond, 'cubic', True, True)
-        vgeo_interp, latgrid_interp, longrid_interp = \
-            interpolate_dataset(self.v_geo, self.lats, self.lons, vgeo_interp_filepath, mask_value_cond, 'cubic', True, True)
+        repeat0tile1 = True
+        convert_lon_range = True
+        ugeo_interp, latgrid_interp, longrid_interp = interpolate_dataset(self.u_geo, self.lats, self.lons,
+            ugeo_interp_filepath, mask_value_cond, 'latlon', 'cubic', repeat0tile1, convert_lon_range)
+        vgeo_interp, latgrid_interp, longrid_interp = interpolate_dataset(self.v_geo, self.lats, self.lons,
+            vgeo_interp_filepath, mask_value_cond, 'latlon', 'cubic', repeat0tile1, convert_lon_range)
 
         self.ugeo_interp = ugeo_interp
         self.vgeo_interp = vgeo_interp
