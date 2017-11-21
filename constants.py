@@ -28,7 +28,7 @@ C_seawater = 0.0055  # Draf coefficient
 rho_0 = 1027.5  # "reference" density [kg/m^3]
 D_e = 20  # Ekman layer depth [m]
 
-""" Grid-related constants """
+""" Latitude-longitude interpolation grid constants """
 lat_min = -75
 lat_max = -55
 lon_min = -180
@@ -39,3 +39,5 @@ lon_step = 0.25
 
 n_lat = int((lat_max - lat_min) / lat_step) + 1
 n_lon = int((lon_max - lon_min) / lon_step) + 1
+
+""" Polar stereographic interpolation grid constants """

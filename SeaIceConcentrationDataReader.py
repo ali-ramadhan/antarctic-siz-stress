@@ -78,7 +78,7 @@ class SeaIceConcentrationDataReader(object):
         mask_value_cond = lambda x: x > 1
 
         alpha_interp, xgrid_interp, ygrid_interp = \
-            interpolate_dataset(self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, False, True)
+            interpolate_dataset(self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, 'cubic', False, False, True)
 
         self.alpha_interp = alpha_interp
         self.xgrid_interp = xgrid_interp

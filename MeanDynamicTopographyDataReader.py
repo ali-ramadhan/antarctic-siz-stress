@@ -73,9 +73,9 @@ class MeanDynamicTopographyDataReader(object):
         mask_value_cond = lambda x: x < -100
 
         ugeo_interp, latgrid_interp, longrid_interp = \
-            interpolate_dataset(self.u_geo, self.lats, self.lons, ugeo_interp_filepath, mask_value_cond, True)
+            interpolate_dataset(self.u_geo, self.lats, self.lons, ugeo_interp_filepath, mask_value_cond, 'cubic', True, True)
         vgeo_interp, latgrid_interp, longrid_interp = \
-            interpolate_dataset(self.v_geo, self.lats, self.lons, vgeo_interp_filepath, mask_value_cond, True)
+            interpolate_dataset(self.v_geo, self.lats, self.lons, vgeo_interp_filepath, mask_value_cond, 'cubic', True, True)
 
         self.ugeo_interp = ugeo_interp
         self.vgeo_interp = vgeo_interp
