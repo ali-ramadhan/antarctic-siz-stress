@@ -25,15 +25,15 @@ class MeanDynamicTopographyDataReader(object):
         self.u_geo = np.array(self.MDT_dataset.variables['u'][0])
         self.v_geo = np.array(self.MDT_dataset.variables['v'][0])
 
-        self.mdt_interp = None
         self.latgrid_interp = None
         self.longrid_interp = None
+
+        # Not even using the MDT dataset anymore.
+        self.mdt_interp = None
         # self.interpolate_mdt_dataset()
 
         self.ugeo_interp = None
         self.vgeo_interp = None
-        self.latgrid_interp = None
-        self.longrid_interp = None
         self.interpolate_u_geo_dataset()
 
     def interpolate_mdt_dataset(self):
