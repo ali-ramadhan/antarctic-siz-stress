@@ -116,10 +116,12 @@ class OceanSurfaceWindVectorDataReader(object):
             # TODO: Properly check for masked/filled values.
             mask_value_cond = lambda x: np.full(x.shape, False, dtype=bool)
 
+            logger.info('lats.shape={}, lons.shape={}, u_wind.shape={}'.format(self.lats.shape, self.lons.shape, self.uwind.shape))
+
             repeat0tile1 = True
             convert_lon_range = True
             u_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
-                self.uwind, np.reshape(self.lats, (self.lats.shape[1],)), np.reshape(self.lons, (self.lons.shape[1],)), u_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',
+                self.uwind, self.lats, self.lons, u_wind_interp_filepath, mask_value_cond, 'latlon', 'linear',
                 repeat0tile1, convert_lon_range)
             v_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
                 self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',

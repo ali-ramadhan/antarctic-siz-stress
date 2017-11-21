@@ -179,8 +179,6 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
         y_min = y.min()
         y_max = y.max()
         x_interp, y_interp = np.mgrid[x_min:x_max:1000*1j, y_min:y_max:1000*1j]
-        # x_masked = np.reshape(x_masked, (x_masked.shape[1],))
-        # y_masked = np.reshape(y_masked, (y_masked.shape[1],))
     else:
         logger.error('Invalid value for grid_type: {}'.format(grid_type))
         raise ValueError('Invalid value for grid_type: {}'.format(grid_type))

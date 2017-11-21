@@ -149,11 +149,11 @@ class SeaIceMotionDataReader(object):
         self.row_interp = row_interp
         self.col_interp = col_interp
 
-        import matplotlib.pyplot as plt
-        plt.quiver(self.row_interp, self.col_interp, self.u_ice_interp, self.v_ice_interp, units='width',
-                   width=0.001, scale=1000)
-        plt.gca().invert_yaxis()
-        plt.show()
+        # import matplotlib.pyplot as plt
+        # plt.quiver(self.row_interp, self.col_interp, self.u_ice_interp, self.v_ice_interp, units='width',
+        #            width=0.001, scale=1000)
+        # plt.gca().invert_yaxis()
+        # plt.show()
 
     def seaice_motion_vector(self, lat, lon, date):
         from constants import R

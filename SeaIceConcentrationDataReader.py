@@ -71,6 +71,8 @@ class SeaIceConcentrationDataReader(object):
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x > 1
 
+        logger.info('xgrid.shape={}, ygrid.shape={}, alpha.shape={}'.format(self.xgrid.shape, self.ygrid.shape, self.alpha.shape))
+
         repeat0tile1 = False
         convert_lon_range = False
         alpha_interp, xgrid_interp, ygrid_interp = interpolate_scalar_field(
