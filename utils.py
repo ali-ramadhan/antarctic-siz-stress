@@ -98,8 +98,8 @@ def convert_lon_range_to_0360(old_lon_min, old_lon_max):
         return 0, 360
 
 
-def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_type, interp_method='cubic',
-                             repeat0tile1=True, convert_lon_range=False):
+def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_type, interp_method,
+                             repeat0tile1, convert_lon_range):
     import pickle
     from os.path import isfile
 
@@ -130,7 +130,7 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
 
     logger.info('Interpolation grid information:')
     logger.info('x_min={:.2f}, x_max={:.2f}, n_x={:d}'.format(lat_min, lat_max, n_lat))
-    logger.info('x_min={:.2f}, x_max={:.2f}, n_y={:d}'.format(lon_min, lon_max, n_lon))
+    logger.info('y_min={:.2f}, y_max={:.2f}, n_y={:d}'.format(lon_min, lon_max, n_lon))
 
     # Mask certain values (e.g. land, missing data) according to the mask value condition and reshape into a 1D array
     # in preparation for griddata.
@@ -167,23 +167,34 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     # Create grid of points we wish to evaluate the interpolation on.
     if grid_type == 'latlon':
         x_interp, y_interp = np.mgrid[lat_min:lat_max:n_lat * 1j, lon_min:lon_max:n_lon * 1j]
-    elif grid_type == 'polar_stereographic':
+    elif grid_type == 'polar_stereographic_xy':
         x_min = x.min()
         x_max = x.max()
-        y_min = x.min()
-        y_max = x.max()
+        y_min = y.min()
+        y_max = y.max()
         x_interp, y_interp = np.mgrid[x_min:x_max:1000*1j, y_min:y_max:1000*1j]
+    elif grid_type == 'ease_rowcol':
+        x_min = x.min()
+        x_max = x.max()
+        y_min = y.min()
+        y_max = y.max()
+        x_interp, y_interp = np.mgrid[x_min:x_max:1000 * 1j, y_min:y_max:1000 * 1j]
+    else:
+        logger.error('Invalid value for grid_type: {}'.format(grid_type))
+        raise ValueError('Invalid value for grid_type: {}'.format(grid_type))
+
+    data_masked = np.reshape(data_masked, (1, len(x) * len(y)))
 
     logger.info('Data masked in preparation for interpolation.')
     logger.info('Masked x grid: min={:.2f}, max={:.2f}, shape={}'
                 .format(x_masked.min(), x_masked.max(), x_masked.shape))
-    logger.info('Masked longitude grid: min={:.2f}, max={:.2f}, shape={}'
+    logger.info('Masked y grid: min={:.2f}, max={:.2f}, shape={}'
                 .format(y_masked.min(), y_masked.max(), y_masked.shape))
     logger.info('Masked data grid: min={:.2f}, max={:.2f}, shape={}'
                 .format(data_masked.min(), data_masked.max(), data_masked.shape))
     logger.info('x interpolation grid: min={:.2f}, max={:.2f}, shape={}'
                 .format(x_interp.min(), x_interp.max(), x_interp.shape))
-    logger.info('Longitude interpolation grid: min={:.2f}, max={:.2f}, shape={}'
+    logger.info('y interpolation grid: min={:.2f}, max={:.2f}, shape={}'
                 .format(y_interp.min(), y_interp.max(), y_interp.shape))
 
     logger.info('Interpolating dataset...')

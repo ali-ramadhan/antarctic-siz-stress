@@ -74,8 +74,8 @@ class SeaIceConcentrationDataReader(object):
         repeat0tile1 = False
         convert_lon_range = False
         alpha_interp, xgrid_interp, ygrid_interp = interpolate_scalar_field(
-            self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, 'polar_stereographic', 'linear',
-            repeat0tile1, convert_lon_range)
+            self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, 'polar_stereographic_xy',
+            'linear', repeat0tile1, convert_lon_range)
 
         self.alpha_interp = alpha_interp
         self.xgrid_interp = xgrid_interp

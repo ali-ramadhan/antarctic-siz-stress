@@ -27,6 +27,11 @@ class SeaIceMotionDataReader(object):
         self.lat = None
         self.lon = None
 
+        self.row_interp = None
+        self.col_interp = None
+        self.u_ice_interp = None
+        self.v_ice_interp = None
+
         if date is None:
             logger.info('SeaIceConcentrationDataReader object initialized but no dataset was loaded.')
             self.current_date = None
@@ -34,6 +39,7 @@ class SeaIceMotionDataReader(object):
             self.current_date = date
             self.load_SIM_dataset(date)
             self.dataset_loaded = True
+            self.interpolate_seaice_motion_field()
 
     def date_to_SIM_filepath(self, date):
         filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday).zfill(3) + '.s.v3.bin'
@@ -95,6 +101,34 @@ class SeaIceMotionDataReader(object):
         #            width=0.001, scale=1000)
         # plt.gca().invert_yaxis()
         # plt.show()
+
+    def interpolate_seaice_motion_field(self):
+        from utils import interpolate_scalar_field
+        from constants import data_dir_path
+        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+
+        interp_filename_prefix = 'icemotion.grid.daily.' + str(self.current_date.year) \
+                                 + str(self.current_date.timetuple().tm_yday).zfill(3) + '.s.v3'
+        interp_filename_suffix = 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
+            + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
+
+        u_ice_interp_filename = interp_filename_prefix + '_interp_u_ice_' + interp_filename_suffix
+        v_ice_interp_filename = interp_filename_prefix + '_interp_v_ice_' + interp_filename_suffix
+        u_ice_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', u_ice_interp_filename)
+        v_ice_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', v_ice_interp_filename)
+
+        # TODO: Properly check for masked/filled values.
+        mask_value_cond = lambda x: x < -100
+
+        repeat0tile1 = True
+        convert_lon_range = False
+        u_ice_interp, row_interp, col_interp = interpolate_scalar_field(
+            self.u_wind, self.x[0], self.y[:, 0], u_ice_interp_filepath, mask_value_cond, 'ease_rowcol', 'cubic',
+            repeat0tile1, convert_lon_range)
+
+        self.u_ice_interp = u_ice_interp
+        self.row_interp = row_interp
+        self.col_interp = col_interp
 
     def seaice_motion_vector(self, lat, lon, date):
         from constants import R
