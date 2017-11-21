@@ -54,7 +54,7 @@ class SeaIceConcentrationDataReader(object):
         self.interpolate_sea_ice_concentration_field()
 
     def interpolate_sea_ice_concentration_field(self):
-        from utils import interpolate_dataset
+        from utils import interpolate_scalar_field
         from constants import data_dir_path
         from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
 
@@ -73,8 +73,9 @@ class SeaIceConcentrationDataReader(object):
 
         repeat0tile1 = False
         convert_lon_range = False
-        alpha_interp, xgrid_interp, ygrid_interp = interpolate_dataset(self.alpha, self.xgrid, self.ygrid,
-            alpha_interp_filepath, mask_value_cond, 'polar_stereographic', 'linear', repeat0tile1, convert_lon_range)
+        alpha_interp, xgrid_interp, ygrid_interp = interpolate_scalar_field(
+            self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, 'polar_stereographic', 'linear',
+            repeat0tile1, convert_lon_range)
 
         self.alpha_interp = alpha_interp
         self.xgrid_interp = xgrid_interp

@@ -98,8 +98,8 @@ def convert_lon_range_to_0360(old_lon_min, old_lon_max):
         return 0, 360
 
 
-def interpolate_dataset(data, x, y, pickle_filepath, mask_value_cond, grid_type, interp_method='cubic',
-                        repeat0tile1=True, convert_lon_range=False):
+def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_type, interp_method='cubic',
+                             repeat0tile1=True, convert_lon_range=False):
     import pickle
     from os.path import isfile
 
