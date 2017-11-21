@@ -13,7 +13,8 @@ class SeaIceMotionDataReader(object):
 
     def __init__(self, date=None):
         logger.info('Loading south grid...')
-        self.south_grid = self.load_south_grid()
+        self.south_grid = None
+        self.load_south_grid()
         self.south_grid_lats = 321
         self.south_grid_lons = 321
 
@@ -36,7 +37,6 @@ class SeaIceMotionDataReader(object):
 
     def date_to_SIM_filepath(self, date):
         filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday).zfill(3) + '.s.v3.bin'
-        # filename = 'icemotion.grid.daily.' + str(date.year) + '170.s.v3.bin'
         return path.join(self.seaice_motion_path, str(date.year), filename)
 
     def load_south_grid(self):
@@ -52,55 +52,9 @@ class SeaIceMotionDataReader(object):
                 south_grid[i] = [int(south_grid[i][0]), int(south_grid[i][1]),  # x, y
                                  float(south_grid[i][2]), float(south_grid[i][3])]  # lat, lon
 
-        return south_grid
+        self.south_grid = south_grid
 
     def load_SIM_dataset(self, date):
-        # logger.debug('Reading in sea ice drift dataset: {}'.format(test_dataset_filepath))
-        # with open(test_dataset_filepath, mode='rb') as file:
-        #     file_contents = file.read()
-        #
-        # logger.info('Successfully read sea ice drift data.')
-        #
-        # I thought we had to uninterleave the NSIDC ice motion binary data files according to the dataset's user guide.
-        # logger.info('Uninterleaving NSIDC ice motion binary data file...')
-        # xdim = 321
-        # ydim = 321
-        # ngrids = 3
-        # valsize = 2
-        # file_contents_uninterleaved = bytearray(len(file_contents))
-        # for i in range(xdim*ydim):
-        #     for j in range(ngrids):
-        #         for k in range(valsize):
-        #             file_contents_uninterleaved[valsize*(xdim*ydim*j+i) + k] = file_contents[valsize*(i*ngrids+j) + k]
-        #
-        # logger.info('Uninterleaving done.')
-        #
-        # Apparently this way of unpacking binary data does not work. Had to use np.fromfile below.
-        # logger.debug('Unpacking binary (sea ice drift) data...')
-        # total = 0
-        # valid = 0
-        # coast = 0
-        # large = 0
-        # import struct
-        # for i in range(int(len(file_contents)/6)):
-        #     total = total+1
-        #     # x = list(struct.unpack("<hhh", file_contents[i:i+6]))
-        #     x = list(struct.unpack("hhh", file_contents_uninterleaved[i:i+6]))
-        #     if x[0] < 0:
-        #         coast = coast+1
-        #         continue
-        #     if np.abs(x[0])/10 > 700 or np.abs(x[1])/10 > 70 or np.abs(x[2])/10 > 70:
-        #         large = large+1
-        #         continue
-        #     if x[0] > 0:
-        #         valid = valid+1
-        #         x[0] = x[0]/10
-        #         x[1] = x[1]/10
-        #         x[2] = x[2]/10
-        #         print("{} -> {}".format(i, x))
-        #
-        # logger.debug('total = {}, coast = {}, large = {}, valid = {}'.format(total, coast, large, valid))
-
         dataset_filepath = self.date_to_SIM_filepath(date)
 
         logger.debug('Reading in sea ice motion dataset: {}'.format(dataset_filepath))

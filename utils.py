@@ -246,13 +246,13 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, inte
 
     # Pickle the interpolated grid as a form of memoization to avoid having to recompute it again for the same
     # gridpoints.
-    # with open(pickle_filepath, 'wb') as f:
-    #     logger.info('Pickling interpolated grid: {:s}'.format(pickle_filepath))
-    #     data_interp_dict = {
-    #         'data_interp': data_interp,
-    #         'latgrid_interp': latgrid_interp,
-    #         'longrid_interp': longrid_interp
-    #     }
-    #     pickle.dump(data_interp_dict, f, pickle.HIGHEST_PROTOCOL)
+    with open(pickle_filepath, 'wb') as f:
+        logger.info('Pickling interpolated grid: {:s}'.format(pickle_filepath))
+        data_interp_dict = {
+            'data_interp': data_interp,
+            'latgrid_interp': latgrid_interp,
+            'longrid_interp': longrid_interp
+        }
+        pickle.dump(data_interp_dict, f, pickle.HIGHEST_PROTOCOL)
 
     return data_interp, latgrid_interp, longrid_interp

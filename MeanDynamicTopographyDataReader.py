@@ -30,13 +30,13 @@ class MeanDynamicTopographyDataReader(object):
 
         # Not even using the MDT dataset anymore.
         self.mdt_interp = None
-        # self.interpolate_mdt_dataset()
+        # self.interpolate_mdt_field()
 
         self.ugeo_interp = None
         self.vgeo_interp = None
-        self.interpolate_u_geo_dataset()
+        self.interpolate_u_geo_field()
 
-    def interpolate_mdt_dataset(self):
+    def interpolate_mdt_field(self):
         from utils import interpolate_dataset
         from constants import data_dir_path
         from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
@@ -56,7 +56,7 @@ class MeanDynamicTopographyDataReader(object):
         self.latgrid_interp = latgrid_interp
         self.longrid_interp = longrid_interp
 
-    def interpolate_u_geo_dataset(self):
+    def interpolate_u_geo_field(self):
         from utils import interpolate_dataset
         from constants import data_dir_path
         from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
