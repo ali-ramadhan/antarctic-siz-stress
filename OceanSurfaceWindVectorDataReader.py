@@ -40,6 +40,12 @@ class OceanSurfaceWindVectorDataReader(object):
                 self.uwind = np.array(self.current_uwind_dataset.variables['uwnd'][self.day_of_year])
                 self.vwind = np.array(self.current_vwind_dataset.variables['vwnd'][self.day_of_year])
 
+                self.u_wind_interp = None
+                self.v_wind_interp = None
+                self.latgrid_interp = None
+                self.longrid_interp = None
+                self.interpolate_wind_field()
+
             elif self.current_product is OSWVProduct.CCMP:
                 self.current_OSWV_dataset = self.load_OSWV_dataset(date)
 
@@ -86,6 +92,46 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.info('Successfully ocean surface wind vector CCMP dataset: {}'.format(dataset_filepath))
             log_netCDF_dataset_metadata(dataset)
             return dataset
+        else:
+            logger.error('Invalid value for current_product: {}'.format(self.current_product))
+            raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
+
+    def interpolate_wind_field(self):
+        from utils import interpolate_scalar_field
+        from constants import data_dir_path
+        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+
+        if self.current_product is OSWVProduct.NCEP:
+            interp_filename_suffix = 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
+                                     + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
+
+            u_wind_interp_filename = 'uwnd.10m.gauss.' + str(self.current_date.year) + '_interp_uwind_'\
+                                     + interp_filename_suffix
+            v_wind_interp_filename = 'vwnd.10m.gauss.' + str(self.current_date.year) + '_interp_vwind_'\
+                                     + interp_filename_suffix
+
+            u_wind_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', u_wind_interp_filename)
+            v_wind_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', v_wind_interp_filename)
+
+            # TODO: Properly check for masked/filled values.
+            mask_value_cond = lambda x: np.full(x.shape, False, dtype=bool)
+
+            repeat0tile1 = True
+            convert_lon_range = True
+            u_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
+                self.uwind, self.lats.transpose(), self.lons.transpose(), u_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',
+                repeat0tile1, convert_lon_range)
+            v_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
+                self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',
+                repeat0tile1, convert_lon_range)
+
+            self.u_wind_interp = u_wind_interp
+            self.v_wind_interp = v_wind_interp
+            self.latgrid_interp = latgrid_interp
+            self.longrid_interp = longrid_interp
+
+        elif self.current_product is OSWVProduct.CCMP:
+            pass
         else:
             logger.error('Invalid value for current_product: {}'.format(self.current_product))
             raise ValueError('Invalid value for current_product: {}'.format(self.current_product))

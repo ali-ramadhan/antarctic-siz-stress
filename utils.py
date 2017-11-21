@@ -185,8 +185,6 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
         logger.error('Invalid value for grid_type: {}'.format(grid_type))
         raise ValueError('Invalid value for grid_type: {}'.format(grid_type))
 
-    # data_masked = np.reshape(data_masked, (1, len(x) * len(y)))
-
     logger.info('Data masked in preparation for interpolation.')
     logger.info('x_masked: min={:.2f}, max={:.2f}, shape={}'
                 .format(x_masked.min(), x_masked.max(), x_masked.shape))
