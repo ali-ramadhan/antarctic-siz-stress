@@ -82,72 +82,62 @@ class MeanDynamicTopographyDataReader(object):
         self.latgrid_interp = latgrid_interp
         self.longrid_interp = longrid_interp
 
-    def mean_dynamic_topography(self, lat: float, lon: float) -> float:
+    def mean_dynamic_topography(self, lat: float, lon: float, data_source: str) -> float:
         if lon < 0:
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
-        # Nearest neighbour interpolation
-        # Find index of closest matching latitude and longitude
-        idx_lat = np.abs(self.lats - lat).argmin()
-        idx_lon = np.abs(self.lons - lon).argmin()
+        if data_source == 'product':
+            # Nearest neighbour interpolation
+            # Find index of closest matching latitude and longitude
+            idx_lat = np.abs(self.lats - lat).argmin()
+            idx_lon = np.abs(self.lons - lon).argmin()
+            mdt_value = self.mdt[idx_lat][idx_lon]
+        elif data_source == 'interp':
+            # Technically doing a nearest neighbour interpolation, but the interpolation should coincide exactly with
+            # the lat, lon values we use.
+            # Find index of closest matching latitude and longitude
+            idx_lat = np.abs(self.latgrid_interp - lat).argmin()
+            idx_lon = np.abs(self.longrid_interp - lon).argmin()
+            mdt_value = self.mdt_interp[idx_lat][idx_lon]
+        else:
+            logger.error('Invalid value for data_source: {}'.format(data_source))
+            raise ValueError('Invalid value for data_source: {}'.format(data_source))
 
-        mdt_value = self.mdt[idx_lat][idx_lon]
         return mdt_value
 
-    def mean_dynamic_topograhy_interp(self, lat: float, lon: float) -> float:
+    def u_geo_mean(self, lat: float, lon: float, data_source: str) -> np.ndarray:
         if lon < 0:
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
-        # Technically doing a nearest neighbour interpolation, but the interpolation should coincide exactly with
-        # the lat, lon values we use.
-        # Find index of closest matching latitude and longitude
-        idx_lat = np.abs(self.latgrid_interp - lat).argmin()
-        idx_lon = np.abs(self.longrid_interp - lon).argmin()
+        if data_source == 'product':
+            # Nearest neighbour interpolation
+            # Find index of closest matching latitude and longitude
+            idx_lat = np.abs(self.lats - lat).argmin()
+            idx_lon = np.abs(self.lons - lon).argmin()
 
-        mdt_value = self.mdt_interp[idx_lat][idx_lon]
-        return mdt_value
+            u_geo_mean = self.u_geo[idx_lat][idx_lon]
+            v_geo_mean = self.v_geo[idx_lat][idx_lon]
+        elif data_source == 'interp':
+            # Technically doing a nearest neighbour interpolation, but the interpolation should coincide exactly with
+            # the lat, lon values we use.
+            # Find index of closest matching latitude and longitude
+            idx_lat = np.abs(self.latgrid_interp - lat).argmin()
+            idx_lon = np.abs(self.longrid_interp - lon).argmin()
 
-    def u_geo_mean(self, lat: float, lon: float) -> np.ndarray:
-        if lon < 0:
-            lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
-
-        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
-        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
-
-        # Nearest neighbour interpolation
-        # Find index of closest matching latitude and longitude
-        idx_lat = np.abs(self.lats - lat).argmin()
-        idx_lon = np.abs(self.lons - lon).argmin()
-
-        u_geo_mean = self.u_geo[idx_lat][idx_lon]
-        v_geo_mean = self.v_geo[idx_lat][idx_lon]
+            u_geo_mean = self.ugeo_interp[idx_lat][idx_lon]
+            v_geo_mean = self.vgeo_interp[idx_lat][idx_lon]
+        else:
+            logger.error('Invalid value for data_source: {}'.format(data_source))
+            raise ValueError('Invalid value for data_source: {}'.format(data_source))
 
         # TODO: Properly check for masked values.
         if u_geo_mean < -100 or v_geo_mean < -100:
             return np.array([np.nan, np.nan])
-
-        return np.array([u_geo_mean, v_geo_mean])
-
-    def u_geo_mean_interp(self, lat: float, lon: float) -> np.ndarray:
-        if lon < 0:
-            lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
-
-        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
-        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
-
-        # Technically doing a nearest neighbour interpolation, but the interpolation should coincide exactly with
-        # the lat, lon values we use.
-        # Find index of closest matching latitude and longitude
-        idx_lat = np.abs(self.latgrid_interp - lat).argmin()
-        idx_lon = np.abs(self.longrid_interp - lon).argmin()
-
-        u_geo_mean = self.ugeo_interp[idx_lat][idx_lon]
-        v_geo_mean = self.vgeo_interp[idx_lat][idx_lon]
-
-        return np.array([u_geo_mean, v_geo_mean])
+        else:
+            return np.array([u_geo_mean, v_geo_mean])
