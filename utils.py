@@ -117,7 +117,7 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, inte
     from scipy.interpolate import griddata
     from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
 
-    logger.info('Options: convert_lon_range_to_0360={}, polar_stereographic_grid={}'.format(convert_lon_range_to_0360,
+    logger.info('Options: convert_lon_range_to_0360={}, polar_stereographic_grid={}'.format(convert_lon_range,
                                                                                             polar_stereographic_grid))
     logger.info('Data information:')
     logger.info('lats.min={}, lats.max={}, lats.shape={}'.format(lats.min(), lats.max(), lats.shape))
@@ -203,22 +203,24 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, inte
     # which should be zero where an interpolation gridpoint coincides with an original gridpoint, and should be
     # pretty small everywhere else.
     logger.info('Masking invalid values in the interpolated grid...')
-    # residual = np.zeros((n_lat, n_lon))
+    residual = np.zeros(data_interp.shape)
     for i in range(latgrid_interp.shape[0]):
         for j in range(latgrid_interp.shape[1]):
             lat = latgrid_interp[i][j]
             lon = longrid_interp[i][j]
             closest_lat_idx = np.abs(lats - lat).argmin()
             closest_lon_idx = np.abs(lons - lon).argmin()
-            # TODO: Had to flip the lat/lon index down here for alpha!
+
             if repeat0tile1:
                 closest_data = data[closest_lat_idx][closest_lon_idx]
             else:
                 closest_data = data[closest_lon_idx][closest_lat_idx]
-            # residual[i][j] = (closest_data - data[i][j]) / closest_data
-            if mask_value_cond(closest_data):
+
+            if mask_value_cond(closest_data) or mask_value_cond(data_interp[i][j]):
                 data_interp[i][j] = np.nan
-                # residual[i][j] = np.nan
+                residual[i][j] = np.nan
+            else:
+                residual[i][j] = data_interp[i][j] - closest_data
 
     logger.info('Plotting masked interpolated data.')
     import matplotlib.pyplot as plt
@@ -226,6 +228,13 @@ def interpolate_dataset(data, lats, lons, pickle_filepath, mask_value_cond, inte
     longrid_interp = np.ma.masked_where(np.isnan(longrid_interp), longrid_interp)
     data_interp = np.ma.masked_where(np.isnan(data_interp), data_interp)
     plt.pcolormesh(latgrid_interp, longrid_interp, data_interp)
+    plt.colorbar()
+    plt.show()
+
+    logger.info('Plotting interpolated data residual.')
+    import matplotlib.pyplot as plt
+    residual = np.ma.masked_where(np.isnan(residual), residual)
+    plt.pcolormesh(latgrid_interp, longrid_interp, residual)
     plt.colorbar()
     plt.show()
 
