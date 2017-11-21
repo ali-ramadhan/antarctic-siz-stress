@@ -1,3 +1,6 @@
+# TODO: Properly take care of masked values and errors?
+# TODO: Convert vectors from polar stereographic (EASE-Grid) to zonal-meridional.
+
 from os import path
 import datetime
 import numpy as np
@@ -137,10 +140,20 @@ class SeaIceMotionDataReader(object):
         u_ice_interp, row_interp, col_interp = interpolate_scalar_field(
             self.u_ice, self.x[0], self.y[:, 0], u_ice_interp_filepath, mask_value_cond, 'ease_rowcol', 'linear',
             repeat0tile1, convert_lon_range)
+        v_ice_interp, row_interp, col_interp = interpolate_scalar_field(
+            self.v_ice, self.x[0], self.y[:, 0], v_ice_interp_filepath, mask_value_cond, 'ease_rowcol', 'linear',
+            repeat0tile1, convert_lon_range)
 
         self.u_ice_interp = u_ice_interp
+        self.v_ice_interp = v_ice_interp
         self.row_interp = row_interp
         self.col_interp = col_interp
+
+        import matplotlib.pyplot as plt
+        plt.quiver(self.row_interp, self.col_interp, self.u_ice_interp, self.v_ice_interp, units='width',
+                   width=0.001, scale=1000)
+        plt.gca().invert_yaxis()
+        plt.show()
 
     def seaice_motion_vector(self, lat, lon, date):
         from constants import R

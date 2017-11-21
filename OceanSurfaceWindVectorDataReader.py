@@ -119,7 +119,7 @@ class OceanSurfaceWindVectorDataReader(object):
             repeat0tile1 = True
             convert_lon_range = True
             u_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
-                self.uwind, self.lats.transpose(), self.lons.transpose(), u_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',
+                self.uwind, np.reshape(self.lats, (self.lats.shape[1],)), np.reshape(self.lons, (self.lons.shape[1],)), u_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',
                 repeat0tile1, convert_lon_range)
             v_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
                 self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',
