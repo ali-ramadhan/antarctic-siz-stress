@@ -19,9 +19,9 @@ class SeaIceMotionDataReader(object):
         self.south_grid_lons = 321
 
         self.dataset_loaded = False
-        self.u_wind = None
-        self.v_wind = None
-        self.wind_error = None
+        self.u_ice = None
+        self.v_ice = None
+        self.error = None
         self.x = None
         self.y = None
         self.lat = None
@@ -67,16 +67,16 @@ class SeaIceMotionDataReader(object):
         data = np.fromfile(dataset_filepath, dtype='<i2').reshape(321, 321, 3)
         logger.info('Successfully read sea ice motion data.')
 
-        # u_wind = data[..., 1]/10  # [cm/s]
-        u_wind = data[..., 1]/1000  # [m/s]
-        # v_wind = data[..., 2]/10  # [cm/s]
-        v_wind = data[..., 2]/1000  # [cm/s]
-        wind_error = data[..., 0]/10  # [???]
+        u_ice = data[..., 1]/10  # [cm/s]
+        v_ice = data[..., 2]/10  # [cm/s]
+        # u_ice = data[..., 1]/1000  # [m/s]
+        # v_ice = data[..., 2]/1000  # [cm/s]
+        error = data[..., 0]/10  # square root of the estimated error variance
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup...')
-        self.u_wind = np.zeros((self.south_grid_lats, self.south_grid_lons), dtype=float)
-        self.v_wind = np.zeros((self.south_grid_lats, self.south_grid_lons))
-        self.wind_error = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.u_ice = np.zeros((self.south_grid_lats, self.south_grid_lons), dtype=float)
+        self.v_ice = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.error = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.x = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.y = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.lat = np.zeros((self.south_grid_lats, self.south_grid_lons))
@@ -84,23 +84,35 @@ class SeaIceMotionDataReader(object):
 
         for i in range(self.south_grid_lats):
             for j in range(self.south_grid_lons):
-                self.u_wind[i][j] = u_wind[i][j]
-                self.v_wind[i][j] = v_wind[i][j]
-                self.wind_error[i][j] = wind_error[i][j]
+                self.u_ice[i][j] = u_ice[i][j]
+                self.v_ice[i][j] = v_ice[i][j]
+                self.error[i][j] = error[i][j]
                 self.lat[i][j] = self.south_grid[i * self.south_grid_lats + j][2]
                 self.lon[i][j] = self.south_grid[i * self.south_grid_lats + j][3]
                 self.x[i][j] = self.south_grid[i * self.south_grid_lats + j][0]
                 self.y[i][j] = self.south_grid[i * self.south_grid_lats + j][1]
 
+        # A pixel value of 0 in the third variable indicates no vectors at that location.
+        self.u_ice[self.error == 0] = np.nan
+        self.v_ice[self.error == 0] = np.nan
+
+        # Negative value indicate vectors that are near coastlines (within 25 km), which may contain false ice as
+        # interpolation was applied to a surface map from passive microwave data.
+        # At least that's what the documentation says. But half the vectors have sqrt(error)<0 so who knows?
+        # self.u_ice[self.error < 0] = np.nan
+        # self.v_ice[self.error < 0] = np.nan
+
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
         # import matplotlib.pyplot as plt
-        # self.u_wind[self.u_wind == 0] = np.nan
-        # self.v_wind[self.u_wind == 0] = np.nan
-        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_wind[::4, ::4], self.v_wind[::4, ::4], units='width',
+        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
         #            width=0.001, scale=1000)
         # plt.gca().invert_yaxis()
         # plt.show()
+        # plt.pcolormesh(self.x, self.y, self.error)
+        # plt.colorbar()
+        # plt.show()
+        # exit(44)
 
     def interpolate_seaice_motion_field(self):
         from utils import interpolate_scalar_field
@@ -118,12 +130,12 @@ class SeaIceMotionDataReader(object):
         v_ice_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', v_ice_interp_filename)
 
         # TODO: Properly check for masked/filled values.
-        mask_value_cond = lambda x: x < -100
+        mask_value_cond = lambda x: np.isnan(x)
 
         repeat0tile1 = True
         convert_lon_range = False
         u_ice_interp, row_interp, col_interp = interpolate_scalar_field(
-            self.u_wind, self.x[0], self.y[:, 0], u_ice_interp_filepath, mask_value_cond, 'ease_rowcol', 'cubic',
+            self.u_ice, self.x[0], self.y[:, 0], u_ice_interp_filepath, mask_value_cond, 'ease_rowcol', 'linear',
             repeat0tile1, convert_lon_range)
 
         self.u_ice_interp = u_ice_interp
@@ -160,8 +172,8 @@ class SeaIceMotionDataReader(object):
         row = -2*R/C * np.cos(lon) * np.cos(np.pi/4 - lat/2) + s0  # row coordinate
 
         row, col = int(row), int(col)
-        u_motion = self.u_wind[row][col]
-        v_motion = self.v_wind[row][col]
+        u_motion = self.u_ice[row][col]
+        v_motion = self.v_ice[row][col]
         lat_rc = self.lat[row][col]
         lon_rc = self.lon[row][col]
 

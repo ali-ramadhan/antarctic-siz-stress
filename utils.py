@@ -178,23 +178,25 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
         x_max = x.max()
         y_min = y.min()
         y_max = y.max()
-        x_interp, y_interp = np.mgrid[x_min:x_max:1000 * 1j, y_min:y_max:1000 * 1j]
+        x_interp, y_interp = np.mgrid[x_min:x_max:1000*1j, y_min:y_max:1000*1j]
+        # x_masked = np.reshape(x_masked, (x_masked.shape[1],))
+        # y_masked = np.reshape(y_masked, (y_masked.shape[1],))
     else:
         logger.error('Invalid value for grid_type: {}'.format(grid_type))
         raise ValueError('Invalid value for grid_type: {}'.format(grid_type))
 
-    data_masked = np.reshape(data_masked, (1, len(x) * len(y)))
+    # data_masked = np.reshape(data_masked, (1, len(x) * len(y)))
 
     logger.info('Data masked in preparation for interpolation.')
-    logger.info('Masked x grid: min={:.2f}, max={:.2f}, shape={}'
+    logger.info('x_masked: min={:.2f}, max={:.2f}, shape={}'
                 .format(x_masked.min(), x_masked.max(), x_masked.shape))
-    logger.info('Masked y grid: min={:.2f}, max={:.2f}, shape={}'
+    logger.info('y_masked: min={:.2f}, max={:.2f}, shape={}'
                 .format(y_masked.min(), y_masked.max(), y_masked.shape))
-    logger.info('Masked data grid: min={:.2f}, max={:.2f}, shape={}'
+    logger.info('data_masked: min={:.2f}, max={:.2f}, shape={}'
                 .format(data_masked.min(), data_masked.max(), data_masked.shape))
-    logger.info('x interpolation grid: min={:.2f}, max={:.2f}, shape={}'
+    logger.info('x_interp: min={:.2f}, max={:.2f}, shape={}'
                 .format(x_interp.min(), x_interp.max(), x_interp.shape))
-    logger.info('y interpolation grid: min={:.2f}, max={:.2f}, shape={}'
+    logger.info('y_interp: min={:.2f}, max={:.2f}, shape={}'
                 .format(y_interp.min(), y_interp.max(), y_interp.shape))
 
     logger.info('Interpolating dataset...')
