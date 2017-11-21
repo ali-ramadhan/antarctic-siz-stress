@@ -32,7 +32,7 @@ class SeaIceConcentrationDataReader(object):
             self.load_SIC_dataset()
 
     def date_to_SIC_dataset_filepath(self, date):
-        filename = 'seaice_conc_daily_sh_f17_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
+        filename = 'seaice_conc_daily_sh_f17_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2) \
                    + '_v03r00.nc'
         return path.join(self.sic_data_dir_path, str(date.year), filename)
 
@@ -51,9 +51,9 @@ class SeaIceConcentrationDataReader(object):
         self.ygrid = np.array(self.current_SIC_dataset.variables['ygrid'])
         self.alpha = np.array(self.current_SIC_dataset.variables['goddard_nt_seaice_conc'][0])
 
-        self.interpolate_sea_ice_concentration_dataset()
+        self.interpolate_sea_ice_concentration_field()
 
-    def interpolate_sea_ice_concentration_dataset(self):
+    def interpolate_sea_ice_concentration_field(self):
         from utils import interpolate_dataset
         from constants import data_dir_path
         from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
@@ -72,7 +72,7 @@ class SeaIceConcentrationDataReader(object):
         mask_value_cond = lambda x: x > 1
 
         alpha_interp, xgrid_interp, ygrid_interp = interpolate_dataset(self.alpha, self.xgrid, self.ygrid,
-            alpha_interp_filepath, mask_value_cond, 'cubic', False, False, True)
+            alpha_interp_filepath, mask_value_cond, 'linear', False, False, True)
 
         self.alpha_interp = alpha_interp
         self.xgrid_interp = xgrid_interp
