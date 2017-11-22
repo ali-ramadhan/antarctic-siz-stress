@@ -84,7 +84,7 @@ def latlon_to_polar_stereographic_xy(lat, lon):
         t_c = np.tan(np.pi/4 - sl/2) / ((1 - e*np.sin(sl)) / (1 + e*np.sin(sl)))**(e/2)
         m_c = np.cos(sl) / np.sqrt(1 - e*e * (np.sin(sl)**2))
         rho = R_E * m_c * (t/t_c)
-        logger.debug('rho = {:f}, m_c = {:f}, t = {:f}, t_c = {:f}'.format(rho, m_c, t, t_c))
+        # logger.debug('rho = {:f}, m_c = {:f}, t = {:f}, t_c = {:f}'.format(rho, m_c, t, t_c))
 
     x = rho * sgn * np.sin(sgn * lon)
     y = -rho * sgn * np.cos(sgn * lon)
@@ -182,6 +182,15 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     else:
         logger.error('Invalid value for grid_type: {}'.format(grid_type))
         raise ValueError('Invalid value for grid_type: {}'.format(grid_type))
+
+    # TODO: Why do I even need this hack, especially for the NCEP wind field?
+    if x_masked.shape[0] == 1:
+        print(x_masked.shape[1])
+        logger.warning('x_masked has wrong shape. Reshaping: {} -> ({:d},)'.format(x_masked.shape, x_masked.shape[1]))
+        x_masked = np.reshape(x_masked, (x_masked.shape[1],))
+    if y_masked.shape[0] == 1:
+        logger.warning('y_masked has wrong shape. Reshaping: {} -> ({:d},)'.format(y_masked.shape, y_masked.shape[1]))
+        y_masked = np.reshape(y_masked, (y_masked.shape[1],))
 
     logger.info('Data masked in preparation for interpolation.')
     logger.info('x_masked: min={:.2f}, max={:.2f}, shape={}'
