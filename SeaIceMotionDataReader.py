@@ -155,7 +155,7 @@ class SeaIceMotionDataReader(object):
         # plt.gca().invert_yaxis()
         # plt.show()
 
-    def seaice_motion_vector(self, lat, lon, date):
+    def seaice_motion_vector(self, lat, lon, date, data_source):
         from constants import R
 
         if self.dataset_loaded is False:

@@ -39,7 +39,7 @@ if __name__ == '__main__':
     seaice_conc = SeaIceConcentrationDataReader(test_date)
     seaice_motion = SeaIceMotionDataReader(test_date)
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
-    exit()
+    # exit()
 
     R_45deg = np.array([[np.cos(np.pi / 4), -np.sin(np.pi / 4)], [np.sin(np.pi / 4), np.cos(np.pi / 4)]])
 
@@ -63,10 +63,10 @@ if __name__ == '__main__':
         for j in range(len(lons)):
             lon = lons[j]
 
-            u_geo_mean = mdt.u_geo_mean_interp(lat, lon)
+            u_geo_mean = mdt.u_geo_mean(lat, lon, 'interp')
             u_wind = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date)
-            alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date)
-            u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date)
+            alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date, 'interp')
+            u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date, 'interp')
 
             if np.isnan(alpha) or np.isnan(u_geo_mean[0]):
                 tau_x[i][j] = np.nan
