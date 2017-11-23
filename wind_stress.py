@@ -54,10 +54,22 @@ if __name__ == '__main__':
     # All the fields to save to the netCDF file.
     tau_x_field = np.zeros((len(lats), len(lons)))
     tau_y_field = np.zeros((len(lats), len(lons)))
+    u_Ekman_field = np.zeros((len(lats), len(lons)))
+    v_Ekman_field = np.zeros((len(lats), len(lons)))
+    u_geo_mean_field = np.zeros((len(lats), len(lons)))
+    v_geo_mean_field = np.zeros((len(lats), len(lons)))
+    u_wind_field = np.zeros((len(lats), len(lons)))
+    v_wind_field = np.zeros((len(lats), len(lons)))
+    alpha_field = np.zeros((len(lats), len(lons)))
+    u_ice_field = np.zeros((len(lats), len(lons)))
+    v_ice_field = np.zeros((len(lats), len(lons)))
 
     for i in range(len(lats)):
         lat = lats[i]
-        f = 2*Omega * np.sin(np.deg2rad(lat))
+        f = 2*Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
+
+        progress_percent = 100 * i/(len(lats)-1)
+        logger.info('lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
 
         for j in range(len(lons)):
             lon = lons[j]
@@ -67,10 +79,19 @@ if __name__ == '__main__':
             alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date, 'interp')
             u_ice_vec = seaice_motion.seaice_motion_vector(lat, lon, test_date, 'interp')
 
+            u_geo_mean_field[i][j] = u_geo_mean_vec[0]
+            v_geo_mean_field[i][j] = u_geo_mean_vec[1]
+            u_wind_field[i][j] = u_wind_vec[0]
+            v_wind_field[i][j] = u_wind_vec[1]
+            alpha_field[i][j] = alpha
+            u_ice_field[i][j] = u_ice_vec[0]
+            v_ice_field[i][j] = u_ice_vec[1]
 
             if np.isnan(alpha) or np.isnan(u_geo_mean_vec[0]) or np.isnan(u_wind_vec[0]) or np.isnan(u_ice_vec[0]):
                 tau_x_field[i][j] = np.nan
                 tau_y_field[i][j] = np.nan
+                u_Ekman_field[i][j] = np.nan
+                v_Ekman_field[i][j] = np.nan
                 continue
 
             # Use the Modified Richardson iteration to calculate tau and u_Ekman. Here we set the variables to arbitrary
@@ -113,9 +134,8 @@ if __name__ == '__main__':
 
             tau_x_field[i][j] = tau_vec[0]
             tau_y_field[i][j] = tau_vec[1]
-
-        progress_percent = 100 * i/(len(lats)-1)
-        logger.info('lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+            u_Ekman_field[i][j] = u_Ekman_vec[0]
+            v_Ekman_field[i][j] = u_Ekman_vec[1]
 
     import matplotlib.pyplot as plt
     plt.pcolormesh(lons, lats, tau_x_field)
@@ -148,14 +168,67 @@ if __name__ == '__main__':
 
     tau_x_var = tau_dataset.createVariable('tau_x', float, ('lat', 'lon'), zlib=True)
     tau_x_var.units = 'N/m^2'
-    tau_x_var.long_name = 'Zonal surface stress'
     tau_x_var.positive = 'up'
+    tau_x_var.long_name = 'Zonal surface stress'
     tau_x_var[:] = tau_x_field
 
     tau_y_var = tau_dataset.createVariable('tau_y', float, ('lat', 'lon'), zlib=True)
     tau_y_var.units = 'N/m^2'
-    tau_y_var.long_name = 'Meridional surface stress'
     tau_y_var.positive = 'up'
+    tau_y_var.long_name = 'Meridional surface stress'
     tau_y_var[:] = tau_y_field
+
+    u_Ekman_var = tau_dataset.createVariable('u_Ekman', float, ('lat', 'lon'), zlib=True)
+    u_Ekman_var.units = 'm/s'
+    u_Ekman_var.positive = 'up'
+    u_Ekman_var.long_name = 'Zonal Ekman transport velocity'
+    u_Ekman_var[:] = u_Ekman_field
+
+    v_Ekman_var = tau_dataset.createVariable('v_Ekman', float, ('lat', 'lon'), zlib=True)
+    v_Ekman_var.units = 'm/s'
+    v_Ekman_var.positive = 'up'
+    v_Ekman_var.long_name = 'Meridional Ekman transport velocity'
+    v_Ekman_var[:] = v_Ekman_field
+
+    u_geo_mean_var = tau_dataset.createVariable('u_geo_mean', float, ('lat', 'lon'), zlib=True)
+    u_geo_mean_var.units = 'm/s'
+    tau_y_var.positive = 'up'
+    u_geo_mean_var.long_name = 'Mean zonal geostrophic velocity'
+    u_geo_mean_var[:] = u_geo_mean_field
+
+    v_geo_mean_var = tau_dataset.createVariable('v_geo_mean', float, ('lat', 'lon'), zlib=True)
+    v_geo_mean_var.units = 'm/s'
+    v_geo_mean_var.positive = 'up'
+    v_geo_mean_var.long_name = 'Mean meridional geostrophic velocity'
+    v_geo_mean_var[:] = v_geo_mean_field
+
+    u_wind_var = tau_dataset.createVariable('u_wind', float, ('lat', 'lon'), zlib=True)
+    u_wind_var.units = 'm/s'
+    u_wind_var.positive = 'up'
+    u_wind_var.long_name = 'Zonal wind velocity'
+    u_wind_var[:] = u_wind_field
+
+    v_wind_var = tau_dataset.createVariable('v_wind', float, ('lat', 'lon'), zlib=True)
+    v_wind_var.units = 'm/s'
+    v_wind_var.positive = 'up'
+    v_wind_var.long_name = 'Meridional wind velocity'
+    v_wind_var[:] = v_wind_field
+
+    alpha_var = tau_dataset.createVariable('alpha', float, ('lat', 'lon'), zlib=True)
+    alpha_var.units = 'fractional'
+    alpha_var.long_name = 'Sea ice concentration'
+    alpha_var[:] = alpha_field
+
+    u_ice_var = tau_dataset.createVariable('u_ice', float, ('lat', 'lon'), zlib=True)
+    u_ice_var.units = 'm/s'
+    u_ice_var.positive = 'up'
+    u_ice_var.long_name = 'Zonal sea ice motion'
+    u_ice_var[:] = u_ice_field
+
+    v_ice_var = tau_dataset.createVariable('v_ice', float, ('lat', 'lon'), zlib=True)
+    v_ice_var.units = 'm/s'
+    v_ice_var.positive = 'up'
+    v_ice_var.long_name = 'Meridional sea ice motion'
+    v_ice_var[:] = v_ice_field
 
     tau_dataset.close()
