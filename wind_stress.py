@@ -41,7 +41,7 @@ if __name__ == '__main__':
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
     # exit()
 
-    R_45deg = np.array([[np.cos(np.pi / 4), -np.sin(np.pi / 4)], [np.sin(np.pi / 4), np.cos(np.pi / 4)]])
+    R_45deg = np.array([[np.cos(np.pi/4), -np.sin(np.pi/4)], [np.sin(np.pi/4), np.cos(np.pi/4)]])
 
     lats = np.linspace(lat_min, lat_max, n_lat)
     lons = np.linspace(lon_min, lon_max, n_lon)
@@ -57,18 +57,18 @@ if __name__ == '__main__':
         lat = lats[i]
         f = 2*Omega * np.sin(np.deg2rad(lat))
 
-        progress_percent = 100 * (lat - lat_min)/(lat_max - lat_min)
+        progress_percent = 100 * i/len(lats)
         logger.info('lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
 
         for j in range(len(lons)):
             lon = lons[j]
 
             u_geo_mean = mdt.u_geo_mean(lat, lon, 'interp')
-            u_wind = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date)
+            u_wind = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date, 'interp')
             alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date, 'interp')
             u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date, 'interp')
 
-            if np.isnan(alpha) or np.isnan(u_geo_mean[0]):
+            if np.isnan(alpha) or np.isnan(u_geo_mean[0]) or np.isnan(u_wind[0]) or np.isnan(u_ice[0]):
                 tau_x[i][j] = np.nan
                 tau_y[i][j] = np.nan
                 continue
