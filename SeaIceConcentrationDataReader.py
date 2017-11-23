@@ -108,6 +108,7 @@ class SeaIceConcentrationDataReader(object):
             idx_y = np.abs(self.ygrid - y).argmin()
             lat_xy = self.lats[idx_y][idx_x]
             lon_xy = self.lons[idx_y][idx_x]
+            alpha = self.alpha[idx_y][idx_x]
 
             if (np.abs(lat - lat_xy) > 0.5 or np.abs(lon - lon_xy) > 0.5) \
                     and np.abs(lat) - 180 > 0.5 and np.abs(lat_xy) - 180 > 0.5:
@@ -116,12 +117,10 @@ class SeaIceConcentrationDataReader(object):
                 logger.warning("x = {}, y = {} (polar stereographic)", x, y)
                 logger.warning("idx_x = {}, idx_y = {}", idx_x, idx_y)
                 logger.warning("lat_xy = {}, lon_xy = {} (from SIC dataset)", lat_xy, lon_xy)
-
-            alpha = self.alpha[idx_y][idx_x]
         elif data_source == 'interp':
             idx_x = np.abs(self.xgrid_interp - x).argmin()
             idx_y = np.abs(self.ygrid_interp - y).argmin()
-            alpha = self.alpha_interp[idx_y][idx_x]
+            alpha = self.alpha_interp[idx_x][idx_y]
         else:
             logger.error('Invalid value for data_source: {}'.format(data_source))
             raise ValueError('Invalid value for data_source: {}'.format(data_source))
