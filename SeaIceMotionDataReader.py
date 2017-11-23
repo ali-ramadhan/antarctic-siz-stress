@@ -70,10 +70,10 @@ class SeaIceMotionDataReader(object):
         data = np.fromfile(dataset_filepath, dtype='<i2').reshape(321, 321, 3)
         logger.info('Successfully read sea ice motion data.')
 
-        u_ice = data[..., 1]/10  # [cm/s]
-        v_ice = data[..., 2]/10  # [cm/s]
-        # u_ice = data[..., 1]/1000  # [m/s]
-        # v_ice = data[..., 2]/1000  # [cm/s]
+        # u_ice = data[..., 1]/10  # [cm/s]
+        # v_ice = data[..., 2]/10  # [cm/s]
+        u_ice = data[..., 1]/1000  # [m/s]
+        v_ice = data[..., 2]/1000  # [m/s]
         error = data[..., 0]/10  # square root of the estimated error variance
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup...')
@@ -184,14 +184,20 @@ class SeaIceMotionDataReader(object):
         col = +2*R/C * np.sin(lon) * np.cos(np.pi/4 - lat/2) + r0  # column coordinate
         row = -2*R/C * np.cos(lon) * np.cos(np.pi/4 - lat/2) + s0  # row coordinate
 
-        row, col = int(row), int(col)
-        u_motion = self.u_ice[row][col]
-        v_motion = self.v_ice[row][col]
-        lat_rc = self.lat[row][col]
-        lon_rc = self.lon[row][col]
+        if data_source == 'product':
+            row, col = int(row), int(col)
+            u_ice_rc = self.u_ice[row][col]
+            v_ice_rc = self.v_ice[row][col]
+            lat_rc = self.lat[row][col]
+            lon_rc = self.lon[row][col]
 
-        logger.debug('row = {}, col = {}'.format(row, col))
-        logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
-        logger.debug('u_motion = {}, v_motion = {}'.format(u_motion, v_motion))
+            logger.debug('row = {}, col = {}'.format(row, col))
+            logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
+            logger.debug('u_motion = {}, v_motion = {}'.format(u_ice_rc, v_ice_rc))
+        elif data_source == 'interp':
+            idx_row = np.abs(self.row_interp - row).argmin()
+            idx_col = np.abs(self.col_interp - col).argmin()
+            u_ice_rc = self.u_ice_interp[idx_row][idx_col]
+            v_ice_rc = self.v_ice_interp[idx_row][idx_col]
 
-        return np.array([u_motion, v_motion])
+        return np.array([u_ice_rc, v_ice_rc])

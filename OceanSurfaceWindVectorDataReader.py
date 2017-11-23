@@ -124,7 +124,7 @@ class OceanSurfaceWindVectorDataReader(object):
                 self.uwind, self.lats, self.lons, u_wind_interp_filepath, mask_value_cond, 'latlon', 'linear',
                 repeat0tile1, convert_lon_range)
             v_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
-                self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon', 'cubic',
+                self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon', 'linear',
                 repeat0tile1, convert_lon_range)
 
             self.u_wind_interp = u_wind_interp
@@ -138,7 +138,7 @@ class OceanSurfaceWindVectorDataReader(object):
             logger.error('Invalid value for current_product: {}'.format(self.current_product))
             raise ValueError('Invalid value for current_product: {}'.format(self.current_product))
 
-    def ocean_surface_wind_vector(self, lat, lon, date):
+    def ocean_surface_wind_vector(self, lat, lon, date, data_source):
         if self.current_product is OSWVProduct.NCEP:
             if self.current_uwind_dataset is None or self.current_vwind_dataset is None:
                 logger.info('ocean_surface_wind_vector called with no current dataset loaded.')
@@ -171,17 +171,23 @@ class OceanSurfaceWindVectorDataReader(object):
             assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
             assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
-            day_of_year = date.timetuple().tm_yday
-            idx_lat = np.abs(self.lats - lat).argmin()
-            idx_lon = np.abs(self.lons - lon).argmin()
+            if data_source == 'product':
+                day_of_year = date.timetuple().tm_yday
+                idx_lat = np.abs(self.lats - lat).argmin()
+                idx_lon = np.abs(self.lons - lon).argmin()
+                u_wind = self.uwind[idx_lat][idx_lon]
+                v_wind = self.vwind[idx_lat][idx_lon]
 
-            logger.debug("lat = {}, lon = {}".format(lat, lon))
-            logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
-            logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
-            logger.debug('time = {}'.format(self.current_uwind_dataset.variables['time'][day_of_year]))
+                logger.debug("lat = {}, lon = {}".format(lat, lon))
+                logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
+                logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
+                logger.debug('time = {}'.format(self.current_uwind_dataset.variables['time'][day_of_year]))
 
-            u_wind = self.uwind[idx_lat][idx_lon]
-            v_wind = self.vwind[idx_lat][idx_lon]
+            elif data_source == 'interp':
+                idx_lat = np.abs(self.latgrid_interp - lat).argmin()
+                idx_lon = np.abs(self.longrid_interp - lon).argmin()
+                u_wind = self.u_wind_interp[idx_lat][idx_lon]
+                v_wind = self.v_wind_interp[idx_lat][idx_lon]
 
             return np.array([u_wind, v_wind])
 
