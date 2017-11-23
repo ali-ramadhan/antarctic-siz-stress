@@ -105,13 +105,14 @@ class OceanSurfaceWindVectorDataReader(object):
             interp_filename_suffix = 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
                                      + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
 
-            u_wind_interp_filename = 'uwnd.10m.gauss.' + str(self.current_date.year) + '_interp_uwind_'\
-                                     + interp_filename_suffix
-            v_wind_interp_filename = 'vwnd.10m.gauss.' + str(self.current_date.year) + '_interp_vwind_'\
-                                     + interp_filename_suffix
+            day_of_year = str(self.current_date.timetuple().tm_yday)
+            u_wind_interp_filename = 'uwnd.10m.gauss.' + str(self.current_date.year) + 'day' + day_of_year + \
+                                     '_interp_uwind_' + interp_filename_suffix
+            v_wind_interp_filename = 'vwnd.10m.gauss.' + str(self.current_date.year) + 'day' + day_of_year + \
+                                     '_interp_vwind_' + interp_filename_suffix
 
-            u_wind_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', u_wind_interp_filename)
-            v_wind_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', v_wind_interp_filename)
+            u_wind_interp_filepath = path.join(self.oswv_ncep_data_dir_path, u_wind_interp_filename)
+            v_wind_interp_filepath = path.join(self.oswv_ncep_data_dir_path, v_wind_interp_filename)
 
             # TODO: Properly check for masked/filled values.
             mask_value_cond = lambda x: np.full(x.shape, False, dtype=bool)

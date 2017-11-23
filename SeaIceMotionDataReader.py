@@ -119,18 +119,16 @@ class SeaIceMotionDataReader(object):
 
     def interpolate_seaice_motion_field(self):
         from utils import interpolate_scalar_field
-        from constants import data_dir_path
-        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+        from constants import n_row, n_col
 
         interp_filename_prefix = 'icemotion.grid.daily.' + str(self.current_date.year) \
                                  + str(self.current_date.timetuple().tm_yday).zfill(3) + '.s.v3'
-        interp_filename_suffix = 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
-            + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
+        interp_filename_suffix = str(n_row) + 'rows_' + str(n_col) + 'cols.pickle'
 
         u_ice_interp_filename = interp_filename_prefix + '_interp_u_ice_' + interp_filename_suffix
         v_ice_interp_filename = interp_filename_prefix + '_interp_v_ice_' + interp_filename_suffix
-        u_ice_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', u_ice_interp_filename)
-        v_ice_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', v_ice_interp_filename)
+        u_ice_interp_filepath = path.join(self.seaice_motion_path, str(self.current_date.year), u_ice_interp_filename)
+        v_ice_interp_filepath = path.join(self.seaice_motion_path, str(self.current_date.year), v_ice_interp_filename)
 
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: np.isnan(x)

@@ -55,18 +55,16 @@ class SeaIceConcentrationDataReader(object):
 
     def interpolate_sea_ice_concentration_field(self):
         from utils import interpolate_scalar_field
-        from constants import data_dir_path
-        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+        from constants import n_x, n_y
 
         interp_filename_prefix = 'seaice_conc_daily_sh_f17_' + str(self.current_date.year) \
                                  + str(self.current_date.month).zfill(2) + str(self.current_date.day).zfill(2) \
                                  + '_v03r00'
 
-        interp_filename_suffix = 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
-            + 'lon' + str(lon_min) + '-' + str(lon_max) + '_n' + str(n_lon) + '.pickle'
+        interp_filename_suffix = str(n_x) + 'x_' + str(n_y) + 'y.pickle'
 
         alpha_interp_filename = interp_filename_prefix + '_interp_alpha_' + interp_filename_suffix
-        alpha_interp_filepath = path.join(data_dir_path, 'mdt_cnes_cls2013_global', alpha_interp_filename)
+        alpha_interp_filepath = path.join(self.sic_data_dir_path, str(self.current_date.year), alpha_interp_filename)
 
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x > 1

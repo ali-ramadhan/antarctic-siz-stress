@@ -7,6 +7,7 @@ cwd = path.dirname(path.abspath(__file__))
 # Data directory string constants
 # Everything under a ./data/ softlink?
 data_dir_path = path.join(cwd, 'data')
+# data_dir_path = 'D:\\data\\'
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
@@ -41,5 +42,9 @@ n_lat = int((lat_max - lat_min) / lat_step) + 1
 n_lon = int((lon_max - lon_min) / lon_step) + 1
 
 """ Polar stereographic interpolation grid constants """
+n_x = 1000
+n_y = 1000
 
 """ EASE-Grid interpolation constants """
+n_row = 1000
+n_col = 1000
