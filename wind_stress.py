@@ -178,37 +178,37 @@ if __name__ == '__main__':
     tau_y_var.long_name = 'Meridional surface stress'
     tau_y_var[:] = tau_y_field
 
-    u_Ekman_var = tau_dataset.createVariable('u_Ekman', float, ('lat', 'lon'), zlib=True)
+    u_Ekman_var = tau_dataset.createVariable('Ekman_u', float, ('lat', 'lon'), zlib=True)
     u_Ekman_var.units = 'm/s'
     u_Ekman_var.positive = 'up'
     u_Ekman_var.long_name = 'Zonal Ekman transport velocity'
     u_Ekman_var[:] = u_Ekman_field
 
-    v_Ekman_var = tau_dataset.createVariable('v_Ekman', float, ('lat', 'lon'), zlib=True)
+    v_Ekman_var = tau_dataset.createVariable('Ekman_v', float, ('lat', 'lon'), zlib=True)
     v_Ekman_var.units = 'm/s'
     v_Ekman_var.positive = 'up'
     v_Ekman_var.long_name = 'Meridional Ekman transport velocity'
     v_Ekman_var[:] = v_Ekman_field
 
-    u_geo_mean_var = tau_dataset.createVariable('u_geo_mean', float, ('lat', 'lon'), zlib=True)
+    u_geo_mean_var = tau_dataset.createVariable('geo_mean_u', float, ('lat', 'lon'), zlib=True)
     u_geo_mean_var.units = 'm/s'
     tau_y_var.positive = 'up'
     u_geo_mean_var.long_name = 'Mean zonal geostrophic velocity'
     u_geo_mean_var[:] = u_geo_mean_field
 
-    v_geo_mean_var = tau_dataset.createVariable('v_geo_mean', float, ('lat', 'lon'), zlib=True)
+    v_geo_mean_var = tau_dataset.createVariable('geo_mean_v', float, ('lat', 'lon'), zlib=True)
     v_geo_mean_var.units = 'm/s'
     v_geo_mean_var.positive = 'up'
     v_geo_mean_var.long_name = 'Mean meridional geostrophic velocity'
     v_geo_mean_var[:] = v_geo_mean_field
 
-    u_wind_var = tau_dataset.createVariable('u_wind', float, ('lat', 'lon'), zlib=True)
+    u_wind_var = tau_dataset.createVariable('wind_u', float, ('lat', 'lon'), zlib=True)
     u_wind_var.units = 'm/s'
     u_wind_var.positive = 'up'
     u_wind_var.long_name = 'Zonal wind velocity'
     u_wind_var[:] = u_wind_field
 
-    v_wind_var = tau_dataset.createVariable('v_wind', float, ('lat', 'lon'), zlib=True)
+    v_wind_var = tau_dataset.createVariable('wind_v', float, ('lat', 'lon'), zlib=True)
     v_wind_var.units = 'm/s'
     v_wind_var.positive = 'up'
     v_wind_var.long_name = 'Meridional wind velocity'
@@ -219,13 +219,13 @@ if __name__ == '__main__':
     alpha_var.long_name = 'Sea ice concentration'
     alpha_var[:] = alpha_field
 
-    u_ice_var = tau_dataset.createVariable('u_ice', float, ('lat', 'lon'), zlib=True)
+    u_ice_var = tau_dataset.createVariable('ice_u', float, ('lat', 'lon'), zlib=True)
     u_ice_var.units = 'm/s'
     u_ice_var.positive = 'up'
     u_ice_var.long_name = 'Zonal sea ice motion'
     u_ice_var[:] = u_ice_field
 
-    v_ice_var = tau_dataset.createVariable('v_ice', float, ('lat', 'lon'), zlib=True)
+    v_ice_var = tau_dataset.createVariable('ice_v', float, ('lat', 'lon'), zlib=True)
     v_ice_var.units = 'm/s'
     v_ice_var.positive = 'up'
     v_ice_var.long_name = 'Meridional sea ice motion'
