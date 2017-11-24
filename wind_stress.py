@@ -49,10 +49,20 @@ if __name__ == '__main__':
     logger.info('lon_min = {}, lon_max = {}, lon_step = {}, n_lon = {}'.format(lon_min, lon_max, lon_step, n_lon))
 
     # All the fields to save to the netCDF file.
+    tau_air_x_field = np.zeros((len(lats), len(lons)))
+    tau_air_y_field = np.zeros((len(lats), len(lons)))
+    tau_ice_x_field = np.zeros((len(lats), len(lons)))
+    tau_ice_y_field = np.zeros((len(lats), len(lons)))
+    tau_SIZ_x_field = np.zeros((len(lats), len(lons)))
+    tau_SIZ_y_field = np.zeros((len(lats), len(lons)))
     tau_x_field = np.zeros((len(lats), len(lons)))
     tau_y_field = np.zeros((len(lats), len(lons)))
+
     u_Ekman_field = np.zeros((len(lats), len(lons)))
     v_Ekman_field = np.zeros((len(lats), len(lons)))
+    u_Ekman_SIZ_field = np.zeros((len(lats), len(lons)))
+    v_Ekman_SIZ_field = np.zeros((len(lats), len(lons)))
+
     u_geo_mean_field = np.zeros((len(lats), len(lons)))
     v_geo_mean_field = np.zeros((len(lats), len(lons)))
     u_wind_field = np.zeros((len(lats), len(lons)))
@@ -88,22 +98,37 @@ if __name__ == '__main__':
             # then tau is just tau_air and easy to calculate.
             if ((alpha == 0 or np.isnan(alpha)) and np.isnan(u_ice_vec[0])) \
                     and not np.isnan(u_geo_mean_vec[0]) and not np.isnan(u_wind_vec[0]):
-                tau_air = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
-                tau_vec = tau_air
 
-                tau_x_field[i][j] = tau_vec[0]
-                tau_y_field[i][j] = tau_vec[1]
+                tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
+
+                tau_air_x_field[i][j] = tau_air_vec[0]
+                tau_air_y_field[i][j] = tau_air_vec[1]
+                tau_ice_x_field[i][j] = 0
+                tau_ice_y_field[i][j] = 0
+
+                tau_x_field[i][j] = tau_air_vec[0]
+                tau_y_field[i][j] = tau_air_vec[1]
+                tau_SIZ_x_field[i][j] = np.nan
+                tau_SIZ_y_field[i][j] = np.nan
 
                 # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
                 u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(R_45deg, tau_vec)
                 u_Ekman_field[i][j] = u_Ekman_vec[0]
                 v_Ekman_field[i][j] = u_Ekman_vec[1]
+                u_Ekman_SIZ_field[i][j] = np.nan
+                v_Ekman_SIZ_field[i][j] = np.nan
                 continue
 
             # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
             if np.isnan(alpha) or np.isnan(u_geo_mean_vec[0]) or np.isnan(u_wind_vec[0]) or np.isnan(u_ice_vec[0]):
+                tau_air_x_field[i][j] = np.nan
+                tau_air_y_field[i][j] = np.nan
+                tau_ice_x_field[i][j] = np.nan
+                tau_ice_y_field[i][j] = np.nan
                 tau_x_field[i][j] = np.nan
                 tau_y_field[i][j] = np.nan
+                tau_SIZ_x_field[i][j] = np.nan
+                tau_SIZ_y_field[i][j] = np.nan
                 u_Ekman_field[i][j] = np.nan
                 v_Ekman_field[i][j] = np.nan
                 continue
@@ -130,14 +155,14 @@ if __name__ == '__main__':
                                    .format(tau_vec, u_geo_mean_vec, u_wind_vec, alpha, u_ice_vec))
                     break
 
-                tau_air = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
+                tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
 
                 u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(R_45deg, tau_vec)
                 u_rel_vec = u_ice_vec - (u_geo_mean_vec - u_Ekman_vec)
                 tau_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_rel_vec) * u_rel_vec
-                tau_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air
+                tau_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air_vec
 
-                tau_vec_residual = tau_vec - (alpha * tau_ice_vec + (1 - alpha) * tau_air)
+                tau_vec_residual = tau_vec - (alpha * tau_ice_vec + (1 - alpha) * tau_air_vec)
                 tau_relative_error = np.linalg.norm(tau_vec_residual)/np.linalg.norm(tau_vec)
 
                 tau_vec = tau_vec + omega*tau_vec_residual
@@ -146,13 +171,21 @@ if __name__ == '__main__':
                     logger.warning('NaN tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
                                    .format(tau_vec, u_geo_mean_vec, u_wind_vec, alpha, u_ice_vec))
 
+            tau_air_x_field[i][j] = tau_air_vec[0]
+            tau_air_y_field[i][j] = tau_air_vec[1]
+            tau_ice_x_field[i][j] = tau_ice_vec[0]
+            tau_ice_y_field[i][j] = tau_ice_vec[1]
             tau_x_field[i][j] = tau_vec[0]
             tau_y_field[i][j] = tau_vec[1]
+            tau_SIZ_x_field[i][j] = tau_vec[0]
+            tau_SIZ_y_field[i][j] = tau_vec[1]
 
             # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
             u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(R_45deg, tau_vec)
             u_Ekman_field[i][j] = u_Ekman_vec[0]
             v_Ekman_field[i][j] = u_Ekman_vec[1]
+            u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
+            v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
 
     # Calculate wind stress curl field
     # from utils import interpolate_scalar_field
@@ -248,6 +281,30 @@ if __name__ == '__main__':
     lat_var.units = 'degrees west/east'
     lon_var[:] = lons
 
+    tau_air_x_var = tau_dataset.createVariable('tau_air_x', float, ('lat', 'lon'), zlib=True)
+    tau_air_x_var.units = 'N/m^2'
+    tau_air_x_var.positive = 'up'
+    tau_air_x_var.long_name = 'Zonal air surface stress'
+    tau_air_x_var[:] = tau_air_x_field
+
+    tau_air_y_var = tau_dataset.createVariable('tau_air_y', float, ('lat', 'lon'), zlib=True)
+    tau_air_y_var.units = 'N/m^2'
+    tau_air_y_var.positive = 'up'
+    tau_air_y_var.long_name = 'Meridional air surface stress'
+    tau_air_y_var[:] = tau_air_y_field
+
+    tau_ice_x_var = tau_dataset.createVariable('tau_ice_x', float, ('lat', 'lon'), zlib=True)
+    tau_ice_x_var.units = 'N/m^2'
+    tau_ice_x_var.positive = 'up'
+    tau_ice_x_var.long_name = 'Zonal ice surface stress'
+    tau_ice_x_var[:] = tau_ice_x_field
+
+    tau_ice_y_var = tau_dataset.createVariable('tau_ice_y', float, ('lat', 'lon'), zlib=True)
+    tau_ice_y_var.units = 'N/m^2'
+    tau_ice_y_var.positive = 'up'
+    tau_ice_y_var.long_name = 'Meridional ice surface stress'
+    tau_ice_y_var[:] = tau_ice_y_field
+
     tau_x_var = tau_dataset.createVariable('tau_x', float, ('lat', 'lon'), zlib=True)
     tau_x_var.units = 'N/m^2'
     tau_x_var.positive = 'up'
@@ -259,6 +316,18 @@ if __name__ == '__main__':
     tau_y_var.positive = 'up'
     tau_y_var.long_name = 'Meridional surface stress'
     tau_y_var[:] = tau_y_field
+
+    tau_SIZ_x_var = tau_dataset.createVariable('tau_SIZ_x', float, ('lat', 'lon'), zlib=True)
+    tau_SIZ_x_var.units = 'N/m^2'
+    tau_SIZ_x_var.positive = 'up'
+    tau_SIZ_x_var.long_name = 'Zonal surface stress in the SIZ'
+    tau_SIZ_x_var[:] = tau_SIZ_x_field
+
+    tau_SIZ_y_var = tau_dataset.createVariable('tau_SIZ_y', float, ('lat', 'lon'), zlib=True)
+    tau_SIZ_y_var.units = 'N/m^2'
+    tau_SIZ_y_var.positive = 'up'
+    tau_SIZ_y_var.long_name = 'Meridional surface stress in the SIZ'
+    tau_SIZ_y_var[:] = tau_SIZ_y_field
 
     curl_tau_var = tau_dataset.createVariable('wind_stress_curl', float, ('lat', 'lon'), zlib=True)
     curl_tau_var.units = 'N/m^3'
@@ -277,6 +346,18 @@ if __name__ == '__main__':
     v_Ekman_var.positive = 'up'
     v_Ekman_var.long_name = 'Meridional Ekman transport velocity'
     v_Ekman_var[:] = v_Ekman_field
+
+    u_Ekman_SIZ_var = tau_dataset.createVariable('Ekman_SIZ_u', float, ('lat', 'lon'), zlib=True)
+    u_Ekman_SIZ_var.units = 'm/s'
+    u_Ekman_SIZ_var.positive = 'up'
+    u_Ekman_SIZ_var.long_name = 'Zonal Ekman transport velocity in the SIZ'
+    u_Ekman_SIZ_var[:] = u_Ekman_SIZ_field
+
+    v_Ekman_SIZ_var = tau_dataset.createVariable('Ekman_SIZ_v', float, ('lat', 'lon'), zlib=True)
+    v_Ekman_SIZ_var.units = 'm/s'
+    v_Ekman_SIZ_var.positive = 'up'
+    v_Ekman_SIZ_var.long_name = 'Meridional Ekman transport velocity in the SIZ'
+    v_Ekman_SIZ_var[:] = v_Ekman_SIZ_field
 
     u_geo_mean_var = tau_dataset.createVariable('geo_mean_u', float, ('lat', 'lon'), zlib=True)
     u_geo_mean_var.units = 'm/s'
