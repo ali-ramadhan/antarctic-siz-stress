@@ -145,15 +145,34 @@ if __name__ == '__main__':
     # tau_y_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
     #     tau_y_field, lats, lons, None, mask_value_cond, 'latlon', 'linear', repeat0tile1, convert_lon_range)
 
-    from utils import distance
+    # import matplotlib.pyplot as plt
+    # import cartopy
+    # import cartopy.crs as ccrs
+    # ax = plt.axes(projection=ccrs.Orthographic(0, -90))
+    #
+    # ax.add_feature(cartopy.feature.OCEAN, zorder=0)
+    # ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
+    #
+    # ax.set_global()
+    # ax.gridlines()
+    #
+    # vector_crs = ccrs.RotatedPole(pole_longitude=0, pole_latitude=-90)
+    # tau_x_field = np.reshape(tau_x_field, (len(lats)*len(lons),))
+    # tau_y_field = np.reshape(tau_y_field, (len(lats) * len(lons),))
+    # logger.info('lats.shape={}, lons.shape={}, tau_x_field.shape={}, tau_y_field.shape={}'
+    #             .format(lats.shape, lons.shape, tau_x_field.shape, tau_y_field.shape))
+    # ax.quiver(lats, lons, tau_x_field, tau_y_field, transform=vector_crs)
+    # plt.show()
+    # exit()
 
+    from utils import distance
     wind_stress_curl_field = np.zeros((len(lats), len(lons)))
     for i in range(1, len(lats)-1):
         for j in range(1, len(lons)-1):
             if not np.isnan(tau_x_field[i][j-1]) and not np.isnan(tau_x_field[i][j+1]) \
                     and not np.isnan(tau_y_field[i-1][j]) and not np.isnan(tau_y_field[i+1][j]):
-                dtauxdy = (tau_x_field[i][j+1] - tau_x_field[i][j-1]) / distance(lats[i], lons[j-1], lats[i], lons[j+1])
-                dtauydx = (tau_y_field[i+1][j] - tau_x_field[i-1][j]) / distance(lats[i-1], lons[j], lats[i+1], lons[j])
+                dtauxdy = (tau_x_field[i][j+1] - tau_x_field[i][j-1]) / (2*distance(lats[i], lons[j-1], lats[i], lons[j+1]))
+                dtauydx = (tau_y_field[i+1][j] - tau_x_field[i-1][j]) / (2*distance(lats[i-1], lons[j], lats[i+1], lons[j]))
                 wind_stress_curl_field[i][j] = dtauydx - dtauxdy
             else:
                 wind_stress_curl_field[i][j] = np.nan
