@@ -50,3 +50,7 @@ n_row = 1000
 n_col = 1000
 
 """ Interpolation methods for each dataset """
+mdt_interp_method = 'cubic'
+alpha_interp_method = 'linear'
+u_ice_interp_method = 'linear'
+u_wind_interp_method = 'linear'

@@ -98,7 +98,7 @@ class OceanSurfaceWindVectorDataReader(object):
 
     def interpolate_wind_field(self):
         from utils import interpolate_scalar_field
-        from constants import data_dir_path
+        from constants import u_wind_interp_method
         from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
 
         if self.current_product is OSWVProduct.NCEP:
@@ -122,11 +122,11 @@ class OceanSurfaceWindVectorDataReader(object):
             repeat0tile1 = True
             convert_lon_range = True
             u_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
-                self.uwind, self.lats, self.lons, u_wind_interp_filepath, mask_value_cond, 'latlon', 'linear',
-                repeat0tile1, convert_lon_range)
+                self.uwind, self.lats, self.lons, u_wind_interp_filepath, mask_value_cond, 'latlon',
+                u_wind_interp_method, repeat0tile1, convert_lon_range)
             v_wind_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
-                self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon', 'linear',
-                repeat0tile1, convert_lon_range)
+                self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon',
+                u_wind_interp_method, repeat0tile1, convert_lon_range)
 
             self.u_wind_interp = u_wind_interp
             self.v_wind_interp = v_wind_interp

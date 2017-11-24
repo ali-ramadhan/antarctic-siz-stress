@@ -119,7 +119,7 @@ class SeaIceMotionDataReader(object):
 
     def interpolate_seaice_motion_field(self):
         from utils import interpolate_scalar_field
-        from constants import n_row, n_col
+        from constants import n_row, n_col, u_ice_interp_method
 
         interp_filename_prefix = 'icemotion.grid.daily.' + str(self.current_date.year) \
                                  + str(self.current_date.timetuple().tm_yday).zfill(3) + '.s.v3'
@@ -136,11 +136,11 @@ class SeaIceMotionDataReader(object):
         repeat0tile1 = True
         convert_lon_range = False
         u_ice_interp, row_interp, col_interp = interpolate_scalar_field(
-            self.u_ice, self.x[0], self.y[:, 0], u_ice_interp_filepath, mask_value_cond, 'ease_rowcol', 'linear',
-            repeat0tile1, convert_lon_range)
+            self.u_ice, self.x[0], self.y[:, 0], u_ice_interp_filepath, mask_value_cond, 'ease_rowcol',
+            u_ice_interp_method, repeat0tile1, convert_lon_range)
         v_ice_interp, row_interp, col_interp = interpolate_scalar_field(
-            self.v_ice, self.x[0], self.y[:, 0], v_ice_interp_filepath, mask_value_cond, 'ease_rowcol', 'linear',
-            repeat0tile1, convert_lon_range)
+            self.v_ice, self.x[0], self.y[:, 0], v_ice_interp_filepath, mask_value_cond, 'ease_rowcol',
+            u_ice_interp_method, repeat0tile1, convert_lon_range)
 
         self.u_ice_interp = u_ice_interp
         self.v_ice_interp = v_ice_interp

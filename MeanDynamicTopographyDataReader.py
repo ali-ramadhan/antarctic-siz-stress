@@ -61,7 +61,7 @@ class MeanDynamicTopographyDataReader(object):
 
     def interpolate_u_geo_field(self):
         from utils import interpolate_scalar_field
-        from constants import data_dir_path
+        from constants import data_dir_path, mdt_interp_method
         from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
 
         interp_filename_suffix = 'lat' + str(lat_min) + '-' + str(lat_max) + '_n' + str(n_lat) + '_' \
@@ -78,10 +78,10 @@ class MeanDynamicTopographyDataReader(object):
         repeat0tile1 = True
         convert_lon_range = True
         ugeo_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
-            self.u_geo, self.lats, self.lons, ugeo_interp_filepath, mask_value_cond, 'latlon', 'cubic',
+            self.u_geo, self.lats, self.lons, ugeo_interp_filepath, mask_value_cond, 'latlon', mdt_interp_method,
             repeat0tile1, convert_lon_range)
         vgeo_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
-            self.v_geo, self.lats, self.lons, vgeo_interp_filepath, mask_value_cond, 'latlon', 'cubic',
+            self.v_geo, self.lats, self.lons, vgeo_interp_filepath, mask_value_cond, 'latlon', mdt_interp_method,
             repeat0tile1, convert_lon_range)
 
         self.ugeo_interp = ugeo_interp

@@ -55,7 +55,7 @@ class SeaIceConcentrationDataReader(object):
 
     def interpolate_sea_ice_concentration_field(self):
         from utils import interpolate_scalar_field
-        from constants import n_x, n_y
+        from constants import n_x, n_y, alpha_interp_method
 
         interp_filename_prefix = 'seaice_conc_daily_sh_f17_' + str(self.current_date.year) \
                                  + str(self.current_date.month).zfill(2) + str(self.current_date.day).zfill(2) \
@@ -69,13 +69,11 @@ class SeaIceConcentrationDataReader(object):
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x > 1
 
-        logger.info('xgrid.shape={}, ygrid.shape={}, alpha.shape={}'.format(self.xgrid.shape, self.ygrid.shape, self.alpha.shape))
-
         repeat0tile1 = False
         convert_lon_range = False
         alpha_interp, xgrid_interp, ygrid_interp = interpolate_scalar_field(
             self.alpha, self.xgrid, self.ygrid, alpha_interp_filepath, mask_value_cond, 'polar_stereographic_xy',
-            'linear', repeat0tile1, convert_lon_range)
+            alpha_interp_method, repeat0tile1, convert_lon_range)
 
         self.alpha_interp = alpha_interp
         self.xgrid_interp = xgrid_interp
