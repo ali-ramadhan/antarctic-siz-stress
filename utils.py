@@ -112,6 +112,7 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
             data_interp = data_interp_dict['data_interp']
             x_interp = data_interp_dict['x_interp']
             y_interp = data_interp_dict['y_interp']
+            residual_interp = data_interp_dict['residual_interp']
         return data_interp, x_interp, y_interp
 
     from scipy.interpolate import griddata
@@ -136,14 +137,14 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     # in preparation for griddata.
     data_masked = np.ma.array(data, mask=mask_value_cond(data))
 
-    # logger.info('Plotting masked data.')
-    # import matplotlib.pyplot as plt
-    # if repeat0tile1:
-    #     plt.pcolormesh(x, y, data_masked.transpose())
-    # else:
-    #     plt.pcolormesh(x, y, data_masked)
-    # plt.colorbar()
-    # plt.show()
+    logger.info('Plotting masked data.')
+    import matplotlib.pyplot as plt
+    if repeat0tile1:
+        plt.pcolormesh(x, y, data_masked.transpose())
+    else:
+        plt.pcolormesh(x, y, data_masked)
+    plt.colorbar()
+    plt.show()
 
     data_masked = np.reshape(data_masked, (len(x) * len(y),))
 
@@ -207,11 +208,11 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     logger.info('Interpolating dataset...')
     data_interp = griddata((x_masked, y_masked), data_masked, (x_interp, y_interp), method=interp_method)
 
-    # logger.info('Plotting interpolated data.')
-    # import matplotlib.pyplot as plt
-    # plt.pcolormesh(x_interp, y_interp, data_interp)
-    # plt.colorbar()
-    # plt.show()
+    logger.info('Plotting interpolated data.')
+    import matplotlib.pyplot as plt
+    plt.pcolormesh(x_interp, y_interp, data_interp)
+    plt.colorbar()
+    plt.show()
 
     # Since we get back interpolated values over the land, we must mask them or get rid of them. We do this by
     # looping through the interpolated values and mask values that are supposed to be land by setting their value to
@@ -221,7 +222,7 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     # which should be zero where an interpolation gridpoint coincides with an original gridpoint, and should be
     # pretty small everywhere else.
     logger.info('Masking invalid values in the interpolated grid...')
-    residual = np.zeros(data_interp.shape)
+    residual_interp = np.zeros(data_interp.shape)
     for i in range(x_interp.shape[0]):
         for j in range(x_interp.shape[1]):
             x_ij = x_interp[i][j]
@@ -236,25 +237,25 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
 
             if mask_value_cond(closest_data) or mask_value_cond(data_interp[i][j]):
                 data_interp[i][j] = np.nan
-                residual[i][j] = np.nan
+                residual_interp[i][j] = np.nan
             else:
-                residual[i][j] = data_interp[i][j] - closest_data
+                residual_interp[i][j] = data_interp[i][j] - closest_data
 
-    # logger.info('Plotting masked interpolated data.')
-    # import matplotlib.pyplot as plt
-    # x_interp = np.ma.masked_where(np.isnan(x_interp), x_interp)
-    # y_interp = np.ma.masked_where(np.isnan(y_interp), y_interp)
-    # data_interp = np.ma.masked_where(np.isnan(data_interp), data_interp)
-    # plt.pcolormesh(x_interp, y_interp, data_interp)
-    # plt.colorbar()
-    # plt.show()
-    #
-    # logger.info('Plotting interpolated data residual.')
-    # import matplotlib.pyplot as plt
-    # residual = np.ma.masked_where(np.isnan(residual), residual)
-    # plt.pcolormesh(x_interp, y_interp, residual)
-    # plt.colorbar()
-    # plt.show()
+    logger.info('Plotting masked interpolated data.')
+    import matplotlib.pyplot as plt
+    x_interp = np.ma.masked_where(np.isnan(x_interp), x_interp)
+    y_interp = np.ma.masked_where(np.isnan(y_interp), y_interp)
+    data_interp = np.ma.masked_where(np.isnan(data_interp), data_interp)
+    plt.pcolormesh(x_interp, y_interp, data_interp)
+    plt.colorbar()
+    plt.show()
+
+    logger.info('Plotting interpolated data residual.')
+    import matplotlib.pyplot as plt
+    residual = np.ma.masked_where(np.isnan(residual_interp), residual_interp)
+    plt.pcolormesh(x_interp, y_interp, residual)
+    plt.colorbar()
+    plt.show()
 
     logger.info('Interpolating dataset... DONE!')
 
@@ -269,7 +270,8 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
         data_interp_dict = {
             'data_interp': data_interp,
             'x_interp': x_interp,
-            'y_interp': y_interp
+            'y_interp': y_interp,
+            'residual_interp': residual_interp
         }
         pickle.dump(data_interp_dict, f, pickle.HIGHEST_PROTOCOL)
 

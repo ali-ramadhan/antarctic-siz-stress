@@ -6,8 +6,6 @@
 # TODO: Output more statistics during the analysis?
 # TODO: Plot everything but draw the ice line where alpha drops below 0.15.
 # TODO: Plot the zero stress line. We expect a unique position for it right?
-# TODO: Stop pickling and start just saving as netCDF? Pickle might not be best for long-term storage. NetCDF is.
-# TODO: Is it possible to make a general purpose interpolate_dataset function for all my datasets?
 
 # Conventions
 # Latitude = -90 to +90
@@ -136,6 +134,10 @@ if __name__ == '__main__':
             tau_y_field[i][j] = tau_vec[1]
             u_Ekman_field[i][j] = u_Ekman_vec[0]
             v_Ekman_field[i][j] = u_Ekman_vec[1]
+
+    # Calculate wind stress curl field
+    from utils import interpolate_scalar_field
+
 
     import matplotlib.pyplot as plt
     plt.pcolormesh(lons, lats, tau_x_field)
