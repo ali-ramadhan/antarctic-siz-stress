@@ -150,20 +150,27 @@ if __name__ == '__main__':
     import cartopy.crs as ccrs
     ax = plt.axes(projection=ccrs.SouthPolarStereo())
 
-    ax.add_feature(cartopy.feature.OCEAN, zorder=0)
-    ax.add_feature(cartopy.feature.LAND, zorder=0, edgecolor='black')
+    # ax.add_feature(cartopy.feature.OCEAN, zorder=0)
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m',
+                                            edgecolor='face',
+                                            facecolor=cartopy.feature.COLORS['land'])
+    ax.add_feature(land_50m) # edgecolor='black')
+    ax.coastlines(resolution='50m')
 
     ax.set_global()
     ax.gridlines()
 
     vector_crs = ccrs.PlateCarree()
+    ax.pcolormesh(lons, lats, tau_x_field, transform=vector_crs)
+
     nlats = len(lats)
     nlons = len(lons)
     lats = np.repeat(lats, nlons)
     lons = np.tile(lons, nlats)
     tau_x_field = np.reshape(tau_x_field, (nlats*nlons,))
     tau_y_field = np.reshape(tau_y_field, (nlats*nlons,))
-    ax.quiver(lons, lats, tau_x_field, tau_y_field, transform=vector_crs)
+    ax.quiver(lons[::10], lats[::10], tau_x_field[::10], tau_y_field[::10], transform=vector_crs, units='width', width=0.001, scale=10)
+    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
     plt.show()
     exit()
 
