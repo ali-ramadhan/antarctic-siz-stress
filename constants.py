@@ -51,6 +51,7 @@ n_col = 1000
 
 """ Interpolation methods for each dataset """
 mdt_interp_method = 'cubic'
+u_geo_interp_method = 'linear'
 alpha_interp_method = 'linear'
 u_ice_interp_method = 'linear'
 u_wind_interp_method = 'linear'
