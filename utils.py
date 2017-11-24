@@ -4,18 +4,17 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def distance(ϕ1, λ1, ϕ2, λ2):
+def distance(lat1, lon1, lat2, lon2):
     from constants import R
 
-    # Calculate the distance between two points on the Earth (ϕ1, λ1) and (ϕ1, λ1) using the haversine formula.
+    # Calculate the distance between two points on the Earth (lat1, lon1) and (lat2, lon2) using the haversine formula.
     # See: http://www.movable-type.co.uk/scripts/latlong.html
-    # Latitudes are denoted by ϕ while longitudes are denoted by λ.
 
-    ϕ1, λ1, ϕ2, λ2 = np.deg2rad([ϕ1, λ1, ϕ2, λ2])
-    Δϕ = ϕ2 - ϕ1
-    Δλ = λ2 - λ1
+    lat1, lon1, lat2, lon2 = np.deg2rad([lat1, lon1, lat2, lon2])
+    delta_lat = lat2 - lat1
+    delta_lon = lon2 - lon1
 
-    a = np.sin(Δϕ/2)**2 + np.cos(ϕ1) * np.cos(ϕ2) * np.sin(Δλ/2)**2
+    a = np.sin(delta_lat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(delta_lon/2)**2
     c = 2 * np.arctan2(np.sqrt(a), np.sqrt(1-a))
     return R*c
 
@@ -266,14 +265,14 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     # Pickle the interpolated grid as a form of memoization to avoid having to recompute it again for the same
     # gridpoints.
     if pickle_filepath is not None:
-    with open(pickle_filepath, 'wb') as f:
-        logger.info('Pickling interpolated grid: {:s}'.format(pickle_filepath))
-        data_interp_dict = {
-            'data_interp': data_interp,
-            'x_interp': x_interp,
-            'y_interp': y_interp,
-            'residual_interp': residual_interp
-        }
-        pickle.dump(data_interp_dict, f, pickle.HIGHEST_PROTOCOL)
+        with open(pickle_filepath, 'wb') as f:
+            logger.info('Pickling interpolated grid: {:s}'.format(pickle_filepath))
+            data_interp_dict = {
+                'data_interp': data_interp,
+                'x_interp': x_interp,
+                'y_interp': y_interp,
+                'residual_interp': residual_interp
+            }
+            pickle.dump(data_interp_dict, f, pickle.HIGHEST_PROTOCOL)
 
     return data_interp, x_interp, y_interp
