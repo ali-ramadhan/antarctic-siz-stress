@@ -37,7 +37,6 @@ if __name__ == '__main__':
     seaice_conc = SeaIceConcentrationDataReader(test_date)
     seaice_motion = SeaIceMotionDataReader(test_date)
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
-    # exit()
 
     R_45deg = np.array([[np.cos(np.pi/4), -np.sin(np.pi/4)], [np.sin(np.pi/4), np.cos(np.pi/4)]])
 
@@ -136,13 +135,33 @@ if __name__ == '__main__':
             v_Ekman_field[i][j] = u_Ekman_vec[1]
 
     # Calculate wind stress curl field
-    from utils import interpolate_scalar_field
+    # from utils import interpolate_scalar_field
+    #
+    # repeat0tile1 = True
+    # convert_lon_range = False
+    # mask_value_cond = lambda x : np.isnan(x)
+    # tau_x_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
+    #     tau_x_field, lats, lons, None, mask_value_cond, 'latlon', 'linear', repeat0tile1, convert_lon_range)
+    # tau_y_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
+    #     tau_y_field, lats, lons, None, mask_value_cond, 'latlon', 'linear', repeat0tile1, convert_lon_range)
 
+    from utils import distance
 
-    import matplotlib.pyplot as plt
-    plt.pcolormesh(lons, lats, tau_x_field)
-    plt.colorbar()
-    plt.show()
+    wind_stress_curl_field = np.zeros((len(lats), len(lons)))
+    for i in range(1, len(lats)-1):
+        for j in range(1, len(lons)-1):
+            if not np.isnan(tau_x_field[i][j-1]) and not np.isnan(tau_x_field[i][j+1]) \
+                    and not np.isnan(tau_y_field[i-1][j]) and not np.isnan(tau_y_field[i+1][j]):
+                dtauxdy = (tau_x_field[i][j+1] - tau_x_field[i][j-1]) / distance(lats[i], lons[j-1], lats[i], lons[j+1])
+                dtauydx = (tau_y_field[i+1][j] - tau_x_field[i-1][j]) / distance(lats[i-1], lons[j], lats[i+1], lons[j])
+                wind_stress_curl_field[i][j] = dtauydx - dtauxdy
+            else:
+                wind_stress_curl_field[i][j] = np.nan
+
+    # import matplotlib.pyplot as plt
+    # plt.pcolormesh(lons, lats, tau_x_field)
+    # plt.colorbar()
+    # plt.show()
 
     import netCDF4 as nc
     tau_dataset = nc.Dataset('tau.nc', 'w')
@@ -180,6 +199,12 @@ if __name__ == '__main__':
     tau_y_var.long_name = 'Meridional surface stress'
     tau_y_var[:] = tau_y_field
 
+    curl_tau_var = tau_dataset.createVariable('wind_stress_curl', float, ('lat', 'lon'), zlib=True)
+    curl_tau_var.units = 'N/m^3'
+    curl_tau_var.positive = 'up'
+    curl_tau_var.long_name = 'Wind stress curl'
+    curl_tau_var[:] = wind_stress_curl_field
+
     u_Ekman_var = tau_dataset.createVariable('Ekman_u', float, ('lat', 'lon'), zlib=True)
     u_Ekman_var.units = 'm/s'
     u_Ekman_var.positive = 'up'
@@ -194,7 +219,7 @@ if __name__ == '__main__':
 
     u_geo_mean_var = tau_dataset.createVariable('geo_mean_u', float, ('lat', 'lon'), zlib=True)
     u_geo_mean_var.units = 'm/s'
-    tau_y_var.positive = 'up'
+    u_geo_mean_var.positive = 'up'
     u_geo_mean_var.long_name = 'Mean zonal geostrophic velocity'
     u_geo_mean_var[:] = u_geo_mean_field
 
