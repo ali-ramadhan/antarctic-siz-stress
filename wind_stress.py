@@ -145,34 +145,47 @@ if __name__ == '__main__':
     # tau_y_interp, latgrid_interp, longrid_interp = interpolate_scalar_field(
     #     tau_y_field, lats, lons, None, mask_value_cond, 'latlon', 'linear', repeat0tile1, convert_lon_range)
 
-    import matplotlib.pyplot as plt
-    import cartopy
-    import cartopy.crs as ccrs
-    ax = plt.axes(projection=ccrs.SouthPolarStereo())
-
-    # ax.add_feature(cartopy.feature.OCEAN, zorder=0)
-    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m',
-                                            edgecolor='face',
-                                            facecolor=cartopy.feature.COLORS['land'])
-    ax.add_feature(land_50m) # edgecolor='black')
-    ax.coastlines(resolution='50m')
-
-    ax.set_global()
-    ax.gridlines()
-
-    vector_crs = ccrs.PlateCarree()
-    ax.pcolormesh(lons, lats, tau_x_field, transform=vector_crs)
-
-    nlats = len(lats)
-    nlons = len(lons)
-    lats = np.repeat(lats, nlons)
-    lons = np.tile(lons, nlats)
-    tau_x_field = np.reshape(tau_x_field, (nlats*nlons,))
-    tau_y_field = np.reshape(tau_y_field, (nlats*nlons,))
-    ax.quiver(lons[::10], lats[::10], tau_x_field[::10], tau_y_field[::10], transform=vector_crs, units='width', width=0.001, scale=10)
-    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-    plt.show()
-    exit()
+    # import matplotlib.pyplot as plt
+    # import cartopy
+    # import cartopy.crs as ccrs
+    # ax = plt.axes(projection=ccrs.SouthPolarStereo())
+    #
+    # # ax.add_feature(cartopy.feature.OCEAN, zorder=0)
+    # land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m',
+    #                                         edgecolor='face',
+    #                                         facecolor=cartopy.feature.COLORS['land'])
+    # ax.add_feature(land_50m, edgecolor='black')
+    # # ax.stock_img()
+    # ax.coastlines(resolution='50m')
+    #
+    # ax.set_global()
+    # ax.gridlines()
+    #
+    # vector_crs = ccrs.PlateCarree()
+    # ax.pcolormesh(lons, lats, tau_x_field, transform=vector_crs)
+    #
+    # nlats = len(lats)
+    # nlons = len(lons)
+    # lats = np.repeat(lats, nlons)
+    # lons = np.tile(lons, nlats)
+    # tau_x_field = np.reshape(tau_x_field, (nlats*nlons,))
+    # tau_y_field = np.reshape(tau_y_field, (nlats*nlons,))
+    # ax.quiver(lons[::10], lats[::10], tau_x_field[::10], tau_y_field[::10], transform=vector_crs, units='width', width=0.001, scale=10)
+    # ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+    # ax.gridlines()
+    #
+    # # import matplotlib.path as mpath
+    # # # Compute a circle in axes coordinates, which we can use as a boundary
+    # # # for the map. We can pan/zoom as much as we like - the boundary will be
+    # # # permanently circular.
+    # # theta = np.linspace(0, 2*np.pi, 1000)
+    # # center, radius = [0.5, 0.5], 0.5
+    # # verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    # # circle = mpath.Path(verts * radius + center)
+    # # ax.set_boundary(circle, transform=ax.transAxes)
+    #
+    # plt.show()
+    # exit()
 
     from utils import distance
     wind_stress_curl_field = np.zeros((len(lats), len(lons)))
