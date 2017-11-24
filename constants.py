@@ -46,5 +46,10 @@ n_x = 1000
 n_y = 1000
 
 """ EASE-Grid interpolation constants """
+<<<<<<< Updated upstream
 n_row = 1000
 n_col = 1000
+=======
+
+""" Interpolation methods for each dataset """
+>>>>>>> Stashed changes
