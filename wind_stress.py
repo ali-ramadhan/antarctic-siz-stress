@@ -84,6 +84,23 @@ if __name__ == '__main__':
             u_ice_field[i][j] = u_ice_vec[0]
             v_ice_field[i][j] = u_ice_vec[1]
 
+            # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
+            # then tau is just tau_air and easy to calculate.
+            if ((alpha == 0 or np.isnan(alpha)) and np.isnan(u_ice_vec[0])) \
+                    and not np.isnan(u_geo_mean_vec[0]) and not np.isnan(u_wind_vec[0]):
+                tau_air = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
+                tau_vec = tau_air
+
+                tau_x_field[i][j] = tau_vec[0]
+                tau_y_field[i][j] = tau_vec[1]
+
+                # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
+                u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(R_45deg, tau_vec)
+                u_Ekman_field[i][j] = u_Ekman_vec[0]
+                v_Ekman_field[i][j] = u_Ekman_vec[1]
+                continue
+
+            # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
             if np.isnan(alpha) or np.isnan(u_geo_mean_vec[0]) or np.isnan(u_wind_vec[0]) or np.isnan(u_ice_vec[0]):
                 tau_x_field[i][j] = np.nan
                 tau_y_field[i][j] = np.nan
@@ -131,6 +148,9 @@ if __name__ == '__main__':
 
             tau_x_field[i][j] = tau_vec[0]
             tau_y_field[i][j] = tau_vec[1]
+
+            # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
+            u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(R_45deg, tau_vec)
             u_Ekman_field[i][j] = u_Ekman_vec[0]
             v_Ekman_field[i][j] = u_Ekman_vec[1]
 
