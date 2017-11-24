@@ -74,7 +74,6 @@ if __name__ == '__main__':
         for j in range(len(lons)):
             lon = lons[j]
 
-<<<<<<< Updated upstream
             u_geo_mean_vec = mdt.u_geo_mean(lat, lon, 'interp')
             u_wind_vec = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date, 'interp')
             alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date, 'interp')
@@ -93,16 +92,6 @@ if __name__ == '__main__':
                 tau_y_field[i][j] = np.nan
                 u_Ekman_field[i][j] = np.nan
                 v_Ekman_field[i][j] = np.nan
-=======
-            u_geo_mean = mdt.u_geo_mean(lat, lon, 'interp')
-            u_wind = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date, 'interp')
-            alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date, 'interp')
-            u_ice = seaice_motion.seaice_motion_vector(lat, lon, test_date, 'interp')
-
-            if np.isnan(alpha) or np.isnan(u_geo_mean[0]) or np.isnan(u_wind[0]) or np.isnan(u_ice[0]):
-                tau_x[i][j] = np.nan
-                tau_y[i][j] = np.nan
->>>>>>> Stashed changes
                 continue
 
             # Use the Modified Richardson iteration to calculate tau and u_Ekman. Here we set the variables to arbitrary
