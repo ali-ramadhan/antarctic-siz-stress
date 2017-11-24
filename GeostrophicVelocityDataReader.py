@@ -33,7 +33,8 @@ class GeostrophicVelocityDataReader(object):
             self.load_u_geo_dataset()
 
     def date_to_u_geo_dataset_filepath(self, date):
-        filename = 'dt_global_allsat_msla_h_20150701_' + str(date.year) + str(date.month).zfill(2) \
+        # FIXME: Must pattern match the ending!!! https://docs.python.org/3.6/library/fnmatch.html
+        filename = 'dt_global_allsat_msla_h_' + str(date.year) + str(date.month).zfill(2) \
                    + str(date.day).zfill(2) + '_20170110.nc'
         return path.join(self.u_geo_data_path, str(date.year), filename)
 
@@ -48,8 +49,8 @@ class GeostrophicVelocityDataReader(object):
 
         self.lats = np.array(self.current_u_geo_dataset.variables['latitude'])
         self.lons = np.array(self.current_u_geo_dataset.variables['longitude'])
-        self.u_geo = np.array(self.current_u_geo_dataset.variables['ugos'])
-        self.v_geo = np.array(self.current_u_geo_dataset.variables['vgos'])
+        self.u_geo = np.array(self.current_u_geo_dataset.variables['ugos'][0])
+        self.v_geo = np.array(self.current_u_geo_dataset.variables['vgos'][0])
 
         self.interpolate_u_geo_field()
 
@@ -68,9 +69,9 @@ class GeostrophicVelocityDataReader(object):
         v_geo_interp_filepath = path.join(self.u_geo_data_path, str(self.current_date.year), v_geo_interp_filename)
 
         # TODO: Properly check for masked/filled values.
-        mask_value_cond = lambda x: np.isnan(x)
+        mask_value_cond = lambda x: x < -100
 
-        repeat0tile1 = False
+        repeat0tile1 = True
         convert_lon_range = True
         u_geo_interp, lats_interp, lons_interp = interpolate_scalar_field(
             self.u_geo, self.lats, self.lons, u_geo_interp_filepath, mask_value_cond, 'latlon',
@@ -80,6 +81,7 @@ class GeostrophicVelocityDataReader(object):
             u_geo_interp_method, repeat0tile1, convert_lon_range)
 
         self.u_geo_interp = u_geo_interp
+        self.v_geo_interp = u_geo_interp
         self.lats_interp = lats_interp
         self.lons_interp = lons_interp
 
@@ -88,7 +90,7 @@ class GeostrophicVelocityDataReader(object):
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
-        assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
+        assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
 
         if self.current_u_geo_dataset is None:
             logger.info('absolute_geostrophic_velocity called with no current dataset loaded.')

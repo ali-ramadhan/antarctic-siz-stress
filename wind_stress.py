@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 np.set_printoptions(precision=4)
 
 if __name__ == '__main__':
-    from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
+    from GeostrophicVelocityDataReader import GeostrophicVelocityDataReader
     from OceanSurfaceWindVectorDataReader import OceanSurfaceWindVectorDataReader
     from SeaIceConcentrationDataReader import SeaIceConcentrationDataReader
     from SeaIceMotionDataReader import SeaIceMotionDataReader
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     test_date = datetime.date(2015, 7, 1)
 
-    mdt = MeanDynamicTopographyDataReader()
+    u_geo = GeostrophicVelocityDataReader(test_date)
     seaice_conc = SeaIceConcentrationDataReader(test_date)
     seaice_motion = SeaIceMotionDataReader(test_date)
     wind_vectors = OceanSurfaceWindVectorDataReader(test_date)
@@ -81,13 +81,13 @@ if __name__ == '__main__':
         for j in range(len(lons)):
             lon = lons[j]
 
-            u_geo_mean_vec = mdt.u_geo_mean(lat, lon, 'interp')
+            u_geo_vec = u_geo.absolute_geostrophic_velocity(lat, lon, test_date, 'interp')
             u_wind_vec = wind_vectors.ocean_surface_wind_vector(lat, lon, test_date, 'interp')
             alpha = seaice_conc.sea_ice_concentration(lat, lon, test_date, 'interp')
             u_ice_vec = seaice_motion.seaice_motion_vector(lat, lon, test_date, 'interp')
 
-            u_geo_mean_field[i][j] = u_geo_mean_vec[0]
-            v_geo_mean_field[i][j] = u_geo_mean_vec[1]
+            u_geo_mean_field[i][j] = u_geo_vec[0]
+            v_geo_mean_field[i][j] = u_geo_vec[1]
             u_wind_field[i][j] = u_wind_vec[0]
             v_wind_field[i][j] = u_wind_vec[1]
             alpha_field[i][j] = alpha
@@ -97,7 +97,7 @@ if __name__ == '__main__':
             # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
             # then tau is just tau_air and easy to calculate.
             if ((alpha == 0 or np.isnan(alpha)) and np.isnan(u_ice_vec[0])) \
-                    and not np.isnan(u_geo_mean_vec[0]) and not np.isnan(u_wind_vec[0]):
+                    and not np.isnan(u_geo_vec[0]) and not np.isnan(u_wind_vec[0]):
 
                 tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
 
@@ -120,7 +120,7 @@ if __name__ == '__main__':
                 continue
 
             # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
-            if np.isnan(alpha) or np.isnan(u_geo_mean_vec[0]) or np.isnan(u_wind_vec[0]) or np.isnan(u_ice_vec[0]):
+            if np.isnan(alpha) or np.isnan(u_geo_vec[0]) or np.isnan(u_wind_vec[0]) or np.isnan(u_ice_vec[0]):
                 tau_air_x_field[i][j] = np.nan
                 tau_air_y_field[i][j] = np.nan
                 tau_ice_x_field[i][j] = np.nan
@@ -152,13 +152,13 @@ if __name__ == '__main__':
 
                 if np.linalg.norm(tau_vec) > 10:
                     logger.warning('Large tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
-                                   .format(tau_vec, u_geo_mean_vec, u_wind_vec, alpha, u_ice_vec))
+                                   .format(tau_vec, u_geo_vec, u_wind_vec, alpha, u_ice_vec))
                     break
 
                 tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
 
                 u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(R_45deg, tau_vec)
-                u_rel_vec = u_ice_vec - (u_geo_mean_vec - u_Ekman_vec)
+                u_rel_vec = u_ice_vec - (u_geo_vec - u_Ekman_vec)
                 tau_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_rel_vec) * u_rel_vec
                 tau_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air_vec
 
@@ -169,7 +169,7 @@ if __name__ == '__main__':
 
                 if np.isnan(tau_vec[0]) or np.isnan(tau_vec[1]):
                     logger.warning('NaN tau = {}, u_geo_mean = {}, u_wind = {}, alpha = {:.4f}, u_ice = {}'
-                                   .format(tau_vec, u_geo_mean_vec, u_wind_vec, alpha, u_ice_vec))
+                                   .format(tau_vec, u_geo_vec, u_wind_vec, alpha, u_ice_vec))
 
             tau_air_x_field[i][j] = tau_air_vec[0]
             tau_air_y_field[i][j] = tau_air_vec[1]
