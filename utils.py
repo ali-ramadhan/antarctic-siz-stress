@@ -105,14 +105,14 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
 
     # Check if the data has already been interpolated for the same grid points before doing the interpolation again. If
     # so, load the file, unpickle it and return the interpolated grid.
-    if isfile(pickle_filepath):
+    if (pickle_filepath is not None) and isfile(pickle_filepath):
         logger.info('Interpolated grid already computed and saved. Unpickling: {:s}'.format(pickle_filepath))
         with open(pickle_filepath, 'rb') as f:
             data_interp_dict = pickle.load(f)
             data_interp = data_interp_dict['data_interp']
             x_interp = data_interp_dict['x_interp']
             y_interp = data_interp_dict['y_interp']
-            residual_interp = data_interp_dict['residual_interp']
+            # residual_interp = data_interp_dict['residual_interp']
         return data_interp, x_interp, y_interp
 
     from scipy.interpolate import griddata
@@ -265,6 +265,7 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
 
     # Pickle the interpolated grid as a form of memoization to avoid having to recompute it again for the same
     # gridpoints.
+    if pickle_filepath is not None:
     with open(pickle_filepath, 'wb') as f:
         logger.info('Pickling interpolated grid: {:s}'.format(pickle_filepath))
         data_interp_dict = {
