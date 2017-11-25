@@ -28,3 +28,4 @@ if __name__ == '__main__':
     surface_stress_dataset.compute_daily_surface_stress_field()
     surface_stress_dataset.compute_daily_wind_stress_curl_field()
     surface_stress_dataset.write_fields_to_netcdf()
+    surface_stress_dataset.plot_diagnostic_fields()

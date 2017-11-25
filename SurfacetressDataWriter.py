@@ -206,6 +206,71 @@ class SurfaceStressDataWriter(object):
     def compute_monthly_mean_field(self):
         pass
 
+    def plot_diagnostic_fields(self):
+        import matplotlib.pyplot as plt
+        from matplotlib.gridspec import GridSpec
+
+        import cartopy
+        import cartopy.crs as ccrs
+
+        gs_coords = {
+            'tau_x': (0, 0),
+            'tau_y': (0, 1),
+            'curl_tau': (1, 0),
+            'alpha': (1, 1)
+        }
+
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                       facecolor='dimgray')
+
+        fig = plt.figure()
+        gs = GridSpec(2, 2)
+
+        ax1.add_feature(land_50m)
+        # ax1.coastlines(resolution='50m')
+        ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+        vector_crs = ccrs.PlateCarree()
+        im1 = ax1.pcolormesh(self.lons, self.lats, self.tau_x_field, transform=vector_crs, cmap='RdBu_r', vmin=-0.5, vmax=0.5)
+        fig.colorbar(im1, ax=ax1)
+
+        nlats = len(self.lats)
+        nlons = len(self.lons)
+        lats = np.repeat(self.lats, nlons)
+        lons = np.tile(self.lons, nlats)
+        tau_x_field = np.reshape(self.tau_x_field, (nlats*nlons,))
+        tau_y_field = np.reshape(self.tau_y_field, (nlats*nlons,))
+        ax1.quiver(lons[::10], lats[::10], tau_x_field[::10], tau_y_field[::10], transform=vector_crs, units='width', width=0.001, scale=10)
+
+        ax2 = plt.subplot(gs[1, 0], projection=ccrs.SouthPolarStereo())
+        ax2.add_feature(land_50m, edgecolor='black')
+        ax2.coastlines(resolution='50m')
+        ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+        vector_crs = ccrs.PlateCarree()
+        im2 = ax2.pcolormesh(self.lons, self.lats, self.tau_y_field, transform=vector_crs, cmap='RdBu_r', vmin=-0.5, vmax=0.5)
+        fig.colorbar(im2, ax=ax2)
+
+        ax3 = plt.subplot(gs[0, 1], projection=ccrs.SouthPolarStereo())
+        ax3.add_feature(land_50m, edgecolor='black')
+        ax3.coastlines(resolution='50m')
+        ax3.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+        vector_crs = ccrs.PlateCarree()
+        im3 = ax3.pcolormesh(self.lons, self.lats, self.wind_stress_curl_field, transform=vector_crs, cmap='RdBu_r')
+        fig.colorbar(im3, ax=ax3)
+
+        ax4 = plt.subplot(gs[1, 1], projection=ccrs.SouthPolarStereo())
+        ax4.add_feature(land_50m, edgecolor='black')
+        ax4.coastlines(resolution='50m')
+        ax4.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+        vector_crs = ccrs.PlateCarree()
+        im4 = ax4.pcolormesh(self.lons, self.lats, self.alpha_field, transform=vector_crs, cmap='plasma')
+        fig.colorbar(im4, ax=ax4)
+
+        plt.show()
+
     def write_fields_to_netcdf(self):
         tau_filepath = os.path.join(output_dir_path, str(self.date.year), 'tau.nc')
         tau_dir = os.path.dirname(tau_filepath)
