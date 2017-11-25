@@ -10,6 +10,7 @@ data_dir_path = path.join(cwd, 'data')
 
 # Output data directory
 output_dir_path = path.join(cwd, 'output')
+# output_dir_path = 'D:\\output\\'
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
@@ -26,7 +27,7 @@ R = 6371.228e3  # average radius of the earth [m]
 rho_air = 1.225  # [kg/m^3]
 rho_seawater = 1025  # [kg/m^3]
 C_air = 0.00125  # Drag coefficient
-C_seawater = 0.0055  # Draf coefficient
+C_seawater = 0.0055  # Drag coefficient
 
 rho_0 = 1027.5  # "reference" density [kg/m^3]
 D_e = 20  # Ekman layer depth [m]
