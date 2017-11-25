@@ -137,13 +137,10 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     data_masked = np.ma.array(data, mask=mask_value_cond(data))
 
     logger.info('Plotting masked data.')
-    import matplotlib.pyplot as plt
     if repeat0tile1:
-        plt.pcolormesh(x, y, data_masked.transpose())
+        plot_scalar_field(y, x, data_masked)
     else:
-        plt.pcolormesh(x, y, data_masked)
-    plt.colorbar()
-    plt.show()
+        plot_scalar_field(y, x, data_masked)
 
     data_masked = np.reshape(data_masked, (len(x) * len(y),))
 
@@ -208,10 +205,7 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     data_interp = griddata((x_masked, y_masked), data_masked, (x_interp, y_interp), method=interp_method)
 
     logger.info('Plotting interpolated data.')
-    import matplotlib.pyplot as plt
-    plt.pcolormesh(x_interp, y_interp, data_interp)
-    plt.colorbar()
-    plt.show()
+    plot_scalar_field(y_interp, x_interp, data_interp)
 
     # Since we get back interpolated values over the land, we must mask them or get rid of them. We do this by
     # looping through the interpolated values and mask values that are supposed to be land by setting their value to
@@ -241,20 +235,14 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
                 residual_interp[i][j] = data_interp[i][j] - closest_data
 
     logger.info('Plotting masked interpolated data.')
-    import matplotlib.pyplot as plt
     x_interp = np.ma.masked_where(np.isnan(x_interp), x_interp)
     y_interp = np.ma.masked_where(np.isnan(y_interp), y_interp)
     data_interp = np.ma.masked_where(np.isnan(data_interp), data_interp)
-    plt.pcolormesh(x_interp, y_interp, data_interp)
-    plt.colorbar()
-    plt.show()
+    plot_scalar_field(y_interp, x_interp, data_interp)
 
     logger.info('Plotting interpolated data residual.')
-    import matplotlib.pyplot as plt
-    residual = np.ma.masked_where(np.isnan(residual_interp), residual_interp)
-    plt.pcolormesh(x_interp, y_interp, residual)
-    plt.colorbar()
-    plt.show()
+    residual_interp = np.ma.masked_where(np.isnan(residual_interp), residual_interp)
+    plot_scalar_field(y_interp, x_interp, residual_interp)
 
     logger.info('Interpolating dataset... DONE!')
 
@@ -276,3 +264,43 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
             pickle.dump(data_interp_dict, f, pickle.HIGHEST_PROTOCOL)
 
     return data_interp, x_interp, y_interp
+
+
+def plot_scalar_field(lons, lats, data):
+    import matplotlib.pyplot as plt
+    import cartopy
+    import cartopy.crs as ccrs
+    ax = plt.axes(projection=ccrs.SouthPolarStereo())
+
+    # ax.add_feature(cartopy.feature.OCEAN, zorder=0)
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                   facecolor=cartopy.feature.COLORS['land'])
+    ax.add_feature(land_50m, edgecolor='black')
+    # ax.stock_img()
+    ax.coastlines(resolution='50m')
+    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    vector_crs = ccrs.PlateCarree()
+    im = ax.pcolormesh(lons, lats, data, transform=vector_crs)
+
+    # nlats = len(lats)
+    # nlons = len(lons)
+    # lats = np.repeat(lats, nlons)
+    # lons = np.tile(lons, nlats)
+    # tau_x_field = np.reshape(tau_x_field, (nlats*nlons,))
+    # tau_y_field = np.reshape(tau_y_field, (nlats*nlons,))
+    # ax.quiver(lons, lats, data, data2, transform=vector_crs, units='width', width=0.001, scale=10)
+
+    # import matplotlib.path as mpath
+    # # Compute a circle in axes coordinates, which we can use as a boundary
+    # # for the map. We can pan/zoom as much as we like - the boundary will be
+    # # permanently circular.
+    # theta = np.linspace(0, 2*np.pi, 1000)
+    # center, radius = [0.5, 0.5], 0.5
+    # verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    # circle = mpath.Path(verts * radius + center)
+    # ax.set_boundary(circle, transform=ax.transAxes)
+
+    ax.gridlines(crs=ccrs.PlateCarree())
+    plt.colorbar(im)
+    plt.show()
