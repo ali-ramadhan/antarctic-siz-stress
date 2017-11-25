@@ -1,5 +1,4 @@
 # TODO: Use the typing module.
-# TODO: Add test case units?
 # TODO: Use propoer docstrings for functions.
 # TODO: Estimate tau_error? Can you? NCEP Reanalysis doesn't really provide a "measurement error".
 # TODO: Output more statistics during the analysis?
