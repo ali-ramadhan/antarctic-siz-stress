@@ -5,9 +5,11 @@ from os import path
 cwd = path.dirname(path.abspath(__file__))
 
 # Data directory string constants
-# Everything under a ./data/ softlink?
 data_dir_path = path.join(cwd, 'data')
 # data_dir_path = 'D:\\data\\'
+
+# Output data directory
+output_dir_path = path.join(cwd, 'output')
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
