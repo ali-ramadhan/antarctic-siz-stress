@@ -189,6 +189,8 @@ class SurfaceStressDataWriter(object):
                 self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
 
     def compute_daily_wind_stress_curl_field(self):
+        logger.info('Calculating wind stress curl field...')
+
         for i in range(1, len(self.lats) - 1):
             for j in range(1, len(self.lons) - 1):
                 if not np.isnan(self.tau_x_field[i][j - 1]) and not np.isnan(self.tau_x_field[i][j + 1]) \
@@ -207,60 +209,138 @@ class SurfaceStressDataWriter(object):
         pass
 
     def plot_diagnostic_fields(self):
+        import matplotlib
         import matplotlib.pyplot as plt
         from matplotlib.gridspec import GridSpec
 
         import cartopy
         import cartopy.crs as ccrs
 
+        from constants import output_dir_path
+
+        logger.info('Creating diagnostic figure...')
+
         fields = {
+            'u_geo': self.u_geo_field,
+            'v_geo': self.v_geo_field,
+            'u_wind': self.u_wind_field,
+            'v_wind': self.v_wind_field,
+            'u_ice': self.u_ice_field,
+            'v_ice': self.v_ice_field,
+            'alpha': self.alpha_field,
             'tau_x': self.tau_x_field,
             'tau_y': self.tau_y_field,
-            'curl_tau': self.wind_stress_curl_field,
-            'alpha': self.alpha_field
+            'curl_tau': self.wind_stress_curl_field
+        }
+
+        titles = {
+            'u_geo': 'u_geo',
+            'v_geo': 'Meridional geostrophic velocity',
+            'u_wind': 'Zonal wind velocity',
+            'v_wind': 'Meridional wind velocity',
+            'u_ice': 'Zonal sea ice motion',
+            'v_ice': 'Meridional sea ice motion',
+            'alpha': 'Sea ice concentration',
+            'tau_x': 'Zonal surface stress',
+            'tau_y': 'Meridional surface stress',
+            'curl_tau': 'Vertical wind stress curl'
+        }
+
+        colorbar_label = {
+            'u_geo': 'm/s',
+            'v_geo': 'm/s',
+            'u_wind': 'm/s',
+            'v_wind': 'm/s',
+            'u_ice': 'm/s',
+            'v_ice': 'm/s',
+            'alpha': '',
+            'tau_x': r'N/m$^2$',
+            'tau_y': r'N/m$^2$',
+            'curl_tau': r'N/m$^3$'
         }
 
         gs_coords = {
-            'tau_x': (0, 0),
-            'tau_y': (0, 1),
-            'curl_tau': (1, 0),
-            'alpha': (1, 1)
+            'u_geo': (0, 0),
+            'v_geo': (1, 0),
+            'u_wind': (0, 1),
+            'v_wind': (1, 1),
+            'u_ice': (0, 2),
+            'v_ice': (1, 2),
+            'alpha': (0, 3),
+            'tau_x': (slice(2, 4), slice(0, 2)),
+            'tau_y': (slice(2, 4), slice(2, 4)),
+            'curl_tau': (1, 3)
         }
 
         cmaps = {
+            'u_geo': 'RdBu_r',
+            'v_geo': 'RdBu_r',
+            'u_wind': 'RdBu_r',
+            'v_wind': 'RdBu_r',
+            'u_ice': 'RdBu_r',
+            'v_ice': 'RdBu_r',
+            'alpha': 'plasma',
             'tau_x': 'RdBu_r',
             'tau_y': 'RdBu_r',
-            'curl_tau': 'RdBu_r',
-            'alpha': 'plasma'
+            'curl_tau': 'RdBu_r'
         }
 
         cmap_ranges = {
+            'u_geo': (-1, 1),
+            'v_geo': (-1, 1),
+            'u_wind': (-10, 10),
+            'v_wind': (-10, 10),
+            'u_ice': (-0.1, 0.1),
+            'v_ice': (-0.1, 0.1),
+            'alpha': (0, 1),
             'tau_x': (-0.5, 0.5),
             'tau_y': (-0.5, 0.5),
-            'curl_tau': (-0.5e-3, 0.5e-3),
-            'alpha': (0, 1)
+            'curl_tau': (-0.5e-5, 0.5e-5)
         }
 
-        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '110m', edgecolor='face',
                                                        facecolor='dimgray')
         vector_crs = ccrs.PlateCarree()
 
         fig = plt.figure()
-        gs = GridSpec(2, 2)
+        gs = GridSpec(4, 4)
+        matplotlib.rcParams.update({'font.size': 6})
 
         for var in fields.keys():
             ax = plt.subplot(gs[gs_coords[var]], projection=ccrs.SouthPolarStereo())
             ax.add_feature(land_50m)
             ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+            ax.set_title(var)
 
             im = ax.pcolormesh(self.lons, self.lats, fields[var], transform=vector_crs, cmap=cmaps[var],
                                vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
-            fig.colorbar(im, ax=ax)
+            clb = fig.colorbar(im, ax=ax)
+            clb.set_label(colorbar_label[var])
 
-        plt.show()
+        # plt.tight_layout()
+
+        logger.info('Saving diagnostic figures to disk...')
+
+        tau_filename = 'surface_stress_' + str(self.date.year) + str(self.date.month).zfill(2) \
+                       + str(self.date.day).zfill(2)
+        tau_png_filepath = os.path.join(output_dir_path, str(self.date.year), tau_filename + '.png')
+        tau_pdf_filepath = os.path.join(output_dir_path, str(self.date.year), tau_filename + '.pdf')
+
+        tau_dir = os.path.dirname(tau_png_filepath)
+        if not os.path.exists(tau_dir):
+            logger.info('Creating directory: {:s}'.format(tau_dir))
+            os.makedirs(tau_dir)
+
+        plt.savefig(tau_png_filepath, dpi=900, format='png', transparent=True)
+        logger.info('Saved diagnostic figure: {:s}'.format(tau_png_filepath))
+
+        # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
+        # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
 
     def write_fields_to_netcdf(self):
-        tau_filepath = os.path.join(output_dir_path, str(self.date.year), 'tau.nc')
+        tau_nc_filename = 'surface_stress_' + str(self.date.year) + str(self.date.month).zfill(2) \
+                       + str(self.date.day).zfill(2) + '.nc'
+        tau_filepath = os.path.join(output_dir_path, str(self.date.year), tau_nc_filename)
         tau_dir = os.path.dirname(tau_filepath)
         if not os.path.exists(tau_dir):
             logger.info('Creating directory: {:s}'.format(tau_dir))
