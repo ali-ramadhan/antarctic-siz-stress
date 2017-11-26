@@ -338,26 +338,27 @@ class SurfaceStressDataWriter(object):
             'w_Ekman': r'm/year'
         }
 
+        # 'seismic' seems like a stronger version of 'RdBu_r', although I like the colors of 'RdBu_r' better.
         cmaps = {
-            'u_geo': 'RdBu_r',
-            'v_geo': 'RdBu_r',
-            'u_wind': 'RdBu_r',
-            'v_wind': 'RdBu_r',
-            'u_ice': 'RdBu_r',
-            'v_ice': 'RdBu_r',
+            'u_geo': 'seismic',
+            'v_geo': 'seismic',
+            'u_wind': 'seismic',
+            'v_wind': 'seismic',
+            'u_ice': 'seismic',
+            'v_ice': 'seismic',
             'alpha': 'plasma',
-            'tau_air_x': 'RdBu_r',
-            'tau_air_y': 'RdBu_r',
-            'tau_ice_x': 'RdBu_r',
-            'tau_ice_y': 'RdBu_r',
-            'tau_x': 'RdBu_r',
-            'tau_y': 'RdBu_r',
-            'u_Ekman': 'RdBu_r',
-            'v_Ekman': 'RdBu_r',
-            'curl_tau': 'RdBu_r',
-            'tau_SIZ_x': 'RdBu_r',
-            'tau_SIZ_y': 'RdBu_r',
-            'w_Ekman': 'RdBu_r'
+            'tau_air_x': 'seismic',
+            'tau_air_y': 'seismic',
+            'tau_ice_x': 'seismic',
+            'tau_ice_y': 'seismic',
+            'tau_x': 'seismic',
+            'tau_y': 'seismic',
+            'u_Ekman': 'seismic',
+            'v_Ekman': 'seismic',
+            'curl_tau': 'seismic',
+            'tau_SIZ_x': 'seismic',
+            'tau_SIZ_y': 'seismic',
+            'w_Ekman': 'seismic'
         }
 
         cmap_ranges = {
