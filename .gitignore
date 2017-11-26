@@ -106,5 +106,8 @@ ENV/
 # Ignore research data directory
 data/
 
+# Ignore output data directory
+output/
+
 # Ignore netCDF files
 *.nc
