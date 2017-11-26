@@ -59,6 +59,7 @@ class SurfaceStressDataWriter(object):
         self.v_ice_field = np.zeros((len(self.lats), len(self.lons)))
 
         self.wind_stress_curl_field = np.zeros((len(self.lats), len(self.lons)))
+        self.w_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
 
     def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec):
         # Use the Modified Richardson iteration to calculate tau and u_Ekman. Here we set the variables to arbitrary
@@ -188,10 +189,14 @@ class SurfaceStressDataWriter(object):
                 self.u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
                 self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
 
-    def compute_daily_wind_stress_curl_field(self):
-        logger.info('Calculating wind stress curl field...')
+    def compute_daily_ekman_pumping_field(self):
+        from constants import Omega, rho_0
+        logger.info('Calculating wind stress curl and Ekman pumping fields...')
 
         for i in range(1, len(self.lats) - 1):
+            lat = self.lats[i]
+            f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
+
             for j in range(1, len(self.lons) - 1):
                 if not np.isnan(self.tau_x_field[i][j - 1]) and not np.isnan(self.tau_x_field[i][j + 1]) \
                         and not np.isnan(self.tau_y_field[i - 1][j]) and not np.isnan(self.tau_y_field[i + 1][j]):
@@ -202,8 +207,11 @@ class SurfaceStressDataWriter(object):
                     dtauydx = (self.tau_y_field[i+1][j] - self.tau_x_field[i-1][j]) / (2*dx)
 
                     self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
+                    self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
+
                 else:
                     self.wind_stress_curl_field[i][j] = np.nan
+                    self.w_Ekman_field[i][j] = np.nan
 
     def compute_monthly_mean_field(self):
         pass
@@ -228,35 +236,40 @@ class SurfaceStressDataWriter(object):
             'u_ice': self.u_ice_field,
             'v_ice': self.v_ice_field,
             'alpha': self.alpha_field,
+            'tau_air_x': self.tau_air_x_field,
+            'tau_air_y': self.tau_air_y_field,
+            'tau_ice_x': self.tau_ice_x_field,
+            'tau_ice_y': self.tau_ice_y_field,
             'tau_x': self.tau_x_field,
             'tau_y': self.tau_y_field,
-            'curl_tau': self.wind_stress_curl_field
+            'u_Ekman': self.u_Ekman_field,
+            'v_Ekman': self.v_Ekman_field,
+            'curl_tau': self.wind_stress_curl_field,
+            'tau_SIZ_x': self.tau_SIZ_x_field,
+            'tau_SIZ_y': self.tau_SIZ_y_field,
+            'w_Ekman': self.w_Ekman_field
         }
 
         titles = {
-            'u_geo': 'u_geo',
+            'u_geo': 'Zonal geostrophic velocity',
             'v_geo': 'Meridional geostrophic velocity',
             'u_wind': 'Zonal wind velocity',
             'v_wind': 'Meridional wind velocity',
             'u_ice': 'Zonal sea ice motion',
             'v_ice': 'Meridional sea ice motion',
             'alpha': 'Sea ice concentration',
+            'tau_air_x': 'Zonal air surface stress',
+            'tau_air_y': 'Meridional air surface stress',
+            'tau_ice_x': 'Zonal sea ice surface stress',
+            'tau_ice_y': 'Meridional sea ice surface stress',
             'tau_x': 'Zonal surface stress',
             'tau_y': 'Meridional surface stress',
-            'curl_tau': 'Vertical wind stress curl'
-        }
-
-        colorbar_label = {
-            'u_geo': 'm/s',
-            'v_geo': 'm/s',
-            'u_wind': 'm/s',
-            'v_wind': 'm/s',
-            'u_ice': 'm/s',
-            'v_ice': 'm/s',
-            'alpha': '',
-            'tau_x': r'N/m$^2$',
-            'tau_y': r'N/m$^2$',
-            'curl_tau': r'N/m$^3$'
+            'u_Ekman': 'Zonal Ekman velocity',
+            'v_Ekman': 'Meridional Ekman velocity',
+            'curl_tau': 'Vertical wind stress curl',
+            'tau_SIZ_x': 'Zonal surface stress in the SIZ',
+            'tau_SIZ_y': 'Meridional surface stress in the SIZ',
+            'w_Ekman': 'Ekman pumping'
         }
 
         gs_coords = {
@@ -267,9 +280,62 @@ class SurfaceStressDataWriter(object):
             'u_ice': (0, 2),
             'v_ice': (1, 2),
             'alpha': (0, 3),
-            'tau_x': (slice(2, 4), slice(0, 2)),
-            'tau_y': (slice(2, 4), slice(2, 4)),
-            'curl_tau': (1, 3)
+            'tau_air_x': (0, 4),
+            'tau_air_y': (1, 4),
+            'tau_ice_x': (0, 5),
+            'tau_ice_y': (1, 5),
+            'tau_x': (0, 6),
+            'tau_y': (1, 6),
+            'u_Ekman': (0, 7),
+            'v_Ekman': (1, 7),
+            'curl_tau': (0, 8),
+            'tau_SIZ_x': (slice(2, 5), slice(0, 3)),
+            'tau_SIZ_y': (slice(2, 5), slice(3, 6)),
+            'w_Ekman': (slice(2, 5), slice(6, 9))
+        }
+
+        scale_factor = {
+            'u_geo': 1,
+            'v_geo': 1,
+            'u_wind': 1,
+            'v_wind': 1,
+            'u_ice': 1,
+            'v_ice': 1,
+            'alpha': 1,
+            'tau_air_x': 1,
+            'tau_air_y': 1,
+            'tau_ice_x': 1,
+            'tau_ice_y': 1,
+            'tau_x': 1,
+            'tau_y': 1,
+            'u_Ekman': 1,
+            'v_Ekman': 1,
+            'curl_tau': 1e6,
+            'tau_SIZ_x': 1,
+            'tau_SIZ_y': 1,
+            'w_Ekman': 3600*365  # [m/s] -> [m/year]
+        }
+
+        colorbar_label = {
+            'u_geo': 'm/s',
+            'v_geo': 'm/s',
+            'u_wind': 'm/s',
+            'v_wind': 'm/s',
+            'u_ice': 'm/s',
+            'v_ice': 'm/s',
+            'alpha': '',
+            'tau_air_x': r'N/m$^2$',
+            'tau_air_y': r'N/m$^2$',
+            'tau_ice_x': r'N/m$^2$',
+            'tau_ice_y': r'N/m$^2$',
+            'tau_x': r'N/m$^2$',
+            'tau_y': r'N/m$^2$',
+            'u_Ekman': 'm/s',
+            'v_Ekman': 'm/s',
+            'curl_tau': r'10$^6$ N/m$^3$',
+            'tau_SIZ_x': r'N/m$^2$',
+            'tau_SIZ_y': r'N/m$^2$',
+            'w_Ekman': r'm/year'
         }
 
         cmaps = {
@@ -280,30 +346,51 @@ class SurfaceStressDataWriter(object):
             'u_ice': 'RdBu_r',
             'v_ice': 'RdBu_r',
             'alpha': 'plasma',
+            'tau_air_x': 'RdBu_r',
+            'tau_air_y': 'RdBu_r',
+            'tau_ice_x': 'RdBu_r',
+            'tau_ice_y': 'RdBu_r',
             'tau_x': 'RdBu_r',
             'tau_y': 'RdBu_r',
-            'curl_tau': 'RdBu_r'
+            'u_Ekman': 'RdBu_r',
+            'v_Ekman': 'RdBu_r',
+            'curl_tau': 'RdBu_r',
+            'tau_SIZ_x': 'RdBu_r',
+            'tau_SIZ_y': 'RdBu_r',
+            'w_Ekman': 'RdBu_r'
         }
 
         cmap_ranges = {
             'u_geo': (-1, 1),
             'v_geo': (-1, 1),
-            'u_wind': (-10, 10),
-            'v_wind': (-10, 10),
-            'u_ice': (-0.1, 0.1),
-            'v_ice': (-0.1, 0.1),
+            'u_wind': (-20, 20),
+            'v_wind': (-20, 20),
+            'u_ice': (-0.2, 0.2),
+            'v_ice': (-0.2, 0.2),
             'alpha': (0, 1),
+            'tau_air_x': (-0.5, 0.5),
+            'tau_air_y': (-0.5, 0.5),
+            'tau_ice_x': (-0.5, 0.5),
+            'tau_ice_y': (-0.5, 0.5),
             'tau_x': (-0.5, 0.5),
             'tau_y': (-0.5, 0.5),
-            'curl_tau': (-0.5e-5, 0.5e-5)
+            'u_Ekman': (-0.5, 0.5),
+            'v_Ekman': (-0.5, 0.5),
+            'curl_tau': (-5, 5),
+            'tau_SIZ_x': (-0.5, 0.5),
+            'tau_SIZ_y': (-0.5, 0.5),
+            'w_Ekman': (-50, 50)
         }
 
-        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '110m', edgecolor='face',
-                                                       facecolor='dimgray')
+        # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges are poofed up in the
+        # smaller plots.
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                       facecolor='dimgray', linewidth=0)
         vector_crs = ccrs.PlateCarree()
 
-        fig = plt.figure()
-        gs = GridSpec(4, 4)
+        # Figure size with an aspect ratio of 16:9 so it fits perfectly on a 1080p or most 4K screen.
+        fig = plt.figure(figsize=(16, 9))
+        gs = GridSpec(5, 9)
         matplotlib.rcParams.update({'font.size': 6})
 
         for var in fields.keys():
@@ -312,12 +399,14 @@ class SurfaceStressDataWriter(object):
             ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
             ax.set_title(var)
 
-            im = ax.pcolormesh(self.lons, self.lats, fields[var], transform=vector_crs, cmap=cmaps[var],
-                               vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
+            im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+                               cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
             clb = fig.colorbar(im, ax=ax)
-            clb.set_label(colorbar_label[var])
+            clb.ax.set_title(colorbar_label[var])
 
-        # plt.tight_layout()
+        # Add date to bottom left.
+        date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
+        plt.gcf().text(0, 0, date_str, fontsize=10)
 
         logger.info('Saving diagnostic figures to disk...')
 
@@ -331,7 +420,7 @@ class SurfaceStressDataWriter(object):
             logger.info('Creating directory: {:s}'.format(tau_dir))
             os.makedirs(tau_dir)
 
-        plt.savefig(tau_png_filepath, dpi=900, format='png', transparent=True)
+        plt.savefig(tau_png_filepath, dpi=600, format='png', transparent=False)
         logger.info('Saved diagnostic figure: {:s}'.format(tau_png_filepath))
 
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
