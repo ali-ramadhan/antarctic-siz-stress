@@ -172,7 +172,7 @@ class SeaIceMotionDataReader(object):
         r0 = 160.0  # map origin column
         s0 = 160.0  # map origin row
 
-        logger.debug('lat = {}, lon = {}'.format(lat, lon))
+        # logger.debug('lat = {}, lon = {}'.format(lat, lon))
         lat, lon = np.deg2rad([lat, lon])
 
         # EASE-Grid coordinate transformation

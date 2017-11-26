@@ -40,10 +40,10 @@ def log_netCDF_dataset_metadata(dataset):
 
         var_string = var_string + str(var_type) + ' ' + var_name + var_dim_str + ', '
 
-    logger.info('Title: {:s}'.format(dataset.title))
-    logger.info('Data model: {:s}'.format(dataset.data_model))
-    logger.info('Dimensions: {:s}'.format(dim_string))
-    logger.info('Variables: {:s}'.format(var_string[:-2]))
+    logger.debug('Title: {:s}'.format(dataset.title))
+    logger.debug('Data model: {:s}'.format(dataset.data_model))
+    logger.debug('Dimensions: {:s}'.format(dim_string))
+    logger.debug('Variables: {:s}'.format(var_string[:-2]))
 
 
 def latlon_to_polar_stereographic_xy(lat, lon):
