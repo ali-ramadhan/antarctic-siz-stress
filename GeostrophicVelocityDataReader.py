@@ -80,10 +80,12 @@ class GeostrophicVelocityDataReader(object):
             self.v_geo, self.lats, self.lons, v_geo_interp_filepath, mask_value_cond, 'latlon',
             u_geo_interp_method, repeat0tile1, convert_lon_range)
 
-        self.u_geo_interp = u_geo_interp
-        self.v_geo_interp = u_geo_interp
-        self.lats_interp = lats_interp
-        self.lons_interp = lons_interp
+        # Convert everything to a numpy array otherwise the argmin lookups have to create a new numpy array every time,
+        # slowing them a lot.
+        self.u_geo_interp = np.array(u_geo_interp)
+        self.v_geo_interp = np.array(v_geo_interp)
+        self.lats_interp = np.array(lats_interp)
+        self.lons_interp = np.array(lons_interp)
 
     def absolute_geostrophic_velocity(self, lat, lon, date, data_source):
         if lon < 0:
