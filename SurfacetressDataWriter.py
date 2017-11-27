@@ -24,17 +24,10 @@ class SurfaceStressDataWriter(object):
     R_45deg = np.array([[np.cos(np.pi/4), -np.sin(np.pi/4)], [np.sin(np.pi/4), np.cos(np.pi/4)]])
 
     def __init__(self, date):
-        self.date = date
-
-        self.u_geo_data = GeostrophicVelocityDataReader(self.date)
-        self.sea_ice_conc_data = SeaIceConcentrationDataReader(self.date)
-        self.sea_ice_motion_data = SeaIceMotionDataReader(self.date)
-        self.u_wind_data = OceanSurfaceWindVectorDataReader(self.date)
-
         self.lats = np.linspace(lat_min, lat_max, n_lat)
         self.lons = np.linspace(lon_min, lon_max, n_lon)
         self.lons = self.lons[:-1]  # Remove the +180 longitude as it coincides with the -180 longitude.
-        
+
         # Initializing all the fields we want to write to the netCDF file.
         self.tau_air_x_field = np.zeros((len(self.lats), len(self.lons)))
         self.tau_air_y_field = np.zeros((len(self.lats), len(self.lons)))
@@ -60,6 +53,14 @@ class SurfaceStressDataWriter(object):
 
         self.wind_stress_curl_field = np.zeros((len(self.lats), len(self.lons)))
         self.w_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
+
+        if date is not None:
+            self.date = date
+
+            self.u_geo_data = GeostrophicVelocityDataReader(self.date)
+            self.sea_ice_conc_data = SeaIceConcentrationDataReader(self.date)
+            self.sea_ice_motion_data = SeaIceMotionDataReader(self.date)
+            self.u_wind_data = OceanSurfaceWindVectorDataReader(self.date)
 
     def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec):
         # Use the Modified Richardson iteration to calculate tau and u_Ekman. Here we set the variables to arbitrary
@@ -214,7 +215,106 @@ class SurfaceStressDataWriter(object):
                     self.w_Ekman_field[i][j] = np.nan
 
     def compute_monthly_mean_field(self):
-        pass
+        from constants import output_dir_path
+        from utils import log_netCDF_dataset_metadata
+
+        # Initializing all the fields we want to calculate a monthly average for.
+        tau_air_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        tau_air_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        tau_ice_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        tau_ice_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        tau_SIZ_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        tau_SIZ_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        tau_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        tau_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
+
+        u_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        v_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        u_Ekman_SIZ_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        v_Ekman_SIZ_field_avg = np.zeros((len(self.lats), len(self.lons)))
+
+        u_geo_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        v_geo_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        u_wind_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        v_wind_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        alpha_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        u_ice_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        v_ice_field_avg = np.zeros((len(self.lats), len(self.lons)))
+
+        wind_stress_curl_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        w_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
+
+        for i in range(1, 32):
+            logger.info('Averaging day {:d}...'.format(i))
+
+            tau_nc_filename = 'surface_stress_' + '2015' + '07' + str(i).zfill(2) + '.nc'
+            tau_filepath = os.path.join(output_dir_path, '2015', tau_nc_filename)
+
+            current_tau_dataset = netCDF4.Dataset(tau_filepath)
+            log_netCDF_dataset_metadata(current_tau_dataset)
+
+            self.lats = np.array(current_tau_dataset.variables['lat'])
+            self.lons = np.array(current_tau_dataset.variables['lon'])
+
+            tau_air_x_field_avg = tau_air_x_field_avg + np.array(current_tau_dataset.variables['tau_air_x'])/31
+            tau_air_y_field_avg = tau_air_y_field_avg + np.array(current_tau_dataset.variables['tau_air_y'])/31
+            tau_ice_x_field_avg = tau_ice_x_field_avg + np.array(current_tau_dataset.variables['tau_ice_x'])/31
+            tau_ice_y_field_avg = tau_ice_y_field_avg + np.array(current_tau_dataset.variables['tau_ice_y'])/31
+            tau_SIZ_x_field_avg = tau_SIZ_x_field_avg + np.array(current_tau_dataset.variables['tau_SIZ_x'])/31
+            tau_SIZ_y_field_avg = tau_SIZ_y_field_avg + np.array(current_tau_dataset.variables['tau_SIZ_y'])/31
+            tau_x_field_avg = tau_x_field_avg + np.array(current_tau_dataset.variables['tau_x'])/31
+            tau_y_field_avg = tau_y_field_avg + np.array(current_tau_dataset.variables['tau_y'])/31
+
+            u_Ekman_field_avg = u_Ekman_field_avg + np.array(current_tau_dataset.variables['Ekman_u'])/31
+            v_Ekman_field_avg = v_Ekman_field_avg + np.array(current_tau_dataset.variables['Ekman_v'])/31
+            u_Ekman_SIZ_field_avg = u_Ekman_SIZ_field_avg + np.array(current_tau_dataset.variables['Ekman_SIZ_u'])/31
+            v_Ekman_SIZ_field_avg = v_Ekman_SIZ_field_avg + np.array(current_tau_dataset.variables['Ekman_SIZ_v'])/31
+
+            u_geo_field_avg = u_geo_field_avg + np.array(current_tau_dataset.variables['geo_u'])/31
+            v_geo_field_avg = v_geo_field_avg + np.array(current_tau_dataset.variables['geo_v'])/31
+            u_wind_field_avg = u_wind_field_avg + np.array(current_tau_dataset.variables['wind_u'])/31
+            v_wind_field_avg = v_wind_field_avg + np.array(current_tau_dataset.variables['wind_v'])/31
+            alpha_field_avg = alpha_field_avg + np.array(current_tau_dataset.variables['alpha'])/31
+            u_ice_field_avg = u_ice_field_avg + np.array(current_tau_dataset.variables['ice_u'])/31
+            v_ice_field_avg = v_ice_field_avg + np.array(current_tau_dataset.variables['ice_v'])/31
+
+            wind_stress_curl_field = np.array(current_tau_dataset.variables['wind_stress_curl'])
+
+            for i in range(1, len(self.lats) - 1):
+                lat = self.lats[i]
+                f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
+                for j in range(1, len(self.lons) - 1):
+                        self.w_Ekman_field[i][j] = wind_stress_curl_field[i][j] / (rho_0 * f)
+
+            wind_stress_curl_field_avg = wind_stress_curl_field_avg + np.array(current_tau_dataset.variables['wind_stress_curl'])/31
+            w_Ekman_field_avg = w_Ekman_field_avg + np.array(self.w_Ekman_field)/31
+
+        self.tau_air_x_field = tau_air_x_field_avg
+        self.tau_air_y_field = tau_air_y_field_avg
+        self.tau_ice_x_field = tau_ice_x_field_avg
+        self.tau_ice_y_field = tau_ice_y_field_avg
+        self.tau_SIZ_x_field = tau_SIZ_x_field_avg
+        self.tau_SIZ_y_field = tau_SIZ_y_field_avg
+        self.tau_x_field = tau_x_field_avg
+        self.tau_y_field = tau_y_field_avg
+
+        self.u_Ekman_field = u_Ekman_field_avg
+        self.v_Ekman_field = v_Ekman_field_avg
+        self.u_Ekman_SIZ_field = u_Ekman_SIZ_field_avg
+        self.v_Ekman_SIZ_field = v_Ekman_SIZ_field_avg
+
+        self.u_geo_field = u_geo_field_avg
+        self.v_geo_field = v_geo_field_avg
+        self.u_wind_field = u_wind_field_avg
+        self.v_wind_field = v_wind_field_avg
+        self.alpha_field = alpha_field_avg
+        self.u_ice_field = u_ice_field_avg
+        self.v_ice_field = v_ice_field_avg
+
+        self.wind_stress_curl_field = wind_stress_curl_field_avg
+        self.w_Ekman_field = w_Ekman_field_avg
+
+        self.plot_diagnostic_fields()
 
     def plot_diagnostic_fields(self):
         import matplotlib
@@ -405,9 +505,13 @@ class SurfaceStressDataWriter(object):
             clb = fig.colorbar(im, ax=ax)
             clb.ax.set_title(colorbar_label[var])
 
+        # FIXME
+        import datetime
+        self.date = datetime.date(2015, 1, 1)
         # Add date to bottom left.
-        date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
-        plt.gcf().text(0, 0, date_str, fontsize=10)
+        # date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
+        # plt.gcf().text(0, 0, date_str, fontsize=10)
+        plt.gcf().text(0, 0, 'July 2015', fontsize=10)
 
         logger.info('Saving diagnostic figures to disk...')
 
@@ -512,6 +616,12 @@ class SurfaceStressDataWriter(object):
         curl_tau_var.positive = 'up'
         curl_tau_var.long_name = 'Wind stress curl'
         curl_tau_var[:] = self.wind_stress_curl_field
+
+        w_Ekman_var = tau_dataset.createVariable('w_Ekman', float, ('lat', 'lon'), zlib=True)
+        w_Ekman_var.units = 'm/year'
+        w_Ekman_var.positive = 'up'
+        w_Ekman_var.long_name = 'Ekman pumping'
+        w_Ekman_var[:] = self.w_Ekman_field
 
         u_Ekman_var = tau_dataset.createVariable('Ekman_u', float, ('lat', 'lon'), zlib=True)
         u_Ekman_var.units = 'm/s'
