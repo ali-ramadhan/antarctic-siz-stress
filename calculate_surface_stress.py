@@ -33,4 +33,4 @@ if __name__ == '__main__':
     #     surface_stress_dataset.plot_diagnostic_fields()
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
-    surface_stress_dataset.compute_monthly_mean_field()
+    surface_stress_dataset.compute_monthly_mean_fields(datetime.date(2015, 7, 1))

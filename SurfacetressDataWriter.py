@@ -214,9 +214,13 @@ class SurfaceStressDataWriter(object):
                     self.wind_stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
-    def compute_monthly_mean_field(self):
+    def compute_monthly_mean_fields(self, date_in_month):
+        import datetime
+        from calendar import monthrange
         from constants import output_dir_path
         from utils import log_netCDF_dataset_metadata
+
+        last_day_of_month = monthrange(date_in_month.year, date_in_month.month)[1]
 
         # Initializing all the fields we want to calculate a monthly average for.
         tau_air_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
@@ -244,8 +248,9 @@ class SurfaceStressDataWriter(object):
         wind_stress_curl_field_avg = np.zeros((len(self.lats), len(self.lons)))
         w_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
 
-        for i in range(1, 32):
-            logger.info('Averaging day {:d}...'.format(i))
+        for i in range(1, last_day_of_month+1):
+            date = datetime.date(date.year, date.month, i)
+            logger.info('Averaging {:%b %d, %Y}...'.format(date))
 
             tau_nc_filename = 'surface_stress_' + '2015' + '07' + str(i).zfill(2) + '.nc'
             tau_filepath = os.path.join(output_dir_path, '2015', tau_nc_filename)
