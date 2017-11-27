@@ -136,11 +136,11 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     # in preparation for griddata.
     data_masked = np.ma.array(data, mask=mask_value_cond(data))
 
-    logger.info('Plotting masked data.')
-    if repeat0tile1:
-        plot_scalar_field(y, x, data_masked)
-    else:
-        plot_scalar_field(y, x, data_masked)
+    # logger.info('Plotting masked data.')
+    # if repeat0tile1:
+    #     plot_scalar_field(y, x, data_masked)
+    # else:
+    #     plot_scalar_field(y, x, data_masked)
 
     data_masked = np.reshape(data_masked, (len(x) * len(y),))
 
@@ -204,8 +204,8 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     logger.info('Interpolating dataset...')
     data_interp = griddata((x_masked, y_masked), data_masked, (x_interp, y_interp), method=interp_method)
 
-    logger.info('Plotting interpolated data.')
-    plot_scalar_field(y_interp, x_interp, data_interp)
+    # logger.info('Plotting interpolated data.')
+    # plot_scalar_field(y_interp, x_interp, data_interp)
 
     # Since we get back interpolated values over the land, we must mask them or get rid of them. We do this by
     # looping through the interpolated values and mask values that are supposed to be land by setting their value to
@@ -234,15 +234,15 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
             else:
                 residual_interp[i][j] = data_interp[i][j] - closest_data
 
-    logger.info('Plotting masked interpolated data.')
-    x_interp = np.ma.masked_where(np.isnan(x_interp), x_interp)
-    y_interp = np.ma.masked_where(np.isnan(y_interp), y_interp)
-    data_interp = np.ma.masked_where(np.isnan(data_interp), data_interp)
-    plot_scalar_field(y_interp, x_interp, data_interp)
-
-    logger.info('Plotting interpolated data residual.')
-    residual_interp = np.ma.masked_where(np.isnan(residual_interp), residual_interp)
-    plot_scalar_field(y_interp, x_interp, residual_interp)
+    # logger.info('Plotting masked interpolated data.')
+    # x_interp = np.ma.masked_where(np.isnan(x_interp), x_interp)
+    # y_interp = np.ma.masked_where(np.isnan(y_interp), y_interp)
+    # data_interp = np.ma.masked_where(np.isnan(data_interp), data_interp)
+    # plot_scalar_field(y_interp, x_interp, data_interp)
+    #
+    # logger.info('Plotting interpolated data residual.')
+    # residual_interp = np.ma.masked_where(np.isnan(residual_interp), residual_interp)
+    # plot_scalar_field(y_interp, x_interp, residual_interp)
 
     logger.info('Interpolating dataset... DONE!')
 
