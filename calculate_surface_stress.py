@@ -21,6 +21,11 @@ logger = logging.getLogger(__name__)
 np.set_printoptions(precision=4)
 
 if __name__ == '__main__':
+    from utils import polar_stereographic_velocity_vector_to_latlon
+    v_latlon = polar_stereographic_velocity_vector_to_latlon(np.array([1, -1]), -80, 400)
+    logger.info('v_latlon={}'.format(v_latlon))
+    exit(66)
+
     from SurfacetressDataWriter import SurfaceStressDataWriter
 
     date_in_month = datetime.date(2015, 7, 1)
@@ -35,6 +40,7 @@ if __name__ == '__main__':
         surface_stress_dataset.compute_daily_ekman_pumping_field()
         surface_stress_dataset.write_fields_to_netcdf()
         surface_stress_dataset.plot_diagnostic_fields(type='daily')
+        exit()
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.compute_monthly_mean_fields(date_in_month, method='full_data_only')

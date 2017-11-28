@@ -109,13 +109,17 @@ def polar_stereographic_velocity_vector_to_latlon(v_xy, lat, lon):
 
     lat, lon = np.deg2rad([lat, lon])
 
-    a = -(1/R*np.cos(lat)) * dxdlon
+    a = -(1 / (R*np.cos(lat))) * dxdlon
     b = (1/R) * dxdlat
-    c = -(1/R*np.cos(lat)) * dydlon
+    c = -(1/ (R*np.cos(lat))) * dydlon
     d = (1/R) * dydlat
 
     det_M = a*d - b*c
     M_inv = (1/det_M) * np.array([[d, -b], [-c, a]])
+
+    logger.info('M={}'.format(np.array([[a, b], [c, d]])))
+    logger.info('det_M={:f}'.format(det_M))
+    logger.info(('M_inv={}'.format(M_inv)))
 
     v_latlon = np.matmul(M_inv, v_xy)
 

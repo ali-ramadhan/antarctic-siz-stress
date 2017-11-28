@@ -108,15 +108,15 @@ class SeaIceMotionDataReader(object):
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
-        # import matplotlib.pyplot as plt
-        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
-        #            width=0.001, scale=1000)
-        # plt.gca().invert_yaxis()
-        # plt.show()
+        import matplotlib.pyplot as plt
+        plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
+                   width=0.001, scale=10)
+        plt.gca().invert_yaxis()
+        plt.show()
         # plt.pcolormesh(self.x, self.y, self.error)
         # plt.colorbar()
         # plt.show()
-        # exit(44)
+        exit(44)
 
     def interpolate_seaice_motion_field(self):
         from utils import interpolate_scalar_field
