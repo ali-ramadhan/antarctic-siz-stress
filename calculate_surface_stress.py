@@ -23,27 +23,28 @@ np.set_printoptions(precision=4)
 if __name__ == '__main__':
     # from utils import latlon_to_polar_stereographic_xy
     # logger.info('{}'.format(latlon_to_polar_stereographic_xy(-75, -150)))
-    #
+
     # from utils import polar_stereographic_velocity_vector_to_latlon
-    # v_latlon = polar_stereographic_velocity_vector_to_latlon(np.array([1, -1]), -70, 100)
-    # logger.info('v_latlon={}'.format(v_latlon))
+    # for i in range(-18, 18):
+    #     lon = 10*i
+    #     v_latlon = polar_stereographic_velocity_vector_to_latlon(np.array([1, 0]), -65, lon)
+    #     logger.info('lon = {:f}, v_latlon={}'.format(lon, v_latlon))
     # exit(66)
 
     from SurfacetressDataWriter import SurfaceStressDataWriter
 
     date_in_month = datetime.date(2015, 7, 1)
-    n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
-
-    for day in range(1, n_days+1):
-        date = datetime.date(date_in_month.year, date_in_month.month, day)
-
-        surface_stress_dataset = SurfaceStressDataWriter(date)
-
-        surface_stress_dataset.compute_daily_surface_stress_field()
-        surface_stress_dataset.compute_daily_ekman_pumping_field()
-        surface_stress_dataset.write_fields_to_netcdf()
-        surface_stress_dataset.plot_diagnostic_fields(type='daily')
-        exit()
+    # n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
+    #
+    # for day in range(1, n_days+1):
+    #     date = datetime.date(date_in_month.year, date_in_month.month, day)
+    #
+    #     surface_stress_dataset = SurfaceStressDataWriter(date)
+    #
+    #     surface_stress_dataset.compute_daily_surface_stress_field()
+    #     surface_stress_dataset.compute_daily_ekman_pumping_field()
+    #     surface_stress_dataset.write_fields_to_netcdf()
+    #     surface_stress_dataset.plot_diagnostic_fields(type='daily')
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
-    surface_stress_dataset.compute_monthly_mean_fields(date_in_month, method='full_data_only')
+    surface_stress_dataset.compute_monthly_mean_fields(date_in_month, method='partial_data_ok')

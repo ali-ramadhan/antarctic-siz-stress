@@ -92,8 +92,8 @@ def latlon_to_polar_stereographic_xy(lat, lon):
 
 
 def polar_stereographic_velocity_vector_to_latlon(v_xy, lat, lon):
-    if lon < 0:
-        lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
+    # if lon < 0:
+    #     lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
     vx, vy = v_xy
     lat, lon = np.deg2rad([lat, lon])
