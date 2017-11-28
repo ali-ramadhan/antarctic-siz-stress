@@ -91,6 +91,37 @@ def latlon_to_polar_stereographic_xy(lat, lon):
     return x, y
 
 
+def polar_stereographic_velocity_vector_to_latlon(v_xy, lat, lon):
+    from constants import R
+
+    delta_lat = 0.01
+    delta_lon = 0.01
+
+    x1, y1 = latlon_to_polar_stereographic_xy(lat - delta_lat, lon)
+    x2, y2 = latlon_to_polar_stereographic_xy(lat + delta_lat, lon)
+    dxdlat = (x2 - x1) / (2 * delta_lat)
+    dydlat = (y2 - y1) / (2 * delta_lat)
+
+    x1, y1 = latlon_to_polar_stereographic_xy(lat, lon - delta_lon)
+    x2, y2 = latlon_to_polar_stereographic_xy(lat, lon + delta_lon)
+    dxdlon = (x2 - x1) / (2 * delta_lon)
+    dydlon = (y2 - y1) / (2 * delta_lon)
+
+    lat, lon = np.deg2rad([lat, lon])
+
+    a = -(1/R*np.cos(lat)) * dxdlon
+    b = (1/R) * dxdlat
+    c = -(1/R*np.cos(lat)) * dydlon
+    d = (1/R) * dydlat
+
+    det_M = a*d - b*c
+    M_inv = (1/det_M) * np.array([[d, -b], [-c, a]])
+
+    v_latlon = np.matmul(M_inv, v_xy)
+
+    return v_latlon
+
+
 def convert_lon_range_to_0360(old_lon_min, old_lon_max):
     # TODO: Properly convert lat = -180:180 to lat = 0:360. List comprehension then sort?
     if old_lon_min == -180 and old_lon_max == 180:
