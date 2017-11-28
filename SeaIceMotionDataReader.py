@@ -10,9 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class SeaIceMotionDataReader(object):
-    from constants import data_dir_path
+    from constants import data_dir_path, output_dir_path
 
     seaice_motion_path = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
+    seaice_motion_interp_dir = path.join(output_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
 
     def __init__(self, date=None):
         logger.info('Loading south grid...')

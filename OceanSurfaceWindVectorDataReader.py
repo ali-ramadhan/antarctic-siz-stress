@@ -13,10 +13,12 @@ class OSWVProduct(Enum):
 
 
 class OceanSurfaceWindVectorDataReader(object):
-    from constants import data_dir_path
+    from constants import data_dir_path, output_dir_path
 
     oswv_ccmp_data_dir_path = path.join(data_dir_path, 'CCMP_MEASURES_ATLAS_L4_OW_L3_0_WIND_VECTORS_FLK')
     oswv_ncep_data_dir_path = path.join(data_dir_path, 'ncep.reanalysis.dailyavgs', 'surface_gauss')
+
+    oswv_ncep_interp_dir = path.join(output_dir_path, 'ncep.reanalysis.dailyavgs', 'surface_gauss')
 
     def __init__(self, date=None, product=OSWVProduct.NCEP):
         if date is None:
@@ -111,8 +113,8 @@ class OceanSurfaceWindVectorDataReader(object):
             v_wind_interp_filename = 'vwnd.10m.gauss.' + str(self.current_date.year) + 'day' + day_of_year + \
                                      '_interp_vwind_' + interp_filename_suffix
 
-            u_wind_interp_filepath = path.join(self.oswv_ncep_data_dir_path, u_wind_interp_filename)
-            v_wind_interp_filepath = path.join(self.oswv_ncep_data_dir_path, v_wind_interp_filename)
+            u_wind_interp_filepath = path.join(self.oswv_ncep_interp_dir, str(self.current_date.year), u_wind_interp_filename)
+            v_wind_interp_filepath = path.join(self.oswv_ncep_interp_dir, str(self.current_date.year), v_wind_interp_filename)
 
             # TODO: Properly check for masked/filled values.
             mask_value_cond = lambda x: np.full(x.shape, False, dtype=bool)

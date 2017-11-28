@@ -253,6 +253,13 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     # Pickle the interpolated grid as a form of memoization to avoid having to recompute it again for the same
     # gridpoints.
     if pickle_filepath is not None:
+        # Create directory if it does not exist already.
+        import os
+        pickle_dir = os.path.dirname(pickle_filepath)
+        if not os.path.exists(pickle_dir):
+            logger.info('Creating directory: {:s}'.format(pickle_dir))
+            os.makedirs(pickle_dir)
+
         with open(pickle_filepath, 'wb') as f:
             logger.info('Pickling interpolated grid: {:s}'.format(pickle_filepath))
             data_interp_dict = {

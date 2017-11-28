@@ -7,10 +7,12 @@ logger = logging.getLogger(__name__)
 
 
 class GeostrophicVelocityDataReader(object):
-    from constants import data_dir_path
+    from constants import data_dir_path, output_dir_path
 
-    u_geo_data_path = path.join(data_dir_path, 'SEALEVEL_GLO_PHY_L4_REP_OBSERVATIONS_008_047',
-                                'dataset-duacs-rep-global-merged-allsat-phy-l4-v3')
+    u_geo_data_dir = path.join(data_dir_path, 'SEALEVEL_GLO_PHY_L4_REP_OBSERVATIONS_008_047',
+                               'dataset-duacs-rep-global-merged-allsat-phy-l4-v3')
+    u_geo_interp_dir = path.join(output_dir_path, 'SEALEVEL_GLO_PHY_L4_REP_OBSERVATIONS_008_047',
+                                  'dataset-duacs-rep-global-merged-allsat-phy-l4-v3')
 
     def __init__(self, date=None):
         self.current_u_geo_dataset = None
@@ -36,7 +38,7 @@ class GeostrophicVelocityDataReader(object):
         # FIXME: Must pattern match the ending!!! https://docs.python.org/3.6/library/fnmatch.html
         filename = 'dt_global_allsat_msla_h_' + str(date.year) + str(date.month).zfill(2) \
                    + str(date.day).zfill(2) + '_20170110.nc'
-        return path.join(self.u_geo_data_path, str(date.year), filename)
+        return path.join(self.u_geo_data_dir, str(date.year), filename)
 
     def load_u_geo_dataset(self):
         from utils import log_netCDF_dataset_metadata
@@ -65,8 +67,8 @@ class GeostrophicVelocityDataReader(object):
 
         u_geo_interp_filename = interp_filename_prefix + '_interp_u_geo_' + interp_filename_suffix
         v_geo_interp_filename = interp_filename_prefix + '_interp_v_geo_' + interp_filename_suffix
-        u_geo_interp_filepath = path.join(self.u_geo_data_path, str(self.current_date.year), u_geo_interp_filename)
-        v_geo_interp_filepath = path.join(self.u_geo_data_path, str(self.current_date.year), v_geo_interp_filename)
+        u_geo_interp_filepath = path.join(self.u_geo_interp_dir, str(self.current_date.year), u_geo_interp_filename)
+        v_geo_interp_filepath = path.join(self.u_geo_interp_dir, str(self.current_date.year), v_geo_interp_filename)
 
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x < -100

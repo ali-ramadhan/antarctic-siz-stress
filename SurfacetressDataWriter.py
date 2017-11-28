@@ -21,6 +21,9 @@ class SurfaceStressDataWriter(object):
     # Such an object should mainly compute daily (averaged) wind stress and wind stress curl fields and write them out
     # to netCDF files. Computing monthly means makes sense here. But plotting should go elsewhere.
 
+    from constants import output_dir_path
+    surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
+
     R_45deg = np.array([[np.cos(np.pi/4), -np.sin(np.pi/4)], [np.sin(np.pi/4), np.cos(np.pi/4)]])
 
     def __init__(self, date):
@@ -323,8 +326,6 @@ class SurfaceStressDataWriter(object):
         import cartopy
         import cartopy.crs as ccrs
 
-        from constants import output_dir_path
-
         logger.info('Creating diagnostic figure...')
 
         fields = {
@@ -488,7 +489,7 @@ class SurfaceStressDataWriter(object):
                                                        facecolor='dimgray', linewidth=0)
         vector_crs = ccrs.PlateCarree()
 
-        # Figure size with an aspect ratio of 16:9 so it fits perfectly on a 1080p or most 4K screen.
+        # Figure size with an aspect ratio of 16:9 so it fits perfectly on a 1080p or 4K screen.
         fig = plt.figure(figsize=(16, 9))
         gs = GridSpec(5, 9)
         matplotlib.rcParams.update({'font.size': 6})
@@ -504,13 +505,13 @@ class SurfaceStressDataWriter(object):
             clb = fig.colorbar(im, ax=ax)
             clb.ax.set_title(colorbar_label[var])
 
+        # Add date label to bottom left.
         if type == 'daily':
-            # Add date to bottom left.
             date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
             plt.gcf().text(0.01, 0.01, date_str, fontsize=10)
         elif type == 'monthly_avg':
             date_str = '{:%b %Y} average'.format(self.date)
-            plt.gcf().text(0, 0, date_str, fontsize=10)
+            plt.gcf().text(0.01, 0.01, date_str, fontsize=10)
 
         logger.info('Saving diagnostic figures to disk...')
 
@@ -520,8 +521,8 @@ class SurfaceStressDataWriter(object):
         elif type == 'monthly_avg':
             tau_filename = 'surfce_stress_' + '{:%b%Y}_avg'.format(self.date)
 
-        tau_png_filepath = os.path.join(output_dir_path, str(self.date.year), tau_filename + '.png')
-        tau_pdf_filepath = os.path.join(output_dir_path, str(self.date.year), tau_filename + '.pdf')
+        tau_png_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.png')
+        tau_pdf_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.pdf')
 
         tau_dir = os.path.dirname(tau_png_filepath)
         if not os.path.exists(tau_dir):
@@ -537,7 +538,7 @@ class SurfaceStressDataWriter(object):
     def write_fields_to_netcdf(self):
         tau_nc_filename = 'surface_stress_' + str(self.date.year) + str(self.date.month).zfill(2) \
                        + str(self.date.day).zfill(2) + '.nc'
-        tau_filepath = os.path.join(output_dir_path, str(self.date.year), tau_nc_filename)
+        tau_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_nc_filename)
         tau_dir = os.path.dirname(tau_filepath)
         if not os.path.exists(tau_dir):
             logger.info('Creating directory: {:s}'.format(tau_dir))
@@ -554,6 +555,7 @@ class SurfaceStressDataWriter(object):
         tau_dataset.createDimension('lat', len(self.lats))
         tau_dataset.createDimension('lon', len(self.lons))
 
+        # TODO: Actually store a date.
         time_var = tau_dataset.createVariable('time', np.float64, ('time',))
         time_var.units = 'hours since 0001-01-01 00:00:00'
         time_var.calendar = 'gregorian'
