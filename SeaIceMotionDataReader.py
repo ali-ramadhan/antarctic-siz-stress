@@ -128,8 +128,8 @@ class SeaIceMotionDataReader(object):
 
         u_ice_interp_filename = interp_filename_prefix + '_interp_u_ice_' + interp_filename_suffix
         v_ice_interp_filename = interp_filename_prefix + '_interp_v_ice_' + interp_filename_suffix
-        u_ice_interp_filepath = path.join(self.seaice_motion_path, str(self.current_date.year), u_ice_interp_filename)
-        v_ice_interp_filepath = path.join(self.seaice_motion_path, str(self.current_date.year), v_ice_interp_filename)
+        u_ice_interp_filepath = path.join(self.seaice_motion_interp_dir, str(self.current_date.year), u_ice_interp_filename)
+        v_ice_interp_filepath = path.join(self.seaice_motion_interp_dir, str(self.current_date.year), v_ice_interp_filename)
 
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: np.isnan(x)
