@@ -10,6 +10,7 @@
 # Longitude = -180 to 180
 
 import datetime
+import calendar
 import numpy as np
 
 # Configure logger first before importing any sub-module that depend on the logger being already configured.
@@ -22,15 +23,18 @@ np.set_printoptions(precision=4)
 if __name__ == '__main__':
     from SurfacetressDataWriter import SurfaceStressDataWriter
 
-    # for i in range(1, 32):
-    #     date = datetime.date(2015, 7, i)
-    #
-    #     surface_stress_dataset = SurfaceStressDataWriter(date)
-    #
-    #     surface_stress_dataset.compute_daily_surface_stress_field()
-    #     surface_stress_dataset.compute_daily_ekman_pumping_field()
-    #     surface_stress_dataset.write_fields_to_netcdf()
-    #     surface_stress_dataset.plot_diagnostic_fields()
+    date_in_month = datetime.date(2015, 7, 1)
+    n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
+
+    for day in range(1, n_days+1):
+        date = datetime.date(date_in_month.year, date_in_month.month, day)
+
+        surface_stress_dataset = SurfaceStressDataWriter(date)
+
+        surface_stress_dataset.compute_daily_surface_stress_field()
+        surface_stress_dataset.compute_daily_ekman_pumping_field()
+        surface_stress_dataset.write_fields_to_netcdf()
+        surface_stress_dataset.plot_diagnostic_fields(type='daily')
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
-    surface_stress_dataset.compute_monthly_mean_fields(datetime.date(2015, 7, 1))
+    surface_stress_dataset.compute_monthly_mean_fields(date_in_month, method='full_data_only')
