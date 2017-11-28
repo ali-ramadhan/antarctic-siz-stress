@@ -2,8 +2,9 @@
 # TODO: Convert vectors from polar stereographic (EASE-Grid) to zonal-meridional.
 
 from os import path
-import datetime
 import numpy as np
+
+from utils import polar_stereographic_velocity_vector_to_latlon
 
 import logging
 logger = logging.getLogger(__name__)
@@ -108,15 +109,15 @@ class SeaIceMotionDataReader(object):
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
-        import matplotlib.pyplot as plt
-        plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
-                   width=0.001, scale=10)
-        plt.gca().invert_yaxis()
-        plt.show()
-        # plt.pcolormesh(self.x, self.y, self.error)
-        # plt.colorbar()
+        # import matplotlib.pyplot as plt
+        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
+        #            width=0.001, scale=10)
+        # plt.gca().invert_yaxis()
         # plt.show()
-        exit(44)
+        # # plt.pcolormesh(self.x, self.y, self.error)
+        # # plt.colorbar()
+        # # plt.show()
+        # exit(44)
 
     def interpolate_seaice_motion_field(self):
         from utils import interpolate_scalar_field
@@ -190,13 +191,17 @@ class SeaIceMotionDataReader(object):
             lat_rc = self.lat[row][col]
             lon_rc = self.lon[row][col]
 
-            logger.debug('row = {}, col = {}'.format(row, col))
-            logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
-            logger.debug('u_motion = {}, v_motion = {}'.format(u_ice_rc, v_ice_rc))
+            # logger.debug('row = {}, col = {}'.format(row, col))
+            # logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))
+            # logger.debug('u_motion = {}, v_motion = {}'.format(u_ice_rc, v_ice_rc))
         elif data_source == 'interp':
             idx_row = np.abs(self.row_interp - row).argmin()
             idx_col = np.abs(self.col_interp - col).argmin()
             u_ice_rc = self.u_ice_interp[idx_row][idx_col]
             v_ice_rc = self.v_ice_interp[idx_row][idx_col]
 
-        return np.array([u_ice_rc, v_ice_rc])
+        lat, lon = np.rad2deg([lat, lon])
+        u_ice_vec_xy = np.array([u_ice_rc, v_ice_rc])
+        u_ice_vec_latlon = polar_stereographic_velocity_vector_to_latlon(u_ice_vec_xy, lat, lon)
+
+        return u_ice_vec_latlon

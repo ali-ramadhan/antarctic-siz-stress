@@ -21,10 +21,13 @@ logger = logging.getLogger(__name__)
 np.set_printoptions(precision=4)
 
 if __name__ == '__main__':
-    from utils import polar_stereographic_velocity_vector_to_latlon
-    v_latlon = polar_stereographic_velocity_vector_to_latlon(np.array([1, -1]), -80, 400)
-    logger.info('v_latlon={}'.format(v_latlon))
-    exit(66)
+    # from utils import latlon_to_polar_stereographic_xy
+    # logger.info('{}'.format(latlon_to_polar_stereographic_xy(-75, -150)))
+    #
+    # from utils import polar_stereographic_velocity_vector_to_latlon
+    # v_latlon = polar_stereographic_velocity_vector_to_latlon(np.array([1, -1]), -70, 100)
+    # logger.info('v_latlon={}'.format(v_latlon))
+    # exit(66)
 
     from SurfacetressDataWriter import SurfaceStressDataWriter
 
