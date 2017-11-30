@@ -208,7 +208,7 @@ class SurfaceStressDataWriter(object):
                     dy = distance(self.lats[i], self.lons[j-1], self.lats[i], self.lons[j+1])
 
                     dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / (2*dy)
-                    dtauydx = (self.tau_y_field[i+1][j] - self.tau_x_field[i-1][j]) / (2*dx)
+                    dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / (2*dx)
 
                     self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
                     self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
