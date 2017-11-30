@@ -126,4 +126,7 @@ class SeaIceConcentrationDataReader(object):
         if alpha > 1:
             return np.nan
 
+        if alpha > 0 and alpha < 0.15:
+            return 0
+
         return alpha
