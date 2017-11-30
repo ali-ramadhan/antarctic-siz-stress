@@ -111,7 +111,7 @@ class SeaIceMotionDataReader(object):
 
     def plot_sea_ice_motion_vector_field(self):
         import matplotlib.pyplot as plt
-        plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
+        plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
                    width=0.001, scale=10)
         plt.gca().invert_yaxis()
         plt.show()
@@ -139,7 +139,7 @@ class SeaIceMotionDataReader(object):
         v_ice_interp_filepath = path.join(self.seaice_motion_interp_dir, str(self.current_date.year), v_ice_interp_filename)
 
         # TODO: Properly check for masked/filled values.
-        mask_value_cond = lambda x: np.isnan(x)
+        mask_value_cond = lambda x: np.isnan(x) | (np.abs(x) > 0.5)
 
         repeat0tile1 = True
         convert_lon_range = False
