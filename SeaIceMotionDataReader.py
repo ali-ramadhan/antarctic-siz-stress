@@ -109,15 +109,21 @@ class SeaIceMotionDataReader(object):
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
-        # import matplotlib.pyplot as plt
-        # plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
-        #            width=0.001, scale=10)
-        # plt.gca().invert_yaxis()
+    def plot_sea_ice_motion_vector_field(self):
+        import matplotlib.pyplot as plt
+        plt.quiver(self.x[::4, ::4], self.y[::4, ::4], self.u_ice[::4, ::4], self.v_ice[::4, ::4], units='width',
+                   width=0.001, scale=10)
+        plt.gca().invert_yaxis()
+        plt.show()
+        # plt.pcolormesh(self.x, self.y, self.error)
+        # plt.colorbar()
         # plt.show()
-        # # plt.pcolormesh(self.x, self.y, self.error)
-        # # plt.colorbar()
-        # # plt.show()
-        # exit(44)
+
+        self.u_ice = self.u_ice[~np.isnan(self.u_ice)]
+        self.v_ice = self.v_ice[~np.isnan(self.v_ice)]
+        plt.hist(self.u_ice, bins=50)
+        plt.hist(self.v_ice, bins=250)
+        plt.show()
 
     def interpolate_seaice_motion_field(self):
         from utils import interpolate_scalar_field
@@ -203,5 +209,8 @@ class SeaIceMotionDataReader(object):
         lat, lon = np.rad2deg([lat, lon])
         u_ice_vec_xy = np.array([u_ice_rc, v_ice_rc])
         u_ice_vec_latlon = polar_stereographic_velocity_vector_to_latlon(u_ice_vec_xy, lat, lon)
+
+        if np.abs(u_ice_vec_xy[0]) > 0.5 or np.abs(u_ice_vec_xy[1]) > 0.5:
+            return np.array([np.nan, np.nan])
 
         return u_ice_vec_latlon

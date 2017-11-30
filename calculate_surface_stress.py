@@ -32,17 +32,22 @@ def process_day(date):
 
 
 if __name__ == '__main__':
-    from joblib import Parallel, delayed
+    # from joblib import Parallel, delayed
+
+    # from SeaIceMotionDataReader import SeaIceMotionDataReader
+    # sic = SeaIceMotionDataReader(datetime.date(2015, 7, 16))
+    # sic.plot_sea_ice_motion_vector_field()
+    # exit()
 
     date_in_month = datetime.date(2015, 7, 1)
     n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
 
-    Parallel(n_jobs=8)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
-                       for day in range(1, n_days+1))
+    # Parallel(n_jobs=8)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
+    #                    for day in range(1, n_days+1))
 
-    # for day in range(1, n_days+1):
-    #     current_date = datetime.date(date_in_month.year, date_in_month.month, day)
-    #     process_day(current_date)
+    for day in range(1, n_days+1):
+        current_date = datetime.date(date_in_month.year, date_in_month.month, day)
+        process_day(current_date)
 
     from SurfacetressDataWriter import SurfaceStressDataWriter
 
