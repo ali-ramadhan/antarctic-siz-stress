@@ -97,6 +97,10 @@ class SeaIceMotionDataReader(object):
                 self.x[i][j] = self.south_grid[i * self.south_grid_lats + j][0]
                 self.y[i][j] = self.south_grid[i * self.south_grid_lats + j][1]
 
+                u_ice_vec = polar_stereographic_velocity_vector_to_latlon(np.array([u_ice[i][j], v_ice[i][j]]), self.lat[i][j], self.lon[i][j])
+                self.u_ice[i][j] = u_ice_vec[0]
+                self.v_ice[i][j] = u_ice_vec[1]
+
         # A pixel value of 0 in the third variable indicates no vectors at that location.
         self.u_ice[self.error == 0] = np.nan
         self.v_ice[self.error == 0] = np.nan
@@ -110,20 +114,55 @@ class SeaIceMotionDataReader(object):
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
     def plot_sea_ice_motion_vector_field(self):
+        import matplotlib
         import matplotlib.pyplot as plt
-        plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
-                   width=0.001, scale=10)
-        plt.gca().invert_yaxis()
-        plt.show()
+        from matplotlib.gridspec import GridSpec
+
+        import cartopy
+        import cartopy.crs as ccrs
+
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                       facecolor='dimgray', linewidth=0)
+        vector_crs = ccrs.PlateCarree()
+
+        fig = plt.figure(figsize=(8, 4.5))
+        gs = GridSpec(1, 2)
+        matplotlib.rcParams.update({'font.size': 6})
+
+        ax = plt.subplot(gs[0, 0], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('u_ice')
+        im = ax.pcolormesh(self.lon, self.lat, self.u_ice, transform=vector_crs,
+                           cmap='seismic', vmin=-0.2, vmax=0.2)
+        clb = fig.colorbar(im, ax=ax)
+        clb.ax.set_title('m/s')
+
+        ax = plt.subplot(gs[0, 1], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('v_ice')
+        im = ax.pcolormesh(self.lon, self.lat, self.v_ice, transform=vector_crs,
+                           cmap='seismic', vmin=-0.2, vmax=0.2)
+        clb = fig.colorbar(im, ax=ax)
+        clb.ax.set_title('m/s')
+
+        # plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
+        #            width=0.001, scale=10)
+        # plt.gca().invert_yaxis()
+        # plt.show()
         # plt.pcolormesh(self.x, self.y, self.error)
         # plt.colorbar()
         # plt.show()
 
-        self.u_ice = self.u_ice[~np.isnan(self.u_ice)]
-        self.v_ice = self.v_ice[~np.isnan(self.v_ice)]
-        plt.hist(self.u_ice, bins=50)
-        plt.hist(self.v_ice, bins=250)
-        plt.show()
+        # self.u_ice = self.u_ice[~np.isnan(self.u_ice)]
+        # self.v_ice = self.v_ice[~np.isnan(self.v_ice)]
+        # plt.hist(self.u_ice, bins=50)
+        # plt.hist(self.v_ice, bins=250)
+        # plt.show()
+
+        plt.savefig('u_ice_vec_{:s}.png'.format(str(self.current_date.day).zfill(2)), dpi=600, format='png',
+                    transparent=False)
 
     def interpolate_seaice_motion_field(self):
         from utils import interpolate_scalar_field

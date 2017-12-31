@@ -5,12 +5,12 @@ from os import path
 cwd = path.dirname(path.abspath(__file__))
 
 # Data directory string constants
-# data_dir_path = path.join(cwd, 'data')
-data_dir_path = 'D:\\data\\'
+data_dir_path = path.join(cwd, 'data')
+# data_dir_path = 'D:\\data\\'
 
 # Output data directory
-# output_dir_path = path.join(cwd, 'output')
-output_dir_path = 'D:\\output\\'
+output_dir_path = path.join(cwd, 'output')
+# output_dir_path = 'D:\\output\\'
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
