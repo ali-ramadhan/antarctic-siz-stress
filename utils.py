@@ -115,7 +115,7 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     import pickle
     from os.path import isfile
 
-    debug_plots = False
+    debug_plots = True
 
     # Check if the data has already been interpolated for the same grid points before doing the interpolation again. If
     # so, load the file, unpickle it and return the interpolated grid.
@@ -298,11 +298,12 @@ def plot_scalar_field(lons, lats, data):
     ax = plt.axes(projection=ccrs.SouthPolarStereo())
 
     # ax.add_feature(cartopy.feature.OCEAN, zorder=0)
-    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
-                                                   facecolor=cartopy.feature.COLORS['land'])
-    ax.add_feature(land_50m, edgecolor='black')
     # ax.stock_img()
-    ax.coastlines(resolution='50m')
+    # ax.coastlines(resolution='50m')
+
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                   facecolor='dimgray', linewidth=0)
+    ax.add_feature(land_50m)
     ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
     vector_crs = ccrs.PlateCarree()
@@ -326,6 +327,23 @@ def plot_scalar_field(lons, lats, data):
     # circle = mpath.Path(verts * radius + center)
     # ax.set_boundary(circle, transform=ax.transAxes)
 
-    ax.gridlines(crs=ccrs.PlateCarree())
+    # ax.gridlines(crs=ccrs.PlateCarree())
     plt.colorbar(im)
+    plt.show()
+
+
+def plot_vector_field(self):
+    import matplotlib.pyplot as plt
+    plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
+               width=0.001, scale=10)
+    plt.gca().invert_yaxis()
+    plt.show()
+    # plt.pcolormesh(self.x, self.y, self.error)
+    # plt.colorbar()
+    # plt.show()
+
+    self.u_ice = self.u_ice[~np.isnan(self.u_ice)]
+    self.v_ice = self.v_ice[~np.isnan(self.v_ice)]
+    plt.hist(self.u_ice, bins=50)
+    plt.hist(self.v_ice, bins=250)
     plt.show()
