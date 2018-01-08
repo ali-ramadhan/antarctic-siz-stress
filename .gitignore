@@ -112,4 +112,5 @@ output/
 # Ignore netCDF files
 *.nc
 
-tmp\.py
+# For now.
+tmp/
