@@ -60,7 +60,7 @@ class SeaIceMotionDataReader(object):
             south_grid = f.readlines()
             south_grid = [s.strip().split() for s in south_grid]
             for i in range(len(south_grid)):
-                south_grid[i] = [int(south_grid[i][0]), int(south_grid[i][1]),  # x, y
+                south_grid[i] = [int(south_grid[i][0]), int(south_grid[i][1]),      # x, y
                                  float(south_grid[i][2]), float(south_grid[i][3])]  # lat, lon
 
         self.south_grid = south_grid
@@ -109,24 +109,8 @@ class SeaIceMotionDataReader(object):
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
-    def plot_sea_ice_motion_vector_field(self):
-        import matplotlib.pyplot as plt
-        plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
-                   width=0.001, scale=10)
-        plt.gca().invert_yaxis()
-        plt.show()
-        # plt.pcolormesh(self.x, self.y, self.error)
-        # plt.colorbar()
-        # plt.show()
-
-        self.u_ice = self.u_ice[~np.isnan(self.u_ice)]
-        self.v_ice = self.v_ice[~np.isnan(self.v_ice)]
-        plt.hist(self.u_ice, bins=50)
-        plt.hist(self.v_ice, bins=250)
-        plt.show()
-
     def interpolate_seaice_motion_field(self):
-        from utils import interpolate_scalar_field
+        from utils import interpolate_scalar_field, polar_stereographic_velocity_vector_to_latlon
         from constants import n_row, n_col, u_ice_interp_method
 
         interp_filename_prefix = 'icemotion.grid.daily.' + str(self.current_date.year) \
@@ -138,7 +122,7 @@ class SeaIceMotionDataReader(object):
         u_ice_interp_filepath = path.join(self.seaice_motion_interp_dir, str(self.current_date.year), u_ice_interp_filename)
         v_ice_interp_filepath = path.join(self.seaice_motion_interp_dir, str(self.current_date.year), v_ice_interp_filename)
 
-        # TODO: Properly check for masked/filled values.
+        # Throw out NaN values and extreme anomalies satisfying u_ice or v_ice > 0.5 m/s.
         mask_value_cond = lambda x: np.isnan(x) | (np.abs(x) > 0.5)
 
         repeat0tile1 = True
@@ -155,9 +139,69 @@ class SeaIceMotionDataReader(object):
         self.row_interp = row_interp
         self.col_interp = col_interp
 
-        # import matplotlib.pyplot as plt
-        # plt.quiver(self.row_interp, self.col_interp, self.u_ice_interp, self.v_ice_interp, units='width',
-        #            width=0.001, scale=1000)
+    def plot_sea_ice_motion_vector_field(self):
+        import matplotlib.pyplot as plt
+        import cartopy
+        import cartopy.crs as ccrs
+
+        from constants import Omega, lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
+
+        lats = np.linspace(lat_min, lat_max, n_lat)
+        lons = np.linspace(lon_min, lon_max, n_lon)
+
+        u_ice_interp_latlon = np.zeros((len(lats), len(lons)))
+        v_ice_interp_latlon = np.zeros((len(lats), len(lons)))
+
+        for i in range(len(lats)):
+            lat = lats[i]
+            logger.info('{:f}'.format(lat))
+            for j in range(len(lons)):
+                lon = lons[j]
+                u_ice_vec = self.seaice_motion_vector(lat, lon, self.current_date, 'interp')
+                u_ice_interp_latlon[i][j] = u_ice_vec[0]
+                v_ice_interp_latlon[i][j] = u_ice_vec[1]
+
+        logger.info('Plotting u_ice_interp...')
+        ax = plt.axes(projection=ccrs.SouthPolarStereo())
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                       facecolor='dimgray', linewidth=0)
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        vector_crs = ccrs.PlateCarree()
+        im = ax.pcolormesh(lons, lats, u_ice_interp_latlon, transform=vector_crs, cmap='seismic', vmin=-0.2, vmax=0.2)
+        plt.colorbar(im)
+
+        ax.quiver(lons[::5], lats[::5], u_ice_interp_latlon[::5, ::5], v_ice_interp_latlon[::5, ::5],
+                  transform=vector_crs, units='width', width=0.002, scale=5)
+        plt.show()
+
+        logger.info('Plotting v_ice_interp...')
+        ax = plt.axes(projection=ccrs.SouthPolarStereo())
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                       facecolor='dimgray', linewidth=0)
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        vector_crs = ccrs.PlateCarree()
+        im = ax.pcolormesh(lons, lats, v_ice_interp_latlon, transform=vector_crs, cmap='seismic', vmin=-0.2, vmax=0.2)
+        plt.colorbar(im)
+
+        ax.quiver(lons[::5], lats[::5], u_ice_interp_latlon[::5, ::5], v_ice_interp_latlon[::5, ::5],
+                  transform=vector_crs, units='width', width=0.001, scale=5)
+        plt.show()
+
+        # logger.info('Plotting u_ice_interp...')
+        # plt.pcolormesh(self.row_interp, self.col_interp, self.u_ice_interp, cmap='seismic', vmin=-0.2, vmax=0.2)
+        # plt.colorbar()
+        # plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
+        #            width=0.001, scale=10)
+        # plt.gca().invert_yaxis()
+        # plt.show()
+        #
+        # logger.info('Plotting v_ice_interp...')
+        # plt.pcolormesh(self.row_interp, self.col_interp, self.v_ice_interp, cmap='seismic', vmin=-0.2, vmax=0.2)
+        # plt.colorbar()
+        # plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
+        #            width=0.001, scale=10)
         # plt.gca().invert_yaxis()
         # plt.show()
 

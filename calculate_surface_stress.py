@@ -32,10 +32,13 @@ def process_day(date):
 
 
 if __name__ == '__main__':
-    """ Test 1: process only July 1, 2015 """
+    """ Test 0: Making sure that sea ice motion fields interpolate properly. """
     from SeaIceMotionDataReader import SeaIceMotionDataReader
     sic = SeaIceMotionDataReader(datetime.date(2015, 7, 16))
     sic.plot_sea_ice_motion_vector_field()
+
+    """ Test 1: process only July 1, 2015 """
+    # process_day(datetime.date(2015, 7, 16))
 
     """ Test 2: Process July 1-31, 2015 and produce a monthly average. """
     # date_in_month = datetime.date(2015, 7, 1)
