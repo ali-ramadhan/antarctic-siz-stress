@@ -134,10 +134,10 @@ class SeaIceMotionDataReader(object):
             self.v_ice, self.x[0], self.y[:, 0], v_ice_interp_filepath, mask_value_cond, 'ease_rowcol',
             u_ice_interp_method, repeat0tile1, convert_lon_range)
 
-        self.u_ice_interp = u_ice_interp
-        self.v_ice_interp = v_ice_interp
-        self.row_interp = row_interp
-        self.col_interp = col_interp
+        self.u_ice_interp = np.array(u_ice_interp)
+        self.v_ice_interp = np.array(v_ice_interp)
+        self.row_interp = np.array(row_interp)
+        self.col_interp = np.array(col_interp)
 
     def plot_sea_ice_motion_vector_field(self):
         import matplotlib.pyplot as plt

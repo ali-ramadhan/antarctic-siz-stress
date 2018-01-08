@@ -130,10 +130,10 @@ class OceanSurfaceWindVectorDataReader(object):
                 self.vwind, self.lats, self.lons, v_wind_interp_filepath, mask_value_cond, 'latlon',
                 u_wind_interp_method, repeat0tile1, convert_lon_range)
 
-            self.u_wind_interp = u_wind_interp
-            self.v_wind_interp = v_wind_interp
-            self.latgrid_interp = latgrid_interp
-            self.longrid_interp = longrid_interp
+            self.u_wind_interp = np.array(u_wind_interp)
+            self.v_wind_interp = np.array(v_wind_interp)
+            self.latgrid_interp = np.array(latgrid_interp)
+            self.longrid_interp = np.array(longrid_interp)
 
         elif self.current_product is OSWVProduct.CCMP:
             pass

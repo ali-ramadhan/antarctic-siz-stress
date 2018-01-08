@@ -77,8 +77,8 @@ class SeaIceConcentrationDataReader(object):
             alpha_interp_method, repeat0tile1, convert_lon_range)
 
         self.alpha_interp = alpha_interp
-        self.xgrid_interp = xgrid_interp
-        self.ygrid_interp = ygrid_interp
+        self.xgrid_interp = np.array(xgrid_interp)
+        self.ygrid_interp = np.array(ygrid_interp)
 
     def sea_ice_concentration(self, lat, lon, date, data_source):
         from utils import latlon_to_polar_stereographic_xy
