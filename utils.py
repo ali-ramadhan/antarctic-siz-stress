@@ -115,7 +115,8 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
     import pickle
     from os.path import isfile
 
-    debug_plots = True
+    # Change to True to see the interpolated field (+ residual) as they are produced.
+    debug_plots = False
 
     # Check if the data has already been interpolated for the same grid points before doing the interpolation again. If
     # so, load the file, unpickle it and return the interpolated grid.

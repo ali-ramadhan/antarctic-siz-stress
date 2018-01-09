@@ -236,10 +236,17 @@ class SeaIceMotionDataReader(object):
 
         if data_source == 'product':
             row, col = int(row), int(col)
-            u_ice_rc = self.u_ice[row][col]
-            v_ice_rc = self.v_ice[row][col]
-            lat_rc = self.lat[row][col]
-            lon_rc = self.lon[row][col]
+
+            try:
+                # TODO: Check if the below is actually correct
+                # We minus 1 since rows and cols start counting from 1, but indices count from 0 of course.
+                u_ice_rc = self.u_ice[row-1][col-1]
+                v_ice_rc = self.v_ice[row-1][col-1]
+                lat_rc = self.lat[row-1][col-1]
+                lon_rc = self.lon[row-1][col-1]
+            except IndexError:
+                # This will happen if we're outside the square region of available data.
+                return np.array([np.nan, np.nan])
 
             # logger.debug('row = {}, col = {}'.format(row, col))
             # logger.debug('lat_rc = {}, lon_rc = {}'.format(lat_rc, lon_rc))

@@ -115,6 +115,10 @@ class GeostrophicVelocityDataReader(object):
             idx_lon = np.abs(self.lons - lon).argmin()
             u_geo_ll = self.u_geo[idx_lat][idx_lon]
             v_geo_ll = self.v_geo[idx_lat][idx_lon]
+
+            if u_geo_ll < -100 or v_geo_ll < -100:
+                return np.array([np.nan, np.nan])
+
         elif data_source == 'interp':
             idx_lat = np.abs(self.lats_interp - lat).argmin()
             idx_lon = np.abs(self.lons_interp - lon).argmin()
