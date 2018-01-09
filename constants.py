@@ -94,13 +94,13 @@ gs_coords = {
     'tau_air_y': (1, 4),
     'tau_ice_x': (0, 5),
     'tau_ice_y': (1, 5),
-    'tau_x': (0, 6),
-    'tau_y': (1, 6),
+    'tau_x': (slice(2, 5), slice(0, 3)),
+    'tau_y': (slice(2, 5), slice(3, 6)),
     'u_Ekman': (0, 7),
     'v_Ekman': (1, 7),
     'curl_tau': (0, 8),
-    'tau_SIZ_x': (slice(2, 5), slice(0, 3)),
-    'tau_SIZ_y': (slice(2, 5), slice(3, 6)),
+    'tau_SIZ_x': (0, 6),
+    'tau_SIZ_y': (1, 6),
     'w_Ekman': (slice(2, 5), slice(6, 9))
 }
 
