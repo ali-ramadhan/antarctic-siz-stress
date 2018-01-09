@@ -565,13 +565,21 @@ class SurfaceStressDataWriter(object):
             clb = fig.colorbar(im, ax=ax)
             clb.ax.set_title(colorbar_label[var])
 
+            # Add selected vector fields.
+            if var == 'u_ice':
+                ax.quiver(self.lons[::10], self.lats[::10], self.u_ice_field[::10, ::10], self.v_ice_field[::10, ::10],
+                          transform=vector_crs, units='width', width=0.002, scale=4)
+            elif var == 'tau_x':
+                ax.quiver(self.lons[::10], self.lats[::10], self.tau_x_field[::10, ::10], self.tau_y_field[::10, ::10],
+                          transform=vector_crs, units='width', width=0.002, scale=8)
+
         # Add date label to bottom left.
         if type == 'daily':
             date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
-            plt.gcf().text(0.01, 0.01, date_str, fontsize=10)
+            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
         elif type == 'monthly_avg':
             date_str = '{:%b %Y} average'.format(self.date)
-            plt.gcf().text(0.01, 0.01, date_str, fontsize=10)
+            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
 
         logger.info('Saving diagnostic figures to disk...')
 
