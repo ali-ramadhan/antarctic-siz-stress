@@ -13,10 +13,10 @@ logger = logging.getLogger(__name__)
 class SeaIceMotionDataReader(object):
     from constants import data_dir_path, output_dir_path
 
-    seaice_motion_path = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
+    seaice_motion_path = path.join(data_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south')
     seaice_motion_interp_dir = path.join(output_dir_path, 'nsidc0116_icemotion_vectors_v3', 'data', 'south', 'grid')
 
-    def __init__(self, date=None):
+    def __init__(self, date=None, monthly=False):
         logger.info('Loading south grid...')
         self.south_grid = None
         self.load_south_grid()
@@ -42,13 +42,17 @@ class SeaIceMotionDataReader(object):
             self.current_date = None
         else:
             self.current_date = date
-            self.load_SIM_dataset(date)
+            self.load_SIM_dataset(date, monthly)
             self.dataset_loaded = True
             self.interpolate_seaice_motion_field()
 
-    def date_to_SIM_filepath(self, date):
-        filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday).zfill(3) + '.s.v3.bin'
-        return path.join(self.seaice_motion_path, str(date.year), filename)
+    def date_to_SIM_filepath(self, date, monthly):
+        if monthly:
+            filename = 'icemotion.grid.month.' + str(date.year) + str(date.month).zfill(2) + '.s.v3.bin'
+            return path.join(self.seaice_motion_path, 'means', str(date.year), filename)
+        else:
+            filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday).zfill(3) + '.s.v3.bin'
+            return path.join(self.seaice_motion_path, 'grid', str(date.year), filename)
 
     def load_south_grid(self):
         from constants import data_dir_path
@@ -65,8 +69,8 @@ class SeaIceMotionDataReader(object):
 
         self.south_grid = south_grid
 
-    def load_SIM_dataset(self, date):
-        dataset_filepath = self.date_to_SIM_filepath(date)
+    def load_SIM_dataset(self, date, monthly):
+        dataset_filepath = self.date_to_SIM_filepath(date, monthly)
 
         logger.debug('Reading in sea ice motion dataset: {}'.format(dataset_filepath))
         data = np.fromfile(dataset_filepath, dtype='<i2').reshape(321, 321, 3)
