@@ -172,7 +172,7 @@ class SeaIceMotionDataReader(object):
         plt.colorbar(im)
 
         ax.quiver(lons[::5], lats[::5], u_ice_interp_latlon[::5, ::5], v_ice_interp_latlon[::5, ::5],
-                  transform=vector_crs, units='width', width=0.002, scale=5)
+                  transform=vector_crs, units='width', width=0.002, scale=4)
         plt.show()
 
         logger.info('Plotting v_ice_interp...')
@@ -186,7 +186,7 @@ class SeaIceMotionDataReader(object):
         plt.colorbar(im)
 
         ax.quiver(lons[::5], lats[::5], u_ice_interp_latlon[::5, ::5], v_ice_interp_latlon[::5, ::5],
-                  transform=vector_crs, units='width', width=0.001, scale=5)
+                  transform=vector_crs, units='width', width=0.002, scale=4)
         plt.show()
 
         # logger.info('Plotting u_ice_interp...')

@@ -18,8 +18,10 @@ logger = logging.getLogger(__name__)
 
 
 class SurfaceStressDataWriter(object):
-    # Such an object should mainly compute daily (averaged) wind stress and wind stress curl fields and write them out
-    # to netCDF files. Computing monthly means makes sense here. But plotting should go elsewhere.
+    """
+    Such an object should mainly compute daily (averaged) wind stress and wind stress curl fields and write them out
+    to netCDF files. Computing monthly means makes sense here. But plotting should go elsewhere.
+    """
 
     from constants import output_dir_path
     surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
@@ -127,6 +129,10 @@ class SurfaceStressDataWriter(object):
                 u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, self.date, 'interp')
                 alpha = self.sea_ice_conc_data.sea_ice_concentration(lat, lon, self.date, 'interp')
                 u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, self.date, 'interp')
+
+                # # TODO: Bit of a hack lol to get u_wind values for the 358-360 longitude sector.
+                # if np.isnan(u_wind_vec[0]) or np.isnan(u_wind_vec[1]):
+                #     u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, self.date, 'product')
 
                 self.u_geo_field[i][j] = u_geo_vec[0]
                 self.v_geo_field[i][j] = u_geo_vec[1]
@@ -448,7 +454,6 @@ class SurfaceStressDataWriter(object):
                 w_Ekman_field[np.isnan(w_Ekman_field)] = 0
                 w_Ekman_field_days = w_Ekman_field_days + w_Ekman_field
 
-
         if method == 'full_data_only':
             self.tau_air_x_field = tau_air_x_field_avg
             self.tau_air_y_field = tau_air_y_field_avg
@@ -537,8 +542,8 @@ class SurfaceStressDataWriter(object):
             'w_Ekman': self.w_Ekman_field
         }
 
-        # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges are poofed up in the
-        # smaller plots.
+        # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+        # the smaller plots.
         land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
                                                        facecolor='dimgray', linewidth=0)
         vector_crs = ccrs.PlateCarree()
@@ -548,6 +553,7 @@ class SurfaceStressDataWriter(object):
         gs = GridSpec(5, 9)
         matplotlib.rcParams.update({'font.size': 6})
 
+        # Plot all the scalar fields
         for var in fields.keys():
             ax = plt.subplot(gs[gs_coords[var]], projection=ccrs.SouthPolarStereo())
             ax.add_feature(land_50m)
@@ -575,15 +581,16 @@ class SurfaceStressDataWriter(object):
         elif type == 'monthly_avg':
             tau_filename = 'surfce_stress_' + '{:%b%Y}_avg'.format(self.date)
 
+        # Saving diagnostic figure to disk. Only in .png as .pdf takes forever to write and is MASSIVE.
         tau_png_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.png')
-        tau_pdf_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.pdf')
+        # tau_pdf_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.pdf')
 
         tau_dir = os.path.dirname(tau_png_filepath)
         if not os.path.exists(tau_dir):
             logger.info('Creating directory: {:s}'.format(tau_dir))
             os.makedirs(tau_dir)
 
-        plt.savefig(tau_png_filepath, dpi=600, format='png', transparent=False)
+        plt.savefig(tau_png_filepath, dpi=600, format='png', transparent=False, bbox_inches='tight')
         logger.info('Saved diagnostic figure: {:s}'.format(tau_png_filepath))
 
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)

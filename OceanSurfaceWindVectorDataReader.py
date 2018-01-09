@@ -181,10 +181,10 @@ class OceanSurfaceWindVectorDataReader(object):
                 u_wind = self.uwind[idx_lat][idx_lon]
                 v_wind = self.vwind[idx_lat][idx_lon]
 
-                logger.debug("lat = {}, lon = {}".format(lat, lon))
-                logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
-                logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
-                logger.debug('time = {}'.format(self.current_uwind_dataset.variables['time'][day_of_year]))
+                # logger.debug("lat = {}, lon = {}".format(lat, lon))
+                # logger.debug("idx_lat = {}, idx_lon = {}".format(idx_lat, idx_lon))
+                # logger.debug("lat[idx_lat] = {}, lon[idx_lon] = {}".format(self.lats[idx_lat], self.lons[idx_lon]))
+                # logger.debug('time = {}'.format(self.current_uwind_dataset.variables['time'][day_of_year]))
 
             elif data_source == 'interp':
                 idx_lat = np.abs(self.latgrid_interp - lat).argmin()

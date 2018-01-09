@@ -99,7 +99,7 @@ def polar_stereographic_velocity_vector_to_latlon(v_xy, lat, lon):
     lat, lon = np.deg2rad([lat, lon])
 
     u = vx * np.cos(lon) - vy * np.sin(lon)
-    v = vy * np.cos(lon) + vx * np.sin(lon)
+    v = vx * np.sin(lon) + vy * np.cos(lon)
 
     return np.array([u, v])
 

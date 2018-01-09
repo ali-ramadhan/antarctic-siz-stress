@@ -1,3 +1,5 @@
+# TODO: Looks like there's a small discontinuity in the absolute u_geo field dataset itself at the 0 longitude line.
+
 from os import path
 import numpy as np
 import netCDF4
