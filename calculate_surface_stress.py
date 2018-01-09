@@ -33,28 +33,29 @@ def process_day(date):
 
 if __name__ == '__main__':
     """ Test 0: Making sure that sea ice motion fields interpolate properly. """
-    from SeaIceMotionDataReader import SeaIceMotionDataReader
-    sic = SeaIceMotionDataReader(datetime.date(2015, 7, 16))
-    sic.plot_sea_ice_motion_vector_field()
+    # from SeaIceMotionDataReader import SeaIceMotionDataReader
+    # sic = SeaIceMotionDataReader(datetime.date(2015, 7, 16))
+    # sic.plot_sea_ice_motion_vector_field()
 
     """ Test 1: process only July 1, 2015 """
     # process_day(datetime.date(2015, 7, 16))
 
     """ Test 2: Process July 1-31, 2015 and produce a monthly average. """
-    # date_in_month = datetime.date(2015, 7, 1)
-    # n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
-    #
-    # # Serial processing
-    # # for day in range(1, n_days+1):
-    # #     current_date = datetime.date(date_in_month.year, date_in_month.month, day)
-    # #     process_day(current_date)
-    #
-    # # Parallel processing
-    # from joblib import Parallel, delayed
-    # Parallel(n_jobs=8)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
-    #                    for day in range(1, n_days+1))
-    #
-    # # Compute monthly mean
-    # from SurfacetressDataWriter import SurfaceStressDataWriter
-    # surface_stress_dataset = SurfaceStressDataWriter(None)
-    # surface_stress_dataset.compute_monthly_mean_fields(date_in_month, method='partial_data_ok')
+    date_in_month = datetime.date(2015, 7, 1)
+    n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
+
+    # Serial processing
+    # for day in range(1, n_days+1):
+    #     current_date = datetime.date(date_in_month.year, date_in_month.month, day)
+    #     process_day(current_date)
+
+    # Parallel processing
+    from joblib import Parallel, delayed
+    Parallel(n_jobs=4)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
+                       for day in range(1, n_days+1))
+
+    # Compute monthly mean
+    from SurfacetressDataWriter import SurfaceStressDataWriter
+    surface_stress_dataset = SurfaceStressDataWriter(None)
+    surface_stress_dataset.compute_monthly_mean_fields(date_in_month, method='partial_data_ok')
+

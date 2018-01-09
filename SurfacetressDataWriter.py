@@ -120,7 +120,7 @@ class SurfaceStressDataWriter(object):
             f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
             progress_percent = 100 * i / (len(self.lats) - 1)
-            logger.info('lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+            logger.info('({}) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max, progress_percent))
 
             for j in range(len(self.lons)):
                 lon = self.lons[j]

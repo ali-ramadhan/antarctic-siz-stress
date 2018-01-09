@@ -34,7 +34,7 @@ D_e = 20  # Ekman layer depth [m]
 
 """ Latitude-longitude interpolation grid constants """
 lat_min = -75
-lat_max = -55
+lat_max = -40
 lon_min = -180
 lon_max = 180
 
