@@ -14,7 +14,7 @@ class GeostrophicVelocityDataReader(object):
     u_geo_data_dir = path.join(data_dir_path, 'SEALEVEL_GLO_PHY_L4_REP_OBSERVATIONS_008_047',
                                'dataset-duacs-rep-global-merged-allsat-phy-l4-v3')
     u_geo_interp_dir = path.join(output_dir_path, 'SEALEVEL_GLO_PHY_L4_REP_OBSERVATIONS_008_047',
-                                  'dataset-duacs-rep-global-merged-allsat-phy-l4-v3')
+                                 'dataset-duacs-rep-global-merged-allsat-phy-l4-v3')
 
     def __init__(self, date=None):
         self.current_u_geo_dataset = None
@@ -34,7 +34,7 @@ class GeostrophicVelocityDataReader(object):
         else:
             logger.info('GeostrophicVelocityDataReader object initializing...')
             self.current_date = date
-            self.load_u_geo_dataset()
+            # self.load_u_geo_dataset()
 
     def date_to_u_geo_dataset_filepath(self, date):
         # FIXME: Must pattern match the ending!!! https://docs.python.org/3.6/library/fnmatch.html ? glob?
@@ -92,6 +92,8 @@ class GeostrophicVelocityDataReader(object):
         self.lons_interp = np.array(lons_interp)
 
     def absolute_geostrophic_velocity(self, lat, lon, date, data_source):
+        return np.array([0, 0])
+
         if lon < 0:
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
@@ -128,5 +130,4 @@ class GeostrophicVelocityDataReader(object):
             logger.error('Invalid value for data_source: {}'.format(data_source))
             raise ValueError('Invalid value for data_source: {}'.format(data_source))
 
-        return np.array([0, 0])
-        # return np.array([u_geo_ll, v_geo_ll])
+        return np.array([u_geo_ll, v_geo_ll])
