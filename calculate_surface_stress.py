@@ -15,6 +15,9 @@ import calendar
 import numpy as np
 from joblib import Parallel, delayed
 
+import matplotlib
+matplotlib.use('Agg')
+
 # Configure logger first before importing any sub-module that depend on the logger being already configured.
 import logging.config
 logging.config.fileConfig('logging.ini')
@@ -43,7 +46,7 @@ if __name__ == '__main__':
     # sic.plot_sea_ice_motion_vector_field()
 
     """ Process only July 16, 2015 """
-    # process_day(datetime.date(2015, 7, 16))
+    process_day(datetime.date(2015, 7, 16))
 
     """ Process July 1-31, 2015 and produce a monthly average. """
     # date_in_month = datetime.date(2015, 8, 1)
@@ -82,12 +85,21 @@ if __name__ == '__main__':
     # surface_stress_dataset.date = dates[0]
     # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='annual')
+<<<<<<< Updated upstream
     #
     # # JJA, SON, DJF, and MAM seasonal averages
     # seasons = [
     #     {'date1': datetime.date(2015, 3, 1), 'date2': datetime.date(2015, 5, 31), 'label': 'Autumn (MAM) 2015 average'},
     #     {'date1': datetime.date(2015, 6, 1), 'date2': datetime.date(2015, 8, 31), 'label': 'Winter (JJA) 2015 average'},
     #     {'date1': datetime.date(2015, 9, 1), 'date2': datetime.date(2015, 11, 30), 'label': 'Spring (SON) 2015 average'},
+=======
+
+    # JJA, SON, DJF, and MAM seasonal averages
+    # seasons = [
+    #     {'date1': datetime.date(2015, 3, 1), 'date2': datetime.date(2015, 5, 31), 'label': 'Autumn (MAM) 2015 average'},
+    #     {'date1': datetime.date(2015, 6, 1), 'date2': datetime.date(2015, 8, 31), 'label': 'Winter (JJA) 2015 average'},
+    #     {'date1': datetime.date(2015, 9, 1), 'date2': datetime.date(2015, 11, 30), 'label': 'Spring (SON) 2015 average'}
+>>>>>>> Stashed changes
     # ]
     # for season in seasons:
     #     dates = date_range(season['date1'], season['date2'])
@@ -96,6 +108,7 @@ if __name__ == '__main__':
     #     surface_stress_dataset.date = dates[0]
     #     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     #     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=season['label'])
+<<<<<<< Updated upstream
     #
     # jan = date_range(datetime.date(2015, 1, 1), datetime.date(2015, 1, 31))
     # novdec = date_range(datetime.date(2015, 11, 1), datetime.date(2015, 12, 30))
@@ -105,5 +118,7 @@ if __name__ == '__main__':
     # surface_stress_dataset.date = dates[0]
     # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Summer (DJF) 2015 average')
+=======
+>>>>>>> Stashed changes
 
     # July climo mean (1995-2015?)
