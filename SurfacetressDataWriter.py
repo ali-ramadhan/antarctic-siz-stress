@@ -602,6 +602,9 @@ class SurfaceStressDataWriter(object):
                                marker=',', s=1, lw=0, c='black', facecolor='black', transform=vector_crs,
                                label='ice edge')
 
+                plt.legend(loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand',
+                           borderaxespad=0, markerscale=6)
+
         # Add date label to bottom left.
         if plot_type == 'daily':
             date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
