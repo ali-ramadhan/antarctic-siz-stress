@@ -42,13 +42,14 @@ class SeaIceMotionDataReader(object):
             self.current_date = None
         else:
             self.current_date = date
-            self.load_SIM_dataset(date, monthly)
+            self.monthly = monthly
+            self.load_SIM_dataset(date)
             self.dataset_loaded = True
             self.interpolate_seaice_motion_field()
 
-    def date_to_SIM_filepath(self, date, monthly):
-        if monthly:
-            filename = 'icemotion.grid.month.' + str(date.year) + str(date.month).zfill(2) + '.s.v3.bin'
+    def date_to_SIM_filepath(self, date):
+        if self.monthly:
+            filename = 'icemotion.grid.month.' + str(date.year) + '.' + str(date.month).zfill(2) + '.s.v3.bin'
             return path.join(self.seaice_motion_path, 'means', str(date.year), filename)
         else:
             filename = 'icemotion.grid.daily.' + str(date.year) + str(date.timetuple().tm_yday).zfill(3) + '.s.v3.bin'
@@ -69,10 +70,10 @@ class SeaIceMotionDataReader(object):
 
         self.south_grid = south_grid
 
-    def load_SIM_dataset(self, date, monthly):
-        dataset_filepath = self.date_to_SIM_filepath(date, monthly)
+    def load_SIM_dataset(self, date):
+        dataset_filepath = self.date_to_SIM_filepath(date)
 
-        logger.debug('Reading in sea ice motion dataset: {}'.format(dataset_filepath))
+        logger.info('Reading in sea ice motion dataset: {}'.format(dataset_filepath))
         data = np.fromfile(dataset_filepath, dtype='<i2').reshape(321, 321, 3)
         logger.info('Successfully read sea ice motion data.')
 
@@ -84,22 +85,29 @@ class SeaIceMotionDataReader(object):
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup...')
         self.u_ice = np.zeros((self.south_grid_lats, self.south_grid_lons), dtype=float)
-        self.v_ice = np.zeros((self.south_grid_lats, self.south_grid_lons))
+        self.v_ice = np.zeros((self.south_grid_lats, self.south_grid_lons), dtype=float)
         self.error = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.x = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.y = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.lat = np.zeros((self.south_grid_lats, self.south_grid_lons))
         self.lon = np.zeros((self.south_grid_lats, self.south_grid_lons))
 
+        from utils import polar_stereographic_velocity_vector_to_latlon
+
         for i in range(self.south_grid_lats):
             for j in range(self.south_grid_lons):
                 self.u_ice[i][j] = u_ice[i][j]
                 self.v_ice[i][j] = v_ice[i][j]
                 self.error[i][j] = error[i][j]
-                self.lat[i][j] = self.south_grid[i * self.south_grid_lats + j][2]
-                self.lon[i][j] = self.south_grid[i * self.south_grid_lats + j][3]
                 self.x[i][j] = self.south_grid[i * self.south_grid_lats + j][0]
                 self.y[i][j] = self.south_grid[i * self.south_grid_lats + j][1]
+                self.lat[i][j] = self.south_grid[i * self.south_grid_lats + j][2]
+                self.lon[i][j] = self.south_grid[i * self.south_grid_lats + j][3]
+
+                # u_ice_vec_xy = np.array([u_ice[i][j], v_ice[i][j]])
+                # u_ice_vec_latlon = polar_stereographic_velocity_vector_to_latlon(u_ice_vec_xy, self.lat[i][j], -self.lon[i][j])
+                # self.u_ice[i][j] = u_ice_vec_latlon[0]
+                # self.v_ice[i][j] = u_ice_vec_latlon[1]
 
         # A pixel value of 0 in the third variable indicates no vectors at that location.
         self.u_ice[self.error == 0] = np.nan
@@ -114,11 +122,16 @@ class SeaIceMotionDataReader(object):
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup... DONE.')
 
     def interpolate_seaice_motion_field(self):
-        from utils import interpolate_scalar_field, polar_stereographic_velocity_vector_to_latlon
+        from utils import interpolate_scalar_field
         from constants import n_row, n_col, u_ice_interp_method
 
-        interp_filename_prefix = 'icemotion.grid.daily.' + str(self.current_date.year) \
-                                 + str(self.current_date.timetuple().tm_yday).zfill(3) + '.s.v3'
+        if self.monthly:
+            interp_filename_prefix = 'icemotion.grid.month.' + str(self.current_date.year) + '.' \
+                                     + str(self.current_date.month).zfill(2) + '.s.v3'
+        else:
+            interp_filename_prefix = 'icemotion.grid.daily.' + str(self.current_date.year) \
+                                     + str(self.current_date.timetuple().tm_yday).zfill(3) + '.s.v3'
+
         interp_filename_suffix = str(n_row) + 'rows_' + str(n_col) + 'cols.pickle'
 
         u_ice_interp_filename = interp_filename_prefix + '_interp_u_ice_' + interp_filename_suffix
