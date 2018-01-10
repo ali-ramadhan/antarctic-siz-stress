@@ -39,8 +39,10 @@ class OceanSurfaceWindVectorDataReader(object):
                 self.lons = np.array(self.current_uwind_dataset.variables['lon'])
 
                 self.day_of_year = date.timetuple().tm_yday
-                self.uwind = np.array(self.current_uwind_dataset.variables['uwnd'][self.day_of_year])
-                self.vwind = np.array(self.current_vwind_dataset.variables['vwnd'][self.day_of_year])
+
+                # Numbering starts from 0 so we minus 1 to get the right index.
+                self.uwind = np.array(self.current_uwind_dataset.variables['uwnd'][self.day_of_year-1])
+                self.vwind = np.array(self.current_vwind_dataset.variables['vwnd'][self.day_of_year-1])
 
                 self.u_wind_interp = None
                 self.v_wind_interp = None
@@ -61,7 +63,7 @@ class OceanSurfaceWindVectorDataReader(object):
             vwind_filepath = path.join(self.oswv_ncep_data_dir_path, 'vwnd.10m.gauss.' + str(date.year) + '.nc')
             return uwind_filepath, vwind_filepath
         elif self.current_product is OSWVProduct.CCMP:
-            filename = 'analysis_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2)\
+            filename = 'analysis_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2) \
                        + '_v11l30flk.nc'
             return path.join(self.oswv_ccmp_data_dir_path, str(date.year), str(date.month).zfill(2), filename)
         else:
@@ -169,7 +171,10 @@ class OceanSurfaceWindVectorDataReader(object):
                 self.uwind = np.array(self.current_uwind_dataset.variables['uwnd'][self.day_of_year])
                 self.vwind = np.array(self.current_vwind_dataset.variables['vwnd'][self.day_of_year])
 
-            lon = lon + 180  # Change from our convention lon = [-180, 180] to [0, 360]
+            # lon = 180 - lon  # Change from our convention lon = [-180, 180] to [0, 360]
+
+            if lon < 0:
+                lon = lon + 360
 
             assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
             assert 0 <= lon <= 360, "Longitude value {} out of bounds!".format(lon)
