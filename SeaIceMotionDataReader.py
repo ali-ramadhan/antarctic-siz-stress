@@ -163,6 +163,24 @@ class SeaIceMotionDataReader(object):
 
         from constants import Omega, lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
 
+        # Using matplotlib.
+        logger.info('Plotting u_ice_interp...')
+        plt.pcolormesh(self.x, self.y, self.u_ice, cmap='seismic', vmin=-0.2, vmax=0.2)
+        plt.colorbar()
+        plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
+                   width=0.001, scale=4)
+        plt.gca().invert_yaxis()
+        plt.show()
+
+        logger.info('Plotting v_ice_interp...')
+        plt.pcolormesh(self.x, self.y, self.v_ice, cmap='seismic', vmin=-0.2, vmax=0.2)
+        plt.colorbar()
+        plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
+                   width=0.001, scale=4)
+        plt.gca().invert_yaxis()
+        plt.show()
+
+        # Using Cartopy
         lats = np.linspace(lat_min, lat_max, n_lat)
         lons = np.linspace(lon_min, lon_max, n_lon)
 
@@ -189,7 +207,7 @@ class SeaIceMotionDataReader(object):
         plt.colorbar(im)
 
         ax.quiver(lons[::5], lats[::5], u_ice_interp_latlon[::5, ::5], v_ice_interp_latlon[::5, ::5],
-                  transform=vector_crs, units='width', width=0.002, scale=4)
+                  transform=vector_crs, units='width', width=0.002, scale=3)
         plt.show()
 
         logger.info('Plotting v_ice_interp...')
@@ -203,24 +221,8 @@ class SeaIceMotionDataReader(object):
         plt.colorbar(im)
 
         ax.quiver(lons[::5], lats[::5], u_ice_interp_latlon[::5, ::5], v_ice_interp_latlon[::5, ::5],
-                  transform=vector_crs, units='width', width=0.002, scale=4)
+                  transform=vector_crs, units='width', width=0.002, scale=3)
         plt.show()
-
-        # logger.info('Plotting u_ice_interp...')
-        # plt.pcolormesh(self.row_interp, self.col_interp, self.u_ice_interp, cmap='seismic', vmin=-0.2, vmax=0.2)
-        # plt.colorbar()
-        # plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
-        #            width=0.001, scale=10)
-        # plt.gca().invert_yaxis()
-        # plt.show()
-        #
-        # logger.info('Plotting v_ice_interp...')
-        # plt.pcolormesh(self.row_interp, self.col_interp, self.v_ice_interp, cmap='seismic', vmin=-0.2, vmax=0.2)
-        # plt.colorbar()
-        # plt.quiver(self.x[::3, ::3], self.y[::3, ::3], self.u_ice[::3, ::3], self.v_ice[::3, ::3], units='width',
-        #            width=0.001, scale=10)
-        # plt.gca().invert_yaxis()
-        # plt.show()
 
     def seaice_motion_vector(self, lat, lon, date, data_source):
         from constants import R
@@ -257,10 +259,11 @@ class SeaIceMotionDataReader(object):
             try:
                 # TODO: Check if the below is actually correct
                 # We minus 1 since rows and cols start counting from 1, but indices count from 0 of course.
-                u_ice_rc = self.u_ice[row-1][col-1]
-                v_ice_rc = self.v_ice[row-1][col-1]
-                lat_rc = self.lat[row-1][col-1]
-                lon_rc = self.lon[row-1][col-1]
+                # Actually you don't minus 1 as the south grid does start from 0.
+                u_ice_rc = self.u_ice[row][col]
+                v_ice_rc = self.v_ice[row][col]
+                lat_rc = self.lat[row][col]
+                lon_rc = self.lon[row][col]
             except IndexError:
                 # This will happen if we're outside the square region of available data.
                 return np.array([np.nan, np.nan])

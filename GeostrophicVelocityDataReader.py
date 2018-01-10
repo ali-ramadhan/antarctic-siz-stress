@@ -37,7 +37,7 @@ class GeostrophicVelocityDataReader(object):
             self.load_u_geo_dataset()
 
     def date_to_u_geo_dataset_filepath(self, date):
-        # FIXME: Must pattern match the ending!!! https://docs.python.org/3.6/library/fnmatch.html
+        # FIXME: Must pattern match the ending!!! https://docs.python.org/3.6/library/fnmatch.html ? glob?
         filename = 'dt_global_allsat_msla_h_' + str(date.year) + str(date.month).zfill(2) \
                    + str(date.day).zfill(2) + '_20170110.nc'
         return path.join(self.u_geo_data_dir, str(date.year), filename)
