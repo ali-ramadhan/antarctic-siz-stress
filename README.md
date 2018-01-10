@@ -1,3 +1,3 @@
 # antarctic-siz-stress
 
-Looking at surface stresses and wind stress curl in the Antarctic sea ice zone.
+Looking at air-sea-ice interactions (e.g. surface stresses, Ekman pumping) in the Antarctic sea ice zone.
