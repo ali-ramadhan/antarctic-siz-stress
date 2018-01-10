@@ -78,9 +78,9 @@ class SeaIceMotionDataReader(object):
 
         # u_ice = data[..., 1]/10  # [cm/s]
         # v_ice = data[..., 2]/10  # [cm/s]
-        u_ice = data[..., 1]/1000  # [m/s]
-        v_ice = data[..., 2]/1000  # [m/s]
-        error = data[..., 0]/10  # square root of the estimated error variance
+        u_ice = data[..., 0]/1000  # [m/s]
+        v_ice = data[..., 1]/1000  # [m/s]
+        error = data[..., 2]/10  # square root of the estimated error variance
 
         logger.debug('Building 2D arrays for sea ice motion with lat,lon lookup...')
         self.u_ice = np.zeros((self.south_grid_lats, self.south_grid_lons), dtype=float)
