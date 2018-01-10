@@ -131,6 +131,7 @@ class SurfaceStressDataWriter(object):
                 # u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, self.date, 'interp')
 
                 u_geo_vec = self.u_geo_data.absolute_geostrophic_velocity(lat, lon, self.date, 'interp')
+                # u_geo_vec = np.array([0, 0])
                 u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, self.date, 'interp')
                 alpha = self.sea_ice_conc_data.sea_ice_concentration(lat, lon, self.date, 'interp')
                 u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, self.date, 'interp')

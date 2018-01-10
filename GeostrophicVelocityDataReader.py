@@ -128,4 +128,5 @@ class GeostrophicVelocityDataReader(object):
             logger.error('Invalid value for data_source: {}'.format(data_source))
             raise ValueError('Invalid value for data_source: {}'.format(data_source))
 
-        return np.array([u_geo_ll, v_geo_ll])
+        return np.array([0, 0])
+        # return np.array([u_geo_ll, v_geo_ll])
