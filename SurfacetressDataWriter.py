@@ -666,6 +666,27 @@ class SurfaceStressDataWriter(object):
                 ax.quiver(self.lons[::10], self.lats[::10], self.tau_x_field[::10, ::10], self.tau_y_field[::10, ::10],
                           transform=vector_crs, units='width', width=0.002, scale=8)
 
+            # Plot zero stress line and zero wind line on tau_x
+            if var == 'tau_x':
+                zero_stress_line = []
+                zero_wind_line = []
+                ice_edge = []
+                for i in range(len(self.lons)):
+                    for j in range(len(self.lats)):
+                        if np.abs(self.tau_x_field[j][i]) < 0.005:  # and np.abs(self.tau_y_field[j][i]) < 0.01:
+                            zero_stress_line.append(np.array([self.lats[j], self.lons[i]]))
+                        if np.abs(self.u_wind_field[j][i]) < 0.5:  # and np.abs(self.v_wind_field[j][i]) < 1:
+                            zero_wind_line.append(np.array([self.lats[j], self.lons[i]]))
+                        if 0 < np.abs(self.alpha_field[j][i]) < 0.4:
+                            ice_edge.append(np.array([self.lats[j], self.lons[i]]))
+
+                ax.scatter([point[1] for point in zero_stress_line], [point[0] for point in zero_stress_line],
+                           s=0.2, c='green', facecolor='green', transform=vector_crs)
+                ax.scatter([point[1] for point in zero_wind_line], [point[0] for point in zero_wind_line],
+                           s=0.1, c='brown', facecolor='brown', transform=vector_crs)
+                ax.scatter([point[1] for point in ice_edge], [point[0] for point in ice_edge],
+                           s=0.25, c='black', facecolor='black', transform=vector_crs)
+
         # Add date label to bottom left.
         if type == 'daily':
             date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
