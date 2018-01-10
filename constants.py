@@ -123,7 +123,7 @@ scale_factor = {
     'curl_tau': 1e6,
     'tau_SIZ_x': 1,
     'tau_SIZ_y': 1,
-    'w_Ekman': 3600 * 365  # [m/s] -> [m/year]
+    'w_Ekman': 3600 * 365 * 24  # [m/s] -> [m/year]
 }
 
 colorbar_label = {
