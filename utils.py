@@ -4,6 +4,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def date_range(date1, date2):
+    from datetime import timedelta
+    dates = []
+    for n in range(int((date2 - date1).days) + 1):
+        dates.append(date1 + timedelta(n))
+    return dates
+
+
 def distance(lat1, lon1, lat2, lon2):
     from constants import R
 
