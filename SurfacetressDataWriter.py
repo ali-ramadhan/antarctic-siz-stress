@@ -230,16 +230,16 @@ class SurfaceStressDataWriter(object):
                     self.wind_stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
-    def compute_monthly_mean_fields(self, date_in_month, method):
+    def compute_mean_fields(self, dates, avg_method):
         import datetime
         from calendar import monthrange
+
         from constants import output_dir_path
         from utils import log_netCDF_dataset_metadata
 
-        self.date = date_in_month
-        n_days = monthrange(date_in_month.year, date_in_month.month)[1]
+        n_days = len(dates)
 
-        # Initializing all the fields we want to calculate a monthly average for.
+        # Initializing all the fields we want to calculate an average for.
         tau_air_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
         tau_air_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
         tau_ice_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
@@ -265,7 +265,7 @@ class SurfaceStressDataWriter(object):
         wind_stress_curl_field_avg = np.zeros((len(self.lats), len(self.lons)))
         w_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
 
-        # Number of days with available data for each grid point.
+        # Number of days with available data for each grid point (for 'partial_data_ok' avg_method).
         tau_air_x_field_days = np.zeros((len(self.lats), len(self.lons)))
         tau_air_y_field_days = np.zeros((len(self.lats), len(self.lons)))
         tau_ice_x_field_days = np.zeros((len(self.lats), len(self.lons)))
@@ -291,28 +291,15 @@ class SurfaceStressDataWriter(object):
         wind_stress_curl_field_days = np.zeros((len(self.lats), len(self.lons)))
         w_Ekman_field_days = np.zeros((len(self.lats), len(self.lons)))
 
-        dates = []
-        for day in range(1, 30+1):
-            dates.append(datetime.date(2015, 6, day))
-        for day in range(1, 31+1):
-            dates.append(datetime.date(2015, 7, day))
-        for day in range(1, 31+1):
-            dates.append(datetime.date(2015, 8, day))
-
         for date in dates:
-        # for day in range(1, n_days+1):
-        #     date = datetime.date(date_in_month.year, date_in_month.month, day)
-
-            tau_nc_filename = 'surface_stress_' + '2015' + str(date.month).zfill(2) + str(date.day).zfill(2) + '.nc'
-            tau_filepath = os.path.join(output_dir_path, 'surface_stress', '2015', tau_nc_filename)
+            tau_nc_filename = 'surface_stress_' + str(date.year) + str(date.month).zfill(2) \
+                              + str(date.day).zfill(2) + '.nc'
+            tau_filepath = os.path.join(output_dir_path, 'surface_stress', str(date.year), tau_nc_filename)
 
             logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
 
             current_tau_dataset = netCDF4.Dataset(tau_filepath)
             log_netCDF_dataset_metadata(current_tau_dataset)
-
-            self.lats = np.array(current_tau_dataset.variables['lat'])
-            self.lons = np.array(current_tau_dataset.variables['lon'])
 
             tau_air_x_field = np.array(current_tau_dataset.variables['tau_air_x'])
             tau_air_y_field = np.array(current_tau_dataset.variables['tau_air_y'])
@@ -339,7 +326,7 @@ class SurfaceStressDataWriter(object):
             wind_stress_curl_field = np.array(current_tau_dataset.variables['wind_stress_curl'])
             w_Ekman_field = np.array(current_tau_dataset.variables['Ekman_w'])
 
-            if method == 'full_data_only':
+            if avg_method == 'full_data_only':
                 tau_air_x_field_avg = tau_air_x_field_avg + tau_air_x_field/n_days
                 tau_air_y_field_avg = tau_air_y_field_avg + tau_air_y_field/n_days
                 tau_ice_x_field_avg = tau_ice_x_field_avg + tau_ice_x_field/n_days
@@ -365,7 +352,7 @@ class SurfaceStressDataWriter(object):
                 wind_stress_curl_field_avg = wind_stress_curl_field_avg + wind_stress_curl_field/n_days
                 w_Ekman_field_avg = w_Ekman_field_avg + w_Ekman_field/n_days
 
-            elif method == 'partial_data_ok':
+            elif avg_method == 'partial_data_ok':
                 tau_air_x_field_avg = tau_air_x_field_avg + np.nan_to_num(tau_air_x_field)
                 tau_air_x_field[~np.isnan(tau_air_x_field)] = 1
                 tau_air_x_field[np.isnan(tau_air_x_field)] = 0
@@ -471,7 +458,7 @@ class SurfaceStressDataWriter(object):
                 w_Ekman_field[np.isnan(w_Ekman_field)] = 0
                 w_Ekman_field_days = w_Ekman_field_days + w_Ekman_field
 
-        if method == 'full_data_only':
+        if avg_method == 'full_data_only':
             self.tau_air_x_field = tau_air_x_field_avg
             self.tau_air_y_field = tau_air_y_field_avg
             self.tau_ice_x_field = tau_ice_x_field_avg
@@ -497,7 +484,7 @@ class SurfaceStressDataWriter(object):
             self.wind_stress_curl_field = wind_stress_curl_field_avg
             self.w_Ekman_field = w_Ekman_field_avg
 
-        elif method == 'partial_data_ok':
+        elif avg_method == 'partial_data_ok':
             self.tau_air_x_field = np.divide(tau_air_x_field_avg, tau_air_x_field_days)
             self.tau_air_y_field = np.divide(tau_air_y_field_avg, tau_air_y_field_days)
             self.tau_ice_x_field = np.divide(tau_ice_x_field_avg, tau_ice_x_field_days)
@@ -523,9 +510,7 @@ class SurfaceStressDataWriter(object):
             self.wind_stress_curl_field = np.divide(wind_stress_curl_field_avg, wind_stress_curl_field_days)
             self.w_Ekman_field = np.divide(w_Ekman_field_avg, w_Ekman_field_days)
 
-        self.plot_diagnostic_fields(type='monthly_avg')
-
-    def plot_diagnostic_fields(self, type):
+    def plot_diagnostic_fields(self, plot_type, custom_label=None):
         import matplotlib
         import matplotlib.pyplot as plt
         from matplotlib.gridspec import GridSpec
@@ -591,42 +576,56 @@ class SurfaceStressDataWriter(object):
                           transform=vector_crs, units='width', width=0.002, scale=8)
 
             # Plot zero stress line and zero wind line on tau_x
-            if var == 'tau_x':
+            if var == 'tau_x' or var == 'w_Ekman':
                 zero_stress_line = []
                 zero_wind_line = []
                 ice_edge = []
                 for i in range(len(self.lons)):
                     for j in range(len(self.lats)):
-                        if np.abs(self.tau_x_field[j][i]) < 0.005:  # and np.abs(self.tau_y_field[j][i]) < 0.01:
+                        if np.abs(self.tau_x_field[j][i]) < 0.0025:  # and np.abs(self.tau_y_field[j][i]) < 0.01:
                             zero_stress_line.append(np.array([self.lats[j], self.lons[i]]))
-                        if np.abs(self.u_wind_field[j][i]) < 0.5:  # and np.abs(self.v_wind_field[j][i]) < 1:
+                        if np.abs(self.u_wind_field[j][i]) < 0.2:  # and np.abs(self.v_wind_field[j][i]) < 1:
                             zero_wind_line.append(np.array([self.lats[j], self.lons[i]]))
-                        if 0 < np.abs(self.alpha_field[j][i]) < 0.4:
+                        if 0.05 < np.abs(self.alpha_field[j][i]) < 0.15:
                             ice_edge.append(np.array([self.lats[j], self.lons[i]]))
 
-                ax.scatter([point[1] for point in zero_stress_line], [point[0] for point in zero_stress_line],
-                           s=0.2, c='green', facecolor='green', transform=vector_crs)
-                ax.scatter([point[1] for point in zero_wind_line], [point[0] for point in zero_wind_line],
-                           s=0.1, c='brown', facecolor='brown', transform=vector_crs)
-                ax.scatter([point[1] for point in ice_edge], [point[0] for point in ice_edge],
-                           s=0.25, c='black', facecolor='black', transform=vector_crs)
+                if zero_stress_line:
+                    ax.scatter([point[1] for point in zero_stress_line], [point[0] for point in zero_stress_line],
+                               marker=',', s=1, lw=0, c='green', facecolor='green', transform=vector_crs,
+                               label='zero stress line')
+                if zero_wind_line:
+                    ax.scatter([point[1] for point in zero_wind_line], [point[0] for point in zero_wind_line],
+                               marker=',', s=1, lw=0, c='brown', facecolor='brown', transform=vector_crs,
+                               label='zero wind line')
+                if ice_edge:
+                    ax.scatter([point[1] for point in ice_edge], [point[0] for point in ice_edge],
+                               marker=',', s=1, lw=0, c='black', facecolor='black', transform=vector_crs,
+                               label='ice edge')
 
         # Add date label to bottom left.
-        if type == 'daily':
+        if plot_type == 'daily':
             date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
             plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
-        elif type == 'monthly_avg':
-            # date_str = '{:%b %Y} average'.format(self.date)
-            date_str = 'JJA 2015 average'
+        elif plot_type == 'monthly':
+            date_str = '{:%b %Y} average'.format(self.date)
             plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
+        elif plot_type == 'annual':
+            date_str = '{:%Y} (annual mean)'.format(self.date)
+            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
+        elif plot_type == 'custom':
+            plt.gcf().text(0.1, 0.1, custom_label, fontsize=10)
 
         logger.info('Saving diagnostic figures to disk...')
 
-        if type == 'daily':
+        if plot_type == 'daily':
             tau_filename = 'surface_stress_' + str(self.date.year) + str(self.date.month).zfill(2) \
                            + str(self.date.day).zfill(2)
-        elif type == 'monthly_avg':
-            tau_filename = 'surfce_stress_' + '{:%b%Y}_avg'.format(self.date)
+        elif plot_type == 'monthly':
+            tau_filename = 'surface_stress_' + '{:%b%Y}_avg'.format(self.date)
+        elif plot_type == 'annual':
+            tau_filename = 'surface_stress_' + '{:%Y}_avg'.format(self.date)
+        elif plot_type == 'custom':
+            tau_filename = 'surface_stress_' + custom_label
 
         # Saving diagnostic figure to disk. Only in .png as .pdf takes forever to write and is MASSIVE.
         tau_png_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.png')
