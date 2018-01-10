@@ -290,12 +290,22 @@ class SurfaceStressDataWriter(object):
         wind_stress_curl_field_days = np.zeros((len(self.lats), len(self.lons)))
         w_Ekman_field_days = np.zeros((len(self.lats), len(self.lons)))
 
-        for day in range(1, n_days+1):
-            date = datetime.date(date_in_month.year, date_in_month.month, day)
-            logger.info('Averaging {:%b %d, %Y}...'.format(date))
+        dates = []
+        for day in range(1, 30+1):
+            dates.append(datetime.date(2015, 6, day))
+        for day in range(1, 31+1):
+            dates.append(datetime.date(2015, 7, day))
+        for day in range(1, 31+1):
+            dates.append(datetime.date(2015, 8, day))
 
-            tau_nc_filename = 'surface_stress_' + '2015' + '07' + str(day).zfill(2) + '.nc'
+        for date in dates:
+        # for day in range(1, n_days+1):
+        #     date = datetime.date(date_in_month.year, date_in_month.month, day)
+
+            tau_nc_filename = 'surface_stress_' + '2015' + str(date.month).zfill(2) + str(date.day).zfill(2) + '.nc'
             tau_filepath = os.path.join(output_dir_path, 'surface_stress', '2015', tau_nc_filename)
+
+            logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
 
             current_tau_dataset = netCDF4.Dataset(tau_filepath)
             log_netCDF_dataset_metadata(current_tau_dataset)
@@ -692,7 +702,8 @@ class SurfaceStressDataWriter(object):
             date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
             plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
         elif type == 'monthly_avg':
-            date_str = '{:%b %Y} average'.format(self.date)
+            # date_str = '{:%b %Y} average'.format(self.date)
+            date_str = 'JJA 2015 average'
             plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
 
         logger.info('Saving diagnostic figures to disk...')
@@ -806,7 +817,7 @@ class SurfaceStressDataWriter(object):
         curl_tau_var[:] = self.wind_stress_curl_field
 
         w_Ekman_var = tau_dataset.createVariable('Ekman_w', float, ('lat', 'lon'), zlib=True)
-        w_Ekman_var.units = 'm/year'
+        w_Ekman_var.units = 'm/s'  # TODO: Save as [m/year].
         w_Ekman_var.positive = 'up'
         w_Ekman_var.long_name = 'Ekman pumping'
         w_Ekman_var[:] = self.w_Ekman_field
