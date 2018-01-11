@@ -1,5 +1,5 @@
 from os import path
-from enum import Enum, auto
+from enum import Enum
 import numpy as np
 import netCDF4
 
@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class OSWVProduct(Enum):
-    NCEP = auto()  # NCEP/NCAR Reanalysis 1 project wind data
-    CCMP = auto()  # Cross-Calibrated Multi-Platform Ocean Surface Wind Vector L3.0 First-Look Analyses
+    NCEP = 1  # NCEP/NCAR Reanalysis 1 project wind data
+    CCMP = 2  # Cross-Calibrated Multi-Platform Ocean Surface Wind Vector L3.0 First-Look Analyses
 
 
 class OceanSurfaceWindVectorDataReader(object):
