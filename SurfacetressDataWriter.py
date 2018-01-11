@@ -513,6 +513,7 @@ class SurfaceStressDataWriter(object):
     def plot_diagnostic_fields(self, plot_type, custom_label=None):
         import matplotlib
         import matplotlib.pyplot as plt
+        import matplotlib.patches as mpatches
         from matplotlib.gridspec import GridSpec
 
         import cartopy
@@ -575,35 +576,48 @@ class SurfaceStressDataWriter(object):
                 ax.quiver(self.lons[::10], self.lats[::10], self.tau_x_field[::10, ::10], self.tau_y_field[::10, ::10],
                           transform=vector_crs, units='width', width=0.002, scale=8)
 
-            # Plot zero stress line and zero wind line on tau_x
+            # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots
             if var == 'tau_x' or var == 'w_Ekman':
-                zero_stress_line = []
-                zero_wind_line = []
-                ice_edge = []
-                for i in range(len(self.lons)):
-                    for j in range(len(self.lats)):
-                        if np.abs(self.tau_x_field[j][i]) < 0.0025:  # and np.abs(self.tau_y_field[j][i]) < 0.01:
-                            zero_stress_line.append(np.array([self.lats[j], self.lons[i]]))
-                        if np.abs(self.u_wind_field[j][i]) < 0.2:  # and np.abs(self.v_wind_field[j][i]) < 1:
-                            zero_wind_line.append(np.array([self.lats[j], self.lons[i]]))
-                        if 0.05 < np.abs(self.alpha_field[j][i]) < 0.15:
-                            ice_edge.append(np.array([self.lats[j], self.lons[i]]))
+                ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                           levels=[0], colors='green', linewidths=1, transform=vector_crs)
+                ax.contour(self.lons, self.lats, np.ma.array(self.u_wind_field, mask=np.isnan(self.alpha_field)),
+                           levels=[0], colors='brown', linewidths=1, transform=vector_crs)
+                ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                           levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-                if zero_stress_line:
-                    ax.scatter([point[1] for point in zero_stress_line], [point[0] for point in zero_stress_line],
-                               marker=',', s=1, lw=0, c='green', facecolor='green', transform=vector_crs,
-                               label='zero stress line')
-                if zero_wind_line:
-                    ax.scatter([point[1] for point in zero_wind_line], [point[0] for point in zero_wind_line],
-                               marker=',', s=1, lw=0, c='brown', facecolor='brown', transform=vector_crs,
-                               label='zero wind line')
-                if ice_edge:
-                    ax.scatter([point[1] for point in ice_edge], [point[0] for point in ice_edge],
-                               marker=',', s=1, lw=0, c='black', facecolor='black', transform=vector_crs,
-                               label='ice edge')
+                zero_stress_line_patch = mpatches.Patch(color='green', label='zero stress line')
+                zero_wind_line_patch = mpatches.Patch(color='brown', label='zero wind line')
+                ice_edge_patch = mpatches.Patch(color='black', label='ice edge')
+                plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch], loc='lower center',
+                           bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0)
 
-                plt.legend(loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand',
-                           borderaxespad=0, markerscale=6)
+                # zero_stress_line = []
+                # zero_wind_line = []
+                # ice_edge = []
+                # for i in range(len(self.lons)):
+                #     for j in range(len(self.lats)):
+                #         if np.abs(self.tau_x_field[j][i]) < 0.0025:  # and np.abs(self.tau_y_field[j][i]) < 0.01:
+                #             zero_stress_line.append(np.array([self.lats[j], self.lons[i]]))
+                #         if np.abs(self.u_wind_field[j][i]) < 0.2:  # and np.abs(self.v_wind_field[j][i]) < 1:
+                #             zero_wind_line.append(np.array([self.lats[j], self.lons[i]]))
+                #         if 0.05 < np.abs(self.alpha_field[j][i]) < 0.15:
+                #             ice_edge.append(np.array([self.lats[j], self.lons[i]]))
+                #
+                # if zero_stress_line:
+                #     ax.scatter([point[1] for point in zero_stress_line], [point[0] for point in zero_stress_line],
+                #                marker=',', s=1, lw=0, c='green', facecolor='green', transform=vector_crs,
+                #                label='zero stress line')
+                # if zero_wind_line:
+                #     ax.scatter([point[1] for point in zero_wind_line], [point[0] for point in zero_wind_line],
+                #                marker=',', s=1, lw=0, c='brown', facecolor='brown', transform=vector_crs,
+                #                label='zero wind line')
+                # if ice_edge:
+                #     ax.scatter([point[1] for point in ice_edge], [point[0] for point in ice_edge],
+                #                marker=',', s=1, lw=0, c='black', facecolor='black', transform=vector_crs,
+                #                label='ice edge')
+                #
+                # plt.legend(loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand',
+                #            borderaxespad=0, markerscale=6)
 
         # Add date label to bottom left.
         if plot_type == 'daily':

@@ -118,6 +118,23 @@ def convert_lon_range_to_0360(old_lon_min, old_lon_max):
         return 0, 360
 
 
+def interp_weights(xyz, uvw, dim):
+    import scipy.spatial.qhull as qhull
+
+    tri = qhull.Delaunay(xyz)
+    simplex = tri.find_simplex(uvw)
+    vertices = np.take(tri.simplices, simplex, axis=0)
+    temp = np.take(tri.transform, simplex, axis=0)
+    delta = uvw - temp[:, dim]
+    bary = np.einsum('njk,nk->nj', temp[:, :dim, :], delta)
+
+    return vertices, np.hstack((bary, 1 - bary.sum(axis=1, keepdims=True)))
+
+
+def interpolate(values, vtx, wts):
+    return np.einsum('nj,nj->n', np.take(values, vtx), wts)
+
+
 def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_type, interp_method,
                              repeat0tile1, convert_lon_range):
     import pickle
@@ -228,6 +245,7 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
 
     logger.info('Interpolating dataset...')
     data_interp = griddata((x_masked, y_masked), data_masked, (x_interp, y_interp), method=interp_method)
+    vtx, wts = interp_weights(xyz, uvw)
 
     if debug_plots:
         logger.info('Plotting interpolated data.')
