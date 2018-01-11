@@ -35,7 +35,7 @@ rho_0 = 1027.5  # "reference" density [kg/m^3]
 D_e = 20  # Ekman layer depth [m]
 
 """ Latitude-longitude interpolation grid constants """
-lat_min = -75
+lat_min = -80
 lat_max = -40
 lon_min = -180
 lon_max = 180
@@ -58,8 +58,8 @@ n_col = 1000
 mdt_interp_method = 'cubic'
 u_geo_interp_method = 'linear'
 alpha_interp_method = 'linear'
-u_ice_interp_method = 'linear'
-u_wind_interp_method = 'linear'
+u_ice_interp_method = 'cubic'
+u_wind_interp_method = 'cubic'
 
 """ Constants for diagnostic field plots """
 titles = {
