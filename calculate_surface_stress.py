@@ -30,7 +30,7 @@ def process_day(date):
     surface_stress_dataset.compute_daily_surface_stress_field()
     surface_stress_dataset.compute_daily_ekman_pumping_field()
     surface_stress_dataset.write_fields_to_netcdf()
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
 
 
 if __name__ == '__main__':
@@ -55,12 +55,12 @@ if __name__ == '__main__':
     # surface_stress_dataset.compute_monthly_mean_fields(date_in_month, method='partial_data_ok')
 
     """ Process all of 2015 """
-    # for month in [6, 7, 8]:
-    #     date_in_month = datetime.date(2015, month, 1)
-    #     n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
-    #
-    #     Parallel(n_jobs=4)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
-    #                        for day in range(1, n_days+1))
+    for month in [6, 7, 8]:
+        date_in_month = datetime.date(2015, month, 1)
+        n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
+
+        Parallel(n_jobs=4)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
+                           for day in range(1, n_days+1))
 
     # Monthly means
     # for month in [12]: # range(1, 13):
@@ -83,11 +83,11 @@ if __name__ == '__main__':
     # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='annual')
     #
-    # JJA, SON, DJF, and MAM seasonal averages
+    # # JJA, SON, DJF, and MAM seasonal averages
     # seasons = [
-    #     # {'date1': datetime.date(2015, 3, 1), 'date2': datetime.date(2015, 5, 31), 'label': 'Autumn (MAM) 2015 average'},
-    #     {'date1': datetime.date(2015, 6, 1), 'date2': datetime.date(2015, 8, 31), 'label': 'Winter_JJA_2015_average'},
-    #     # {'date1': datetime.date(2015, 9, 1), 'date2': datetime.date(2015, 11, 30), 'label': 'Spring (SON) 2015 average'},
+    #     {'date1': datetime.date(2015, 3, 1), 'date2': datetime.date(2015, 5, 31), 'label': 'Autumn (MAM) 2015 average'},
+    #     {'date1': datetime.date(2015, 6, 1), 'date2': datetime.date(2015, 8, 31), 'label': 'Winter (JJA) 2015 average'},
+    #     {'date1': datetime.date(2015, 9, 1), 'date2': datetime.date(2015, 11, 30), 'label': 'Spring (SON) 2015 average'},
     # ]
     # for season in seasons:
     #     dates = date_range(season['date1'], season['date2'])
@@ -106,11 +106,4 @@ if __name__ == '__main__':
     # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Summer (DJF) 2015 average')
 
-    """ Process all of 1995-2014 """
-    for year in range(1995, 2015):
-        for month in range(1, 13):
-            date_in_month = datetime.date(year, month, 1)
-            n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
-
-            Parallel(n_jobs=8)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
-                               for day in range(1, n_days+1))
+    # July climo mean (1995-2015?)
