@@ -215,7 +215,7 @@ class SeaIceMotionDataset(object):
                   transform=vector_crs, units='width', width=0.002, scale=3)
         plt.show()
 
-    def seaice_motion_vector(self, lat, lon, date, data_source):
+    def seaice_motion_vector(self, lat, lon, data_source):
         from constants import R
 
         lat, lon = np.deg2rad([lat, lon])

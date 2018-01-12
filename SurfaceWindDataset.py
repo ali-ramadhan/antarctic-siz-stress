@@ -113,7 +113,7 @@ class SurfaceWindDataset(object):
         self.latgrid_interp = np.array(latgrid_interp)
         self.longrid_interp = np.array(longrid_interp)
 
-    def ocean_surface_wind_vector(self, lat, lon, date, data_source):
+    def ocean_surface_wind_vector(self, lat, lon, data_source):
         # lon = 180 - lon  # Change from our convention lon = [-180, 180] to [0, 360]
 
         # This is the proper conversion from my longitude convention (-=W, +=E) to NCEP's.

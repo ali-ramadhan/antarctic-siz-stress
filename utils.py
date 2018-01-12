@@ -245,7 +245,9 @@ def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_
 
     logger.info('Interpolating dataset...')
     data_interp = griddata((x_masked, y_masked), data_masked, (x_interp, y_interp), method=interp_method)
-    vtx, wts = interp_weights(xyz, uvw)
+
+    # TODO: Save and reuse the Delaunay triangulation!
+    # vtx, wts = interp_weights(xyz, uvw)
 
     if debug_plots:
         logger.info('Plotting interpolated data.')
