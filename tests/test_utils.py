@@ -3,8 +3,8 @@ import pytest
 import sys
 sys.path.append("..")
 
-from GeostrophicVelocityDataReader import GeostrophicVelocityDataReader
+from GeostrophicVelocityDataset import GeostrophicVelocityDataset
 
 
 def test_init_without_date():
-    GeostrophicVelocityDataReader()
+    GeostrophicVelocityDataset()

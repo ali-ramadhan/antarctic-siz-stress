@@ -2,7 +2,7 @@ import os
 import numpy as np
 import netCDF4
 
-from GeostrophicVelocityDataReader import GeostrophicVelocityDataReader
+from GeostrophicVelocityDataset import GeostrophicVelocityDataset
 from OceanSurfaceWindVectorDataReader import OceanSurfaceWindVectorDataReader
 from SeaIceConcentrationDataReader import SeaIceConcentrationDataReader
 from SeaIceMotionDataReader import SeaIceMotionDataReader
@@ -62,7 +62,7 @@ class SurfaceStressDataWriter(object):
         if date is not None:
             self.date = date
 
-            self.u_geo_data = GeostrophicVelocityDataReader(self.date)
+            self.u_geo_data = GeostrophicVelocityDataset(self.date)
             self.sea_ice_conc_data = SeaIceConcentrationDataReader(self.date)
             self.sea_ice_motion_data = SeaIceMotionDataReader(self.date)
             self.u_wind_data = OceanSurfaceWindVectorDataReader(self.date)
