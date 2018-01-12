@@ -4,7 +4,7 @@ import netCDF4
 
 from GeostrophicVelocityDataset import GeostrophicVelocityDataset
 from SurfaceWindDataset import SurfaceWindDataset
-from SeaIceConcentrationDataReader import SeaIceConcentrationDataReader
+from SeaIceConcentrationDataset import SeaIceConcentrationDataset
 from SeaIceMotionDataReader import SeaIceMotionDataReader
 
 from utils import distance
@@ -63,7 +63,7 @@ class SurfaceStressDataWriter(object):
             self.date = date
 
             self.u_geo_data = GeostrophicVelocityDataset(self.date)
-            self.sea_ice_conc_data = SeaIceConcentrationDataReader(self.date)
+            self.sea_ice_conc_data = SeaIceConcentrationDataset(self.date)
             self.sea_ice_motion_data = SeaIceMotionDataReader(self.date)
             self.u_wind_data = SurfaceWindDataset(self.date)
 
@@ -150,7 +150,7 @@ class SurfaceStressDataWriter(object):
 
                 # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
                 # then tau is just tau_air and easy to calculate. Note that this encompasses regions of alpha < 0.15 as
-                # well since SeaIceConcentrationDataReader returns 0 for alpha < 0.15.
+                # well since SeaIceConcentrationDataset returns 0 for alpha < 0.15.
                 if ((alpha == 0 or np.isnan(alpha)) and np.isnan(u_ice_vec[0])) \
                         and not np.isnan(u_geo_vec[0]) and not np.isnan(u_wind_vec[0]):
 

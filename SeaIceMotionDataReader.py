@@ -1,5 +1,4 @@
 # TODO: Properly take care of masked values and errors?
-# TODO: Convert vectors from polar stereographic (EASE-Grid) to zonal-meridional.
 
 from os import path
 import numpy as np
@@ -38,7 +37,7 @@ class SeaIceMotionDataReader(object):
         self.v_ice_interp = None
 
         if date is None:
-            logger.info('SeaIceConcentrationDataReader object initialized but no dataset was loaded.')
+            logger.info('SeaIceConcentrationDataset object initialized but no dataset was loaded.')
             self.current_date = None
         else:
             self.current_date = date
