@@ -71,14 +71,18 @@ class GeostrophicVelocityDataset(object):
         # TODO: Properly check for masked/filled values.
         mask_value_cond = lambda x: x < -100
 
-        repeat0tile1 = True
-        convert_lon_range = True
-        u_geo_interp, lats_interp, lons_interp = interpolate_scalar_field(
-            self.u_geo, self.lats, self.lons, u_geo_interp_filepath, mask_value_cond, 'latlon',
-            u_geo_interp_method, repeat0tile1, convert_lon_range)
-        v_geo_interp, lats_interp, lons_interp = interpolate_scalar_field(
-            self.v_geo, self.lats, self.lons, v_geo_interp_filepath, mask_value_cond, 'latlon',
-            u_geo_interp_method, repeat0tile1, convert_lon_range)
+        u_geo_interp, lats_interp, lons_interp = interpolate_scalar_field(data=self.u_geo, x=self.lats, y=self.lons,
+                                                                          pickle_filepath=u_geo_interp_filepath,
+                                                                          mask_value_cond=mask_value_cond,
+                                                                          grid_type='latlon',
+                                                                          interp_method=u_geo_interp_method,
+                                                                          repeat0tile1=True, convert_lon_range=True)
+        v_geo_interp, lats_interp, lons_interp = interpolate_scalar_field(data=self.v_geo, x=self.lats, y=self.lons,
+                                                                          pickle_filepath=v_geo_interp_filepath,
+                                                                          mask_value_cond=mask_value_cond,
+                                                                          grid_type='latlon',
+                                                                          interp_method=u_geo_interp_method,
+                                                                          repeat0tile1=True, convert_lon_range=True)
 
         # Convert everything to a numpy array otherwise the argmin functions below have to create a new numpy array
         # every time, slowing down lookup considerably.

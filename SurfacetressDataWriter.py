@@ -3,7 +3,7 @@ import numpy as np
 import netCDF4
 
 from GeostrophicVelocityDataset import GeostrophicVelocityDataset
-from OceanSurfaceWindVectorDataReader import OceanSurfaceWindVectorDataReader
+from SurfaceWindDataset import SurfaceWindDataset
 from SeaIceConcentrationDataReader import SeaIceConcentrationDataReader
 from SeaIceMotionDataReader import SeaIceMotionDataReader
 
@@ -65,7 +65,7 @@ class SurfaceStressDataWriter(object):
             self.u_geo_data = GeostrophicVelocityDataset(self.date)
             self.sea_ice_conc_data = SeaIceConcentrationDataReader(self.date)
             self.sea_ice_motion_data = SeaIceMotionDataReader(self.date)
-            self.u_wind_data = OceanSurfaceWindVectorDataReader(self.date)
+            self.u_wind_data = SurfaceWindDataset(self.date)
 
     def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec):
         # Use the Modified Richardson iteration to calculate tau and u_Ekman. Here we set the variables to arbitrary
