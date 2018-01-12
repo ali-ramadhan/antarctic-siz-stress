@@ -5,7 +5,7 @@ import netCDF4
 from GeostrophicVelocityDataset import GeostrophicVelocityDataset
 from SurfaceWindDataset import SurfaceWindDataset
 from SeaIceConcentrationDataset import SeaIceConcentrationDataset
-from SeaIceMotionDataReader import SeaIceMotionDataReader
+from SeaIceMotionDataset import SeaIceMotionDataset
 
 from utils import distance
 from constants import output_dir_path
@@ -64,7 +64,7 @@ class SurfaceStressDataWriter(object):
 
             self.u_geo_data = GeostrophicVelocityDataset(self.date)
             self.sea_ice_conc_data = SeaIceConcentrationDataset(self.date)
-            self.sea_ice_motion_data = SeaIceMotionDataReader(self.date)
+            self.sea_ice_motion_data = SeaIceMotionDataset(self.date)
             self.u_wind_data = SurfaceWindDataset(self.date)
 
     def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec):

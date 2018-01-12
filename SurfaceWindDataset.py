@@ -21,6 +21,8 @@ class SurfaceWindDataset(object):
     def __init__(self, date):
         self.u_wind_dataset = None
         self.v_wind_dataset = None
+        self.date = date
+        self.day_of_year = date.timetuple().tm_yday
 
         self.lats = None
         self.lons = None
@@ -32,14 +34,11 @@ class SurfaceWindDataset(object):
         self.latgrid_interp = None
         self.longrid_interp = None
 
-        self.date = date
-        self.day_of_year = date.timetuple().tm_yday
-
         logger.info('SurfaceWindDataset object initializing for date {}...'.format(self.date))
         self.load_surface_wind_dataset()
         self.interpolate_wind_field()
 
-    def date_to_dataset_filepath(self):
+    def date_to_dataset_filepath(self, date):
         uwind_filepath = path.join(self.data_dir_path, 'uwnd.10m.gauss.' + str(self.date.year) + '.nc')
         vwind_filepath = path.join(self.data_dir_path, 'vwnd.10m.gauss.' + str(self.date.year) + '.nc')
 
@@ -48,7 +47,7 @@ class SurfaceWindDataset(object):
     def load_surface_wind_dataset(self):
         from utils import log_netCDF_dataset_metadata
 
-        uwind_dataset_filepath, vwind_dataset_filepath = self.date_to_dataset_filepath()
+        uwind_dataset_filepath, vwind_dataset_filepath = self.date_to_dataset_filepath(self.date)
 
         logger.info('Loading NCEP u_wind dataset: {}'.format(uwind_dataset_filepath))
         self.u_wind_dataset = netCDF4.Dataset(uwind_dataset_filepath)

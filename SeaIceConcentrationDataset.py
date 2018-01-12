@@ -73,6 +73,8 @@ class SeaIceConcentrationDataset(object):
                                                                             interp_method=alpha_interp_method,
                                                                             repeat0tile1=False, convert_lon_range=False)
 
+        # Convert everything to a numpy array otherwise the argmin functions below have to create a new numpy array
+        # every time, slowing down lookup considerably.
         self.alpha_interp = np.array(alpha_interp)
         self.xgrid_interp = np.array(xgrid_interp)
         self.ygrid_interp = np.array(ygrid_interp)
