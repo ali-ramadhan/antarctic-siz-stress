@@ -6,8 +6,8 @@
 # TODO: Plot the zero stress line. We expect a unique position for it right?
 
 # Conventions
-# Latitude = -90 to +90
-# Longitude = -180 to 180
+# Latitude = -90 (90 S) to +90 (90 N)
+# Longitude = -180 (180 W) to 180 (180 E)
 
 import datetime
 import calendar
@@ -30,12 +30,21 @@ def process_day(date):
     surface_stress_dataset.compute_daily_surface_stress_field()
     surface_stress_dataset.compute_daily_ekman_pumping_field()
     surface_stress_dataset.write_fields_to_netcdf()
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
 
 
 if __name__ == '__main__':
     from SurfacetressDataWriter import SurfaceStressDataWriter
     from utils import date_range
+
+    """ Double checking some distances """
+    # from utils import distance
+    # logger.info('distance(-89.999, 0, -89.999, 180) = {}'.format(distance(-89.999, 0, -89.999, 180)))
+    # logger.info('2*distance(0, 0, 0, 180) = {}'.format(2*distance(0, 0, 0, 180)))
+    # logger.info('distance(-80, 74, -80, 74.5) = {}'.format(distance(-80, 74, -80, 74.5)))
+    # logger.info('distance(-80, 74.5, -80, 74) = {}'.format(distance(-80, 74.5, -80, 74)))
+    # logger.info('distance(-80, 74, -80.5, 74) = {}'.format(distance(-80, 74, -80.5, 74)))
+    # logger.info('distance(-80.5, 74, -80, 74) = {}'.format(distance(-80.5, 74, -80, 74)))
 
     """ Making sure that sea ice motion fields interpolate properly. """
     # from SeaIceMotionDataset import SeaIceMotionDataset
@@ -83,18 +92,18 @@ if __name__ == '__main__':
     # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='annual')
 
-    # # JJA, SON, DJF, and MAM seasonal averages
-    # for year in [2011, 2012, 2013, 2014]:
+    # JJA, SON, DJF, and MAM seasonal averages
+    # for year in [2015]:
     #     seasons = [
-    #         {'date1': datetime.date(year, 3, 1),
-    #          'date2': datetime.date(year, 5, 31),
-    #          'label': 'Autumn_MAM_' + str(year) + '_average'},
+    #         # {'date1': datetime.date(year, 3, 1),
+    #         #  'date2': datetime.date(year, 5, 31),
+    #         #  'label': 'Autumn_MAM_' + str(year) + '_average'},
     #         {'date1': datetime.date(year, 6, 1),
     #          'date2': datetime.date(year, 8, 31),
     #          'label': 'Winter_JJA_' + str(year) + '_average'},
-    #         {'date1': datetime.date(year, 9, 1),
-    #          'date2': datetime.date(year, 11, 30),
-    #          'label': 'Spring_SON_' + str(year) + '_average'}
+    #         # {'date1': datetime.date(year, 9, 1),
+    #         #  'date2': datetime.date(year, 11, 30),
+    #         #  'label': 'Spring_SON_' + str(year) + '_average'}
     #     ]
     #
     #     for season in seasons:
@@ -104,16 +113,16 @@ if __name__ == '__main__':
     #         surface_stress_dataset.date = dates[0]
     #         surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     #         surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=season['label'])
+
+    # jan = date_range(datetime.date(year+1, 1, 1), datetime.date(year+1, 1, 31))
+    # novdec = date_range(datetime.date(year, 11, 1), datetime.date(year, 12, 31))
+    # dates = jan + novdec
+    # custom_label = 'Summer_DJF_' + str(year) + '-' + str(year+1) + '_average'
     #
-    #     jan = date_range(datetime.date(year+1, 1, 1), datetime.date(year+1, 1, 31))
-    #     novdec = date_range(datetime.date(year, 11, 1), datetime.date(year, 12, 31))
-    #     dates = jan + novdec
-    #     custom_label = 'Summer_DJF_' + str(year) + '-' + str(year+1) + '_average'
-    #
-    #     surface_stress_dataset = SurfaceStressDataWriter(None)
-    #     surface_stress_dataset.date = dates[0]
-    #     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
-    #     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label)
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = dates[0]
+    # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label)
 
     """ Process all of 1995-2014 """
     # for year in range(2014, 1994, -1):
@@ -130,33 +139,61 @@ if __name__ == '__main__':
     # spring_days = []
     # summer_days = []
     #
-    # for year in [2011, 2012, 2013, 2014]:
+    # for year in range(2006, 2015):
     #     fall_days = fall_days + date_range(datetime.date(year, 3, 1), datetime.date(year, 5, 31))
     #     winter_days = winter_days + date_range(datetime.date(year, 6, 1), datetime.date(year, 8, 31))
     #     spring_days = spring_days + date_range(datetime.date(year, 9, 1), datetime.date(year, 11, 30))
     #
-    #     if year != 2014:
-    #         summer_days = summer_days + date_range(datetime.date(year, 11, 1), datetime.date(year, 12, 31)) \
-    #                       + date_range(datetime.date(year+1, 1, 1), datetime.date(year, 1, 31))
-    #     else:
-    #         summer_days = summer_days + date_range(datetime.date(year, 11, 1), datetime.date(year, 12, 31))
-    #
-    # # surface_stress_dataset = SurfaceStressDataWriter(None)
-    # # surface_stress_dataset.date = winter_days[-1]
-    # # surface_stress_dataset.compute_mean_fields(winter_days, avg_method='partial_data_ok')
-    # # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Winter_JJA_2011-14_average')
-    #
+    #     summer_days = summer_days + date_range(datetime.date(year, 12, 1), datetime.date(year, 12, 31)) \
+    #                   + date_range(datetime.date(year+1, 1, 1), datetime.date(year+1, 2, 28))
+
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = winter_days[-1]
+    # surface_stress_dataset.compute_mean_fields(winter_days, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Winter_JJA_2006-15_average')
+
     # surface_stress_dataset = SurfaceStressDataWriter(None)
     # surface_stress_dataset.date = summer_days[-1]
     # surface_stress_dataset.compute_mean_fields(summer_days, avg_method='partial_data_ok')
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Summer_DJF_2011-14_average')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Summer_DJF_2006-15_average')
+
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = fall_days[-1]
+    # surface_stress_dataset.compute_mean_fields(fall_days, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Fall_MAM_2006-15_average')
+    #
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = spring_days[-1]
+    # surface_stress_dataset.compute_mean_fields(spring_days, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Spring_SON_2006-15_average')
 
     """ Monthly climatologies """
-    feb_days = []
-    for year in [2011, 2012, 2013, 2014]:
-        feb_days = feb_days + date_range(datetime.date(year, 2, 1), datetime.date(year, 2, 28))
+    # dec_days = []
+    # jan_days = []
+    # feb_days = []
+    # sep_days = []
+    # for year in range(2006, 2016):
+    #     dec_days = dec_days + date_range(datetime.date(year, 12, 1), datetime.date(year, 12, 31))
+    #     jan_days = jan_days + date_range(datetime.date(year, 1, 1), datetime.date(year, 1, 31))
+    #     feb_days = feb_days + date_range(datetime.date(year, 2, 1), datetime.date(year, 2, 28))
+    #     sep_days = sep_days + date_range(datetime.date(year, 9, 1), datetime.date(year, 9, 30))
+    #
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = dec_days[-1]
+    # surface_stress_dataset.compute_mean_fields(dec_days, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Dec_2006-15_average')
+    #
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = jan_days[-1]
+    # surface_stress_dataset.compute_mean_fields(jan_days, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Jan_2006-15_average')
 
-    surface_stress_dataset = SurfaceStressDataWriter(None)
-    surface_stress_dataset.date = feb_days[-1]
-    surface_stress_dataset.compute_mean_fields(feb_days, avg_method='partial_data_ok')
-    surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Feb_2011-14_average')
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = feb_days[-1]
+    # surface_stress_dataset.compute_mean_fields(feb_days, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Feb_2006-15_average')
+
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = sep_days[-1]
+    # surface_stress_dataset.compute_mean_fields(sep_days, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Sep_2006-15_average')
