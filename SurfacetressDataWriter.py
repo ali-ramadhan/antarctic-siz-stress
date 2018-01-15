@@ -59,6 +59,9 @@ class SurfaceStressDataWriter(object):
         self.wind_stress_curl_field = np.zeros((len(self.lats), len(self.lons)))
         self.w_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
 
+        self.dtauxdy_field = np.zeros((len(self.lats), len(self.lons)))
+        self.dtauydx_field = np.zeros((len(self.lats), len(self.lons)))
+
         if date is not None:
             self.date = date
 
@@ -534,9 +537,11 @@ class SurfaceStressDataWriter(object):
             'tau_y': self.tau_y_field,
             'u_Ekman': self.u_Ekman_field,
             'v_Ekman': self.v_Ekman_field,
+            'dtauydx': self.dtauydx_field,
+            'dtauxdy': self.dtauxdy_field,
             'curl_tau': self.wind_stress_curl_field,
-            'tau_SIZ_x': self.tau_SIZ_x_field,
-            'tau_SIZ_y': self.tau_SIZ_y_field,
+            # 'tau_SIZ_x': self.tau_SIZ_x_field,
+            # 'tau_SIZ_y': self.tau_SIZ_y_field,
             'w_Ekman': self.w_Ekman_field
         }
 
@@ -613,6 +618,12 @@ class SurfaceStressDataWriter(object):
                 #
                 # plt.legend(loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand',
                 #            borderaxespad=0, markerscale=6)
+            # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots
+            if var == 'dtauydx' or var == 'dtauxdy':
+                ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                           levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
+                ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                           levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
         # Add date label to bottom left.
         if plot_type == 'daily':

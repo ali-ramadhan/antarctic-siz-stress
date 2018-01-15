@@ -78,9 +78,11 @@ titles = {
     'tau_y': 'Meridional surface stress',
     'u_Ekman': 'Zonal Ekman velocity',
     'v_Ekman': 'Meridional Ekman velocity',
+    'dtauxdy': 'd/dy (tau_y)',
+    'dtauydx': 'd/dx (tau_x)',
+    # 'tau_SIZ_x': 'Zonal surface stress in the SIZ',
+    # 'tau_SIZ_y': 'Meridional surface stress in the SIZ',
     'curl_tau': 'Vertical wind stress curl',
-    'tau_SIZ_x': 'Zonal surface stress in the SIZ',
-    'tau_SIZ_y': 'Meridional surface stress in the SIZ',
     'w_Ekman': 'Ekman pumping'
 }
 
@@ -98,11 +100,13 @@ gs_coords = {
     'tau_ice_y': (1, 5),
     'tau_x': (slice(2, 5), slice(0, 3)),
     'tau_y': (slice(2, 5), slice(3, 6)),
-    'u_Ekman': (0, 7),
-    'v_Ekman': (1, 7),
+    'u_Ekman': (0, 6),
+    'v_Ekman': (1, 6),
+    'dtauydx': (0, 7),
+    'dtauxdy': (1, 7),
+    # 'tau_SIZ_x': (1, 7),
+    # 'tau_SIZ_y': (1, 7),
     'curl_tau': (0, 8),
-    'tau_SIZ_x': (0, 6),
-    'tau_SIZ_y': (1, 6),
     'w_Ekman': (slice(2, 5), slice(6, 9))
 }
 
@@ -122,9 +126,11 @@ scale_factor = {
     'tau_y': 1,
     'u_Ekman': 1,
     'v_Ekman': 1,
-    'curl_tau': 1e6,
-    'tau_SIZ_x': 1,
-    'tau_SIZ_y': 1,
+    'dtauydx': 1e7,
+    'dtauxdy': -1e7,
+    'curl_tau': 1e7,
+    # 'tau_SIZ_x': 1,
+    # 'tau_SIZ_y': 1,
     'w_Ekman': 3600 * 365 * 24  # [m/s] -> [m/year]
 }
 
@@ -144,9 +150,11 @@ colorbar_label = {
     'tau_y': r'N/m$^2$',
     'u_Ekman': 'm/s',
     'v_Ekman': 'm/s',
-    'curl_tau': r'10$^6$ N/m$^3$',
-    'tau_SIZ_x': r'N/m$^2$',
-    'tau_SIZ_y': r'N/m$^2$',
+    'dtauydx': r'10$^{-7}$ N/m$^3$',
+    'dtauxdy': r'10$^{-7}$ N/m$^3$',
+    'curl_tau': r'10$^{-7}$ N/m$^3$',
+    # 'tau_SIZ_x': r'N/m$^2$',
+    # 'tau_SIZ_y': r'N/m$^2$',
     'w_Ekman': r'm/year'
 }
 
@@ -167,9 +175,11 @@ cmaps = {
     'tau_y': 'seismic',
     'u_Ekman': 'seismic',
     'v_Ekman': 'seismic',
+    'dtauydx': 'seismic',
+    'dtauxdy': 'seismic',
     'curl_tau': 'seismic',
-    'tau_SIZ_x': 'seismic',
-    'tau_SIZ_y': 'seismic',
+    # 'tau_SIZ_x': 'seismic',
+    # 'tau_SIZ_y': 'seismic',
     'w_Ekman': 'seismic'
 }
 
@@ -189,8 +199,10 @@ cmap_ranges = {
     'tau_y': (-0.5, 0.5),
     'u_Ekman': (-0.5, 0.5),
     'v_Ekman': (-0.5, 0.5),
+    'dtauydx': (-5, 5),
+    'dtauxdy': (-5, 5),
     'curl_tau': (-5, 5),
-    'tau_SIZ_x': (-0.5, 0.5),
-    'tau_SIZ_y': (-0.5, 0.5),
-    'w_Ekman': (-50, 50)
+    # 'tau_SIZ_x': (-0.5, 0.5),
+    # 'tau_SIZ_y': (-0.5, 0.5),
+    'w_Ekman': (-100, 100)
 }
