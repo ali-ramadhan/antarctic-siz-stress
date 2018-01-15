@@ -218,8 +218,11 @@ class SurfaceStressDataWriter(object):
                     dx = distance(self.lats[i-1], self.lons[j], self.lats[i+1], self.lons[j])
                     dy = distance(self.lats[i], self.lons[j-1], self.lats[i], self.lons[j+1])
 
-                    dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / (2*dy)
-                    dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / (2*dx)
+                    # Second-order centered difference scheme where we divide by the distance between the i+1 and i-1
+                    # cells, which is just dx as defined in the above line. Textbook formulas will usually have a 2*dx
+                    # in the denominator because dx is the width of just one cell.
+                    dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
+                    dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
 
                     self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
                     self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
