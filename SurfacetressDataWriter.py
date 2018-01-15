@@ -561,7 +561,7 @@ class SurfaceStressDataWriter(object):
             ax = plt.subplot(gs[gs_coords[var]], projection=ccrs.SouthPolarStereo())
             ax.add_feature(land_50m)
             ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-            ax.set_title(var)
+            ax.set_title(titles[var])
 
             im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
                                cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])

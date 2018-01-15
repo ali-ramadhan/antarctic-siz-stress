@@ -63,6 +63,30 @@ u_wind_interp_method = 'cubic'
 
 """ Constants for diagnostic field plots """
 titles = {
+    'u_geo': 'u_geo',
+    'v_geo': 'v_geo',
+    'u_wind': 'u_wind',
+    'v_wind': 'v_wind',
+    'u_ice': 'u_ice',
+    'v_ice': 'v_ice',
+    'alpha': 'alpha',
+    'tau_air_x': '(1-alpha)*tau_air_x',
+    'tau_air_y': '(1-alpha)*tau_air_y',
+    'tau_ice_x': 'alpha*tau_ice_x',
+    'tau_ice_y': 'alpha*tau_ice_y',
+    'tau_x': 'tau_x',
+    'tau_y': 'tau_y',
+    'u_Ekman': 'u_Ekman',
+    'v_Ekman': 'v_Ekman',
+    'dtauydx': 'd/dx (tau_y)',
+    'dtauxdy': '-d/dy (tau_x)',
+    # 'tau_SIZ_x': 'Zonal surface stress in the SIZ',
+    # 'tau_SIZ_y': 'Meridional surface stress in the SIZ',
+    'curl_tau': 'curl_tau',
+    'w_Ekman': 'w_Ekman'
+}
+
+descriptions = {
     'u_geo': 'Zonal geostrophic velocity',
     'v_geo': 'Meridional geostrophic velocity',
     'u_wind': 'Zonal wind velocity',
