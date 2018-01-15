@@ -31,7 +31,7 @@ class SurfaceStressDataWriter(object):
     def __init__(self, date):
         self.lats = np.linspace(lat_min, lat_max, n_lat)
         self.lons = np.linspace(lon_min, lon_max, n_lon)
-        self.lons = self.lons[:-1]  # Remove the +180 longitude as it coincides with the -180 longitude.
+        self.lons = self.lons[:-1]  # Remove the +180 longitude as it coincides with the -180 longitude. FIXME???
 
         # Initializing all the fields we want to write to the netCDF file.
         self.tau_air_x_field = np.zeros((len(self.lats), len(self.lons)))
@@ -296,8 +296,17 @@ class SurfaceStressDataWriter(object):
 
             logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
 
-            current_tau_dataset = netCDF4.Dataset(tau_filepath)
-            log_netCDF_dataset_metadata(current_tau_dataset)
+            try:
+                current_tau_dataset = netCDF4.Dataset(tau_filepath)
+                log_netCDF_dataset_metadata(current_tau_dataset)
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
+                n_days = n_days - 1
+                continue
+
+            self.lats = np.array(current_tau_dataset.variables['lat'])
+            self.lons = np.array(current_tau_dataset.variables['lon'])
 
             tau_air_x_field = np.array(current_tau_dataset.variables['tau_air_x'])
             tau_air_y_field = np.array(current_tau_dataset.variables['tau_air_y'])

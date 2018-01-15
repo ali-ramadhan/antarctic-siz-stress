@@ -183,7 +183,7 @@ class SeaIceMotionDataset(object):
             logger.info('{:f}'.format(lat))
             for j in range(len(lons)):
                 lon = lons[j]
-                u_ice_vec = self.seaice_motion_vector(lat, lon, self.date, 'interp')
+                u_ice_vec = self.seaice_motion_vector(lat, lon, 'interp')
                 u_ice_interp_latlon[i][j] = u_ice_vec[0]
                 v_ice_interp_latlon[i][j] = u_ice_vec[1]
 
