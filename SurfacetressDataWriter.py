@@ -557,6 +557,8 @@ class SurfaceStressDataWriter(object):
                     # in the denominator because dx is the width of just one cell.
                     # self.dtauydx_field[i][j] = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
                     # self.dtauxdy_field[i][j] = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
+                    self.dtauydx_field[i][j] = (self.tau_y_field[i][j+1] - self.tau_y_field[i][j-1]) / dx
+                    self.dtauxdy_field[i][j] = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
 
                     self.wind_stress_curl_field[i][j] = self.dtauydx_field[i][j] - self.dtauxdy_field[i][j]
                     self.w_Ekman_field[i][j] = self.wind_stress_curl_field[i][j] / (rho_0 * f)
