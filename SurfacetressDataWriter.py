@@ -576,8 +576,8 @@ class SurfaceStressDataWriter(object):
                 ax.quiver(self.lons[::10], self.lats[::10], self.tau_x_field[::10, ::10], self.tau_y_field[::10, ::10],
                           transform=vector_crs, units='width', width=0.002, scale=8)
 
-            # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots
-            if var == 'tau_x' or var == 'w_Ekman':
+            # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots (plus legends)
+            if var == 'tau_x' or var == 'tau_y' or var == 'w_Ekman':
                 ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='green', linewidths=1, transform=vector_crs)
                 ax.contour(self.lons, self.lats, np.ma.array(self.u_wind_field, mask=np.isnan(self.alpha_field)),
@@ -585,9 +585,9 @@ class SurfaceStressDataWriter(object):
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-                zero_stress_line_patch = mpatches.Patch(color='green', label='zero stress line')
-                zero_wind_line_patch = mpatches.Patch(color='brown', label='zero wind line')
-                ice_edge_patch = mpatches.Patch(color='black', label='ice edge')
+                zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+                zero_wind_line_patch = mpatches.Patch(color='brown', label='zero zonal wind line')
+                ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
                 plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch], loc='lower center',
                            bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0)
 
