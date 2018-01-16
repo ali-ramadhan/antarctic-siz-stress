@@ -31,8 +31,17 @@ class SeaIceConcentrationDataset(object):
         self.interpolate_alpha_field()
 
     def date_to_alpha_dataset_filepath(self, date):
-        filename = 'seaice_conc_daily_sh_f17_' + str(date.year) + str(date.month).zfill(2) + str(date.day).zfill(2) \
-                   + '_v03r00.nc'
+        # FIXME: ffs
+        if date.year >= 2008:
+            rev = 'f17'
+        elif 1995 <= date.year <= 2007:
+            rev = 'f13'
+        elif 1991 <= date.year <= 1994:
+            rev = 'f11'
+
+        filename = 'seaice_conc_daily_sh_' + rev + '_' + str(date.year) + str(date.month).zfill(2) + \
+                   str(date.day).zfill(2) + '_v03r00.nc'
+        return path.join(self.sic_data_dir_path, str(date.year), filename)
         return path.join(self.sic_data_dir_path, str(date.year), filename)
 
     def load_alpha_dataset(self):
