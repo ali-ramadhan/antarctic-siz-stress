@@ -124,14 +124,19 @@ if __name__ == '__main__':
     # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label)
 
-    """ Process all of 1995-2014 """
-    # for year in range(2014, 1994, -1):
+    """ Process all of 1996-2015 """
+    # for year in range(1996, 2016):
     #     for month in range(1, 13):
     #         date_in_month = datetime.date(year, month, 1)
     #         n_days = calendar.monthrange(date_in_month.year, date_in_month.month)[1]
+    #         # process_day(datetime.date(date_in_month.year, date_in_month.month, 1))
     #
-    #         Parallel(n_jobs=8)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
-    #                            for day in range(1, n_days+1))
+    #         try:
+    #             Parallel(n_jobs=12)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
+    #                                 for day in range(1, n_days+1))
+    #         except Exception as e:
+    #             logger.error('{}'.format(e), exc_info=True)
+    #             continue
 
     """ Climatological seasonal averages"""
     # fall_days = []
@@ -139,33 +144,40 @@ if __name__ == '__main__':
     # spring_days = []
     # summer_days = []
     #
-    # for year in range(2006, 2015):
+    # year_start = 2011
+    # year_end = 2014
+    # fall_str = 'Fall_MAM_' + str(year_start) + '-' + str(year_end) + '_' + 'average'
+    # winter_str = 'Winter_JJA_' + str(year_start) + '-' + str(year_end) + '_' + 'average'
+    # spring_str = 'Spring_SON_' + str(year_start) + '-' + str(year_end) + '_' + 'average'
+    # summer_str = 'Summer_DJF_' + str(year_start) + '-' + str(year_end) + '_' + 'average'
+    #
+    # for year in range(year_start, year_end+1):
     #     fall_days = fall_days + date_range(datetime.date(year, 3, 1), datetime.date(year, 5, 31))
     #     winter_days = winter_days + date_range(datetime.date(year, 6, 1), datetime.date(year, 8, 31))
     #     spring_days = spring_days + date_range(datetime.date(year, 9, 1), datetime.date(year, 11, 30))
     #
     #     summer_days = summer_days + date_range(datetime.date(year, 12, 1), datetime.date(year, 12, 31)) \
     #                   + date_range(datetime.date(year+1, 1, 1), datetime.date(year+1, 2, 28))
-
+    #
     # surface_stress_dataset = SurfaceStressDataWriter(None)
     # surface_stress_dataset.date = winter_days[-1]
     # surface_stress_dataset.compute_mean_fields(winter_days, avg_method='partial_data_ok')
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Winter_JJA_2006-15_average')
-
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=winter_str)
+    #
     # surface_stress_dataset = SurfaceStressDataWriter(None)
     # surface_stress_dataset.date = summer_days[-1]
     # surface_stress_dataset.compute_mean_fields(summer_days, avg_method='partial_data_ok')
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Summer_DJF_2006-15_average')
-
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=summer_str)
+    #
     # surface_stress_dataset = SurfaceStressDataWriter(None)
     # surface_stress_dataset.date = fall_days[-1]
     # surface_stress_dataset.compute_mean_fields(fall_days, avg_method='partial_data_ok')
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Fall_MAM_2006-15_average')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=fall_str)
     #
     # surface_stress_dataset = SurfaceStressDataWriter(None)
     # surface_stress_dataset.date = spring_days[-1]
     # surface_stress_dataset.compute_mean_fields(spring_days, avg_method='partial_data_ok')
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Spring_SON_2006-15_average')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=spring_str)
 
     """ Monthly climatologies """
     # dec_days = []
@@ -197,3 +209,11 @@ if __name__ == '__main__':
     # surface_stress_dataset.date = sep_days[-1]
     # surface_stress_dataset.compute_mean_fields(sep_days, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='Sep_2006-15_average')
+
+    """ Total average """
+    dates = date_range(datetime.date(2011, 1, 1), datetime.date(2015, 12, 31))
+
+    surface_stress_dataset = SurfaceStressDataWriter(None)
+    surface_stress_dataset.date = dates[0]
+    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='2011-2015 average')
