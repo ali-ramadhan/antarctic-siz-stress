@@ -27,6 +27,7 @@ class SurfaceStressDataWriter(object):
     surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
 
     R_45deg = np.array([[np.cos(np.pi/4), -np.sin(np.pi/4)], [np.sin(np.pi/4), np.cos(np.pi/4)]])
+    R_m45deg = np.array([[np.cos(-np.pi/4), -np.sin(-np.pi/4)], [np.sin(-np.pi/4), np.cos(-np.pi/4)]])
 
     def __init__(self, date):
         self.lats = np.linspace(lat_min, lat_max, n_lat)
@@ -97,7 +98,8 @@ class SurfaceStressDataWriter(object):
 
             tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
 
-            u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
+            # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
+            u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
             u_rel_vec = u_ice_vec - (u_geo_vec - u_Ekman_vec)
             tau_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_rel_vec) * u_rel_vec
             tau_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air_vec
@@ -165,7 +167,9 @@ class SurfaceStressDataWriter(object):
                     self.tau_SIZ_y_field[i][j] = np.nan
 
                     # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-                    u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_air_vec)
+                    # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_air_vec)
+                    u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
+
                     self.u_Ekman_field[i][j] = u_Ekman_vec[0]
                     self.v_Ekman_field[i][j] = u_Ekman_vec[1]
                     self.u_Ekman_SIZ_field[i][j] = np.nan
@@ -198,7 +202,9 @@ class SurfaceStressDataWriter(object):
                 self.tau_SIZ_y_field[i][j] = tau_vec[1]
 
                 # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-                u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
+                # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
+                u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+
                 self.u_Ekman_field[i][j] = u_Ekman_vec[0]
                 self.v_Ekman_field[i][j] = u_Ekman_vec[1]
                 self.u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
