@@ -530,6 +530,7 @@ class SurfaceStressDataWriter(object):
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
+        import matplotlib.colors as colors
         from matplotlib.gridspec import GridSpec
 
         import cartopy
@@ -646,6 +647,7 @@ class SurfaceStressDataWriter(object):
                 self.tau_ice_x_field[i][j] = self.alpha_field[i][j] * self.tau_ice_x_field[i][j]
                 self.tau_ice_y_field[i][j] = self.alpha_field[i][j] * self.tau_ice_y_field[i][j]
 
+                # Properly calculating tau derivatives, wind stress curl, and w_Ekman
                 if i == 0 or i == (len(self.lats)-1) or j == 0 or j == (len(self.lons)-1):
                     continue
 
@@ -713,9 +715,18 @@ class SurfaceStressDataWriter(object):
             ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
             ax.set_title(titles[var])
 
-            im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
-                               cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
-            clb = fig.colorbar(im, ax=ax)
+            if var == 'v_Ekman':
+                im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+                                   cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1],
+                                   norm=colors.SymLogNorm(linthresh=1, linscale=1,
+                                                          vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1]))
+            else:
+                im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+                                   cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
+
+            # im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+            #                    cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
+            clb = fig.colorbar(im, ax=ax, extend='both')
             clb.ax.set_title(colorbar_label[var])
 
             # Add selected vector fields.
@@ -724,25 +735,25 @@ class SurfaceStressDataWriter(object):
                           transform=vector_crs, units='width', width=0.002, scale=4)
             elif var == 'tau_x':
                 ax.quiver(self.lons[::10], self.lats[::10], self.tau_x_field[::10, ::10], self.tau_y_field[::10, ::10],
-                          transform=vector_crs, units='width', width=0.002, scale=8)
+                          transform=vector_crs, units='width', width=0.002, scale=4)
 
             # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots (plus legends)
             if var == 'tau_x' or var == 'tau_y' or var == 'w_Ekman':
                 ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='green', linewidths=1, transform=vector_crs)
                 ax.contour(self.lons, self.lats, np.ma.array(self.u_wind_field, mask=np.isnan(self.alpha_field)),
-                           levels=[0], colors='brown', linewidths=1, transform=vector_crs)
+                           levels=[0], colors='gold', linewidths=1, transform=vector_crs)
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
                 zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
-                zero_wind_line_patch = mpatches.Patch(color='brown', label='zero zonal wind line')
+                zero_wind_line_patch = mpatches.Patch(color='gold', label='zero zonal wind line')
                 ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
                 plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch], loc='lower center',
                            bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0)
 
             # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots
-            if var == 'dtauydx' or var == 'dtauxdy':
+            if var == 'u_Ekman' or var == 'v_Ekman' or var == 'dtauydx' or var == 'dtauxdy':
                 ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),

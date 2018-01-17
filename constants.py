@@ -11,8 +11,9 @@ data_dir_path = 'D:\\data\\'
 
 # Output data directory
 # output_dir_path = path.join(cwd, 'output')
-output_dir_path = 'D:\\output\\'
+# output_dir_path = 'D:\\output\\'
 # output_dir_path = '/d1/alir/output/'
+output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
@@ -149,7 +150,7 @@ scale_factor = {
     'tau_x': 1,
     'tau_y': 1,
     'u_Ekman': 1,
-    'v_Ekman': 1,
+    'v_Ekman': 100,
     'dtauydx': 1e7,
     'dtauxdy': -1e7,
     'curl_tau': 1e7,
@@ -173,7 +174,7 @@ colorbar_label = {
     'tau_x': r'N/m$^2$',
     'tau_y': r'N/m$^2$',
     'u_Ekman': 'm/s',
-    'v_Ekman': 'm/s',
+    'v_Ekman': 'cm/s',
     'dtauydx': r'10$^{-7}$ N/m$^3$',
     'dtauxdy': r'10$^{-7}$ N/m$^3$',
     'curl_tau': r'10$^{-7}$ N/m$^3$',
@@ -219,10 +220,10 @@ cmap_ranges = {
     'tau_air_y': (-0.5, 0.5),
     'tau_ice_x': (-0.5, 0.5),
     'tau_ice_y': (-0.5, 0.5),
-    'tau_x': (-0.5, 0.5),
-    'tau_y': (-0.5, 0.5),
-    'u_Ekman': (-0.5, 0.5),
-    'v_Ekman': (-0.5, 0.5),
+    'tau_x': (-0.15, 0.15),
+    'tau_y': (-0.15, 0.15),
+    'u_Ekman': (-0.05, 0.05),
+    'v_Ekman': (-50, 50),
     'dtauydx': (-5, 5),
     'dtauxdy': (-5, 5),
     'curl_tau': (-5, 5),
