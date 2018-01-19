@@ -90,7 +90,7 @@ class SurfaceStressDataWriter(object):
             self.sea_ice_motion_data = SeaIceMotionDataset(self.date)
             self.u_wind_data = SurfaceWindDataset(self.date)
 
-    def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec):
+    def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec, u_Ekman_vec_type='vertical_avg'):
         # Use the Modified Richardson iteration to calculate tau and u_Ekman. Here we set the variables to arbitrary
         # initial guesses.
         iter_count = 0
@@ -117,14 +117,14 @@ class SurfaceStressDataWriter(object):
 
             tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
 
-            # TODO: Proper support for different u_Ekman calculations. u_Ekman_surface_vec vs. u_Ekman_vert_avg_vec?
-            # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
-            # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
-            tau_x_scalar = tau_vec[0]
-            tau_y_scalar = tau_vec[1]
-            u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
-            v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
-            u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
+            if u_Ekman_vec_type == 'surface':
+                u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+            elif u_Ekman_vec_type == 'vertical_avg':
+                tau_x_scalar = tau_vec[0]
+                tau_y_scalar = tau_vec[1]
+                u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+                v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+                u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
 
             u_rel_vec = u_ice_vec - (u_geo_vec - u_Ekman_vec)
             tau_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_rel_vec) * u_rel_vec
@@ -141,7 +141,7 @@ class SurfaceStressDataWriter(object):
 
         return tau_vec, tau_air_vec, tau_ice_vec
 
-    def compute_daily_surface_stress_field(self):
+    def compute_daily_surface_stress_field(self, u_Ekman_vec_type='vertical_avg'):
         logger.info('Calculating surface stress field (tau_x, tau_y) for:')
         logger.info('lat_min = {}, lat_max = {}, lat_step = {}, n_lat = {}'.format(lat_min, lat_max, lat_step, n_lat))
         logger.info('lon_min = {}, lon_max = {}, lon_step = {}, n_lon = {}'.format(lon_min, lon_max, lon_step, n_lon))
@@ -192,9 +192,15 @@ class SurfaceStressDataWriter(object):
                     self.tau_SIZ_x_field[i][j] = np.nan
                     self.tau_SIZ_y_field[i][j] = np.nan
 
-                    # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-                    # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_air_vec)
-                    u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
+                    # Not sure why I have to recalculate u_Ekman_vec, otherwise I just the zero vector.
+                    if u_Ekman_vec_type == 'surface':
+                        u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
+                    elif u_Ekman_vec_type == 'vertical_avg':
+                        tau_x_scalar = tau_air_vec[0]
+                        tau_y_scalar = tau_air_vec[1]
+                        u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+                        v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+                        u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
 
                     self.u_Ekman_field[i][j] = u_Ekman_vec[0]
                     self.v_Ekman_field[i][j] = u_Ekman_vec[1]
@@ -227,9 +233,15 @@ class SurfaceStressDataWriter(object):
                 self.tau_SIZ_x_field[i][j] = tau_vec[0]
                 self.tau_SIZ_y_field[i][j] = tau_vec[1]
 
-                # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-                # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
-                u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+                # Not sure why I have to recalculate u_Ekman_vec, otherwise I just the zero vector.
+                if u_Ekman_vec_type == 'surface':
+                    u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+                elif u_Ekman_vec_type == 'vertical_avg':
+                    tau_x_scalar = tau_vec[0]
+                    tau_y_scalar = tau_vec[1]
+                    u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+                    v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+                    u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
 
                 self.u_Ekman_field[i][j] = u_Ekman_vec[0]
                 self.v_Ekman_field[i][j] = u_Ekman_vec[1]
