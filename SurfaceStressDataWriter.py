@@ -157,14 +157,9 @@ class SurfaceStressDataWriter(object):
                 lon = self.lons[j]
 
                 u_geo_vec = self.u_geo_data.absolute_geostrophic_velocity(lat, lon, 'interp')
-                # u_geo_vec = np.array([0, 0])
                 u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, 'interp')
                 alpha = self.sea_ice_conc_data.sea_ice_concentration(lat, lon, 'interp')
                 u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, 'interp')
-
-                # # TODO: Bit of a hack lol to get u_wind values for the 358-360 longitude sector.
-                # if np.isnan(u_wind_vec[0]) or np.isnan(u_wind_vec[1]):
-                #     u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, self.date, 'product')
 
                 self.u_geo_field[i][j] = u_geo_vec[0]
                 self.v_geo_field[i][j] = u_geo_vec[1]
@@ -275,10 +270,8 @@ class SurfaceStressDataWriter(object):
                     self.wind_stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
+    # TODO: This function can be made MUCH shorter!
     def compute_mean_fields(self, dates, avg_method):
-        import datetime
-        from calendar import monthrange
-
         from constants import output_dir_path
         from utils import log_netCDF_dataset_metadata
 
@@ -828,6 +821,7 @@ class SurfaceStressDataWriter(object):
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
         # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
 
+    # TODO: This function can be made MUCH shorter!
     def write_fields_to_netcdf(self):
         tau_nc_filename = 'surface_stress_' + str(self.date.year) + str(self.date.month).zfill(2) \
                        + str(self.date.day).zfill(2) + '.nc'
