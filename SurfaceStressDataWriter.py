@@ -1,6 +1,8 @@
 import os
 import numpy as np
+
 import netCDF4
+import matplotlib.colors as colors
 
 from GeostrophicVelocityDataset import GeostrophicVelocityDataset
 from SurfaceWindDataset import SurfaceWindDataset
@@ -15,6 +17,19 @@ from constants import Omega, rho_0, D_e
 
 import logging
 logger = logging.getLogger(__name__)
+
+
+class MidpointNormalize(colors.Normalize):
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        self.midpoint = midpoint
+        colors.Normalize.__init__(self, vmin, vmax, clip)
+
+    def __call__(self, value, clip=None):
+        # Set NaN values to zero so they appear as white (i.e. not at all if using the 'seismic' colormap).
+        value[np.isnan(value)] = 0
+
+        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(value, x, y))
 
 
 class SurfaceStressDataWriter(object):
@@ -98,8 +113,15 @@ class SurfaceStressDataWriter(object):
 
             tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
 
+            # TODO: Proper support for different u_Ekman calculations. u_Ekman_surface_vec vs. u_Ekman_vert_avg_vec?
             # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
-            u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+            # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+            tau_x_scalar = tau_vec[0]
+            tau_y_scalar = tau_vec[1]
+            u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+            v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+            u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
+
             u_rel_vec = u_ice_vec - (u_geo_vec - u_Ekman_vec)
             tau_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_rel_vec) * u_rel_vec
             tau_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air_vec
@@ -538,101 +560,91 @@ class SurfaceStressDataWriter(object):
 
         from constants import titles, gs_coords, scale_factor, colorbar_label, cmaps, cmap_ranges
 
-        # logger.info('Recalculating tau...')
-        # for i in range(len(self.lats)):
-        #     lat = self.lats[i]
-        #     f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
-        #
-        #     progress_percent = 100 * i / (len(self.lats) - 1)
-        #     logger.info('(recalc) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
-        #
-        #     for j in range(len(self.lons)):
-        #         # Fixing u_Ekman fuck up
-        #         u_geo_tmp = np.array([0, 0])
-        #         u_wind_tmp = np.array([self.u_wind_field[i][j], self.v_wind_field[i][j]])
-        #         alpha_tmp = self.alpha_field[i][j]
-        #         u_ice_tmp = np.array([self.u_ice_field[i][j], self.v_ice_field[i][j]])
-        #
-        #         # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
-        #         # then tau is just tau_air and easy to calculate. Note that this encompasses regions of alpha < 0.15 as
-        #         # well since SeaIceConcentrationDataset returns 0 for alpha < 0.15.
-        #         if ((alpha_tmp == 0 or np.isnan(alpha_tmp)) and np.isnan(u_ice_tmp[0])) \
-        #                 and not np.isnan(u_geo_tmp[0]) and not np.isnan(u_wind_tmp[0]):
-        #             tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_tmp) * u_wind_tmp
-        #
-        #             self.tau_air_x_field[i][j] = tau_air_vec[0]
-        #             self.tau_air_y_field[i][j] = tau_air_vec[1]
-        #             self.tau_ice_x_field[i][j] = 0
-        #             self.tau_ice_y_field[i][j] = 0
-        #
-        #             self.tau_x_field[i][j] = tau_air_vec[0]
-        #             self.tau_y_field[i][j] = tau_air_vec[1]
-        #             self.tau_SIZ_x_field[i][j] = np.nan
-        #             self.tau_SIZ_y_field[i][j] = np.nan
-        #
-        #             # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-        #             # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_air_vec)
-        #             u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
-        #
-        #             self.u_Ekman_field[i][j] = u_Ekman_vec[0]
-        #             self.v_Ekman_field[i][j] = u_Ekman_vec[1]
-        #             self.u_Ekman_SIZ_field[i][j] = np.nan
-        #             self.v_Ekman_SIZ_field[i][j] = np.nan
-        #             continue
-        #
-        #         # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
-        #         if np.isnan(alpha_tmp) or np.isnan(u_geo_tmp[0]) or np.isnan(u_wind_tmp[0]) or np.isnan(u_ice_tmp[0]):
-        #             self.tau_air_x_field[i][j] = np.nan
-        #             self.tau_air_y_field[i][j] = np.nan
-        #             self.tau_ice_x_field[i][j] = np.nan
-        #             self.tau_ice_y_field[i][j] = np.nan
-        #             self.tau_x_field[i][j] = np.nan
-        #             self.tau_y_field[i][j] = np.nan
-        #             self.tau_SIZ_x_field[i][j] = np.nan
-        #             self.tau_SIZ_y_field[i][j] = np.nan
-        #             self.u_Ekman_field[i][j] = np.nan
-        #             self.v_Ekman_field[i][j] = np.nan
-        #             continue
-        #
-        #         tau_vec, tau_air_vec, tau_ice_vec = self.surface_stress(f, u_geo_tmp, u_wind_tmp, alpha_tmp, u_ice_tmp)
-        #
-        #         self.tau_air_x_field[i][j] = tau_air_vec[0]
-        #         self.tau_air_y_field[i][j] = tau_air_vec[1]
-        #         self.tau_ice_x_field[i][j] = tau_ice_vec[0]
-        #         self.tau_ice_y_field[i][j] = tau_ice_vec[1]
-        #         self.tau_x_field[i][j] = tau_vec[0]
-        #         self.tau_y_field[i][j] = tau_vec[1]
-        #         self.tau_SIZ_x_field[i][j] = tau_vec[0]
-        #         self.tau_SIZ_y_field[i][j] = tau_vec[1]
-        #
-        #         # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-        #         # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
-        #         u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
-        #
-        #         self.u_Ekman_field[i][j] = u_Ekman_vec[0]
-        #         self.v_Ekman_field[i][j] = u_Ekman_vec[1]
-        #         self.u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
-        #         self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
-        #
-        #         tau_vec, tau_air_vec, tau_ice_vec = self.surface_stress(f, u_geo_tmp, u_wind_tmp, alpha_tmp, u_ice_tmp)
-        #
-        #         self.tau_air_x_field[i][j] = tau_air_vec[0]
-        #         self.tau_air_y_field[i][j] = tau_air_vec[1]
-        #         self.tau_ice_x_field[i][j] = tau_ice_vec[0]
-        #         self.tau_ice_y_field[i][j] = tau_ice_vec[1]
-        #         self.tau_x_field[i][j] = tau_vec[0]
-        #         self.tau_y_field[i][j] = tau_vec[1]
-        #         self.tau_SIZ_x_field[i][j] = tau_vec[0]
-        #         self.tau_SIZ_y_field[i][j] = tau_vec[1]
-        #
-        #         # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-        #         # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
-        #         u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
-        #
-        #         self.u_Ekman_field[i][j] = u_Ekman_vec[0]
-        #         self.v_Ekman_field[i][j] = u_Ekman_vec[1]
-        #         self.u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
-        #         self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
+        logger.info('Recalculating tau...')
+        for i in range(len(self.lats)):
+            lat = self.lats[i]
+            f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
+
+            progress_percent = 100 * i / (len(self.lats) - 1)
+            logger.info('(recalc) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+
+            for j in range(len(self.lons)):
+                # Fixing u_Ekman fuck up
+                u_geo_tmp = np.array([0, 0])
+                u_wind_tmp = np.array([self.u_wind_field[i][j], self.v_wind_field[i][j]])
+                alpha_tmp = self.alpha_field[i][j]
+                u_ice_tmp = np.array([self.u_ice_field[i][j], self.v_ice_field[i][j]])
+
+                # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
+                # then tau is just tau_air and easy to calculate. Note that this encompasses regions of alpha < 0.15 as
+                # well since SeaIceConcentrationDataset returns 0 for alpha < 0.15.
+                if ((alpha_tmp == 0 or np.isnan(alpha_tmp)) and np.isnan(u_ice_tmp[0])) \
+                        and not np.isnan(u_geo_tmp[0]) and not np.isnan(u_wind_tmp[0]):
+                    tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_tmp) * u_wind_tmp
+
+                    self.tau_air_x_field[i][j] = tau_air_vec[0]
+                    self.tau_air_y_field[i][j] = tau_air_vec[1]
+                    self.tau_ice_x_field[i][j] = 0
+                    self.tau_ice_y_field[i][j] = 0
+
+                    self.tau_x_field[i][j] = tau_air_vec[0]
+                    self.tau_y_field[i][j] = tau_air_vec[1]
+                    self.tau_SIZ_x_field[i][j] = np.nan
+                    self.tau_SIZ_y_field[i][j] = np.nan
+
+                    # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
+                    # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_air_vec)
+                    # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
+                    tau_x_scalar = tau_air_vec[0]
+                    tau_y_scalar = tau_air_vec[1]
+                    u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+                    v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+                    u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
+
+                    self.u_Ekman_field[i][j] = u_Ekman_vec[0]
+                    self.v_Ekman_field[i][j] = u_Ekman_vec[1]
+                    self.u_Ekman_SIZ_field[i][j] = np.nan
+                    self.v_Ekman_SIZ_field[i][j] = np.nan
+                    continue
+
+                # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
+                if np.isnan(alpha_tmp) or np.isnan(u_geo_tmp[0]) or np.isnan(u_wind_tmp[0]) or np.isnan(u_ice_tmp[0]):
+                    self.tau_air_x_field[i][j] = np.nan
+                    self.tau_air_y_field[i][j] = np.nan
+                    self.tau_ice_x_field[i][j] = np.nan
+                    self.tau_ice_y_field[i][j] = np.nan
+                    self.tau_x_field[i][j] = np.nan
+                    self.tau_y_field[i][j] = np.nan
+                    self.tau_SIZ_x_field[i][j] = np.nan
+                    self.tau_SIZ_y_field[i][j] = np.nan
+                    self.u_Ekman_field[i][j] = np.nan
+                    self.v_Ekman_field[i][j] = np.nan
+                    continue
+
+                tau_vec, tau_air_vec, tau_ice_vec = self.surface_stress(f, u_geo_tmp, u_wind_tmp, alpha_tmp, u_ice_tmp)
+
+                self.tau_air_x_field[i][j] = tau_air_vec[0]
+                self.tau_air_y_field[i][j] = tau_air_vec[1]
+                self.tau_ice_x_field[i][j] = tau_ice_vec[0]
+                self.tau_ice_y_field[i][j] = tau_ice_vec[1]
+                self.tau_x_field[i][j] = tau_vec[0]
+                self.tau_y_field[i][j] = tau_vec[1]
+                self.tau_SIZ_x_field[i][j] = tau_vec[0]
+                self.tau_SIZ_y_field[i][j] = tau_vec[1]
+
+                # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
+                # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
+                # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+                tau_x_scalar = tau_vec[0]
+                tau_y_scalar = tau_vec[1]
+                u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+                v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+                u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
+
+                self.u_Ekman_field[i][j] = u_Ekman_vec[0]
+                self.v_Ekman_field[i][j] = u_Ekman_vec[1]
+                self.u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
+                self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
 
         logger.info('Converting and recalculating some fields...')
 
@@ -715,24 +727,25 @@ class SurfaceStressDataWriter(object):
             ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
             ax.set_title(titles[var])
 
-            if var == 'v_Ekman':
-                im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
-                                   cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1],
-                                   norm=colors.SymLogNorm(linthresh=1, linscale=1,
-                                                          vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1]))
-            else:
-                im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
-                                   cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
+            # if var == 'v_Ekman':
+            #     im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+            #                        cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1],
+            #                        # norm=MidpointNormalize(midpoint=0))
+            #                        norm=colors.SymLogNorm(linthresh=0.2, linscale=0.2,
+            #                                               vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1]))
+            # else:
+            #     im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+            #                        cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
 
-            # im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
-            #                    cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
+            im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+                               cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
             clb = fig.colorbar(im, ax=ax, extend='both')
             clb.ax.set_title(colorbar_label[var])
 
             # Add selected vector fields.
             if var == 'u_ice':
                 ax.quiver(self.lons[::10], self.lats[::10], self.u_ice_field[::10, ::10], self.v_ice_field[::10, ::10],
-                          transform=vector_crs, units='width', width=0.002, scale=4)
+                          transform=vector_crs, units='width', width=0.002, scale=2)
             elif var == 'tau_x':
                 ax.quiver(self.lons[::10], self.lats[::10], self.tau_x_field[::10, ::10], self.tau_y_field[::10, ::10],
                           transform=vector_crs, units='width', width=0.002, scale=4)
