@@ -62,9 +62,14 @@ class SurfaceWindDataset(object):
         self.lats = np.array(self.u_wind_dataset.variables['lat'])
         self.lons = np.array(self.u_wind_dataset.variables['lon'])
 
+        self.lons = np.append(self.lons, 360.0)
+
         # Numbering starts from 0 so we minus 1 to get the right index.
         self.u_wind = np.array(self.u_wind_dataset.variables['uwnd'][self.day_of_year - 1])
         self.v_wind = np.array(self.v_wind_dataset.variables['vwnd'][self.day_of_year - 1])
+
+        self.u_wind = np.c_[self.u_wind, self.u_wind[:, 0]]
+        self.v_wind = np.c_[self.v_wind, self.v_wind[:, 0]]
 
     def interpolate_wind_field(self):
         from utils import interpolate_scalar_field
