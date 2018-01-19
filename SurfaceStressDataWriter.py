@@ -247,26 +247,83 @@ class SurfaceStressDataWriter(object):
         from constants import Omega, rho_0
         logger.info('Calculating wind stress curl and Ekman pumping fields...')
 
+        j_max = len(self.lons) - 1
+        logger.info('j_max = {}'.format(j_max))
+
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
             f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
-            for j in range(1, len(self.lons) - 1):
+            progress_percent = 100 * i / (len(self.lats) - 2)
+            logger.info('({} w_Ekman) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max, progress_percent))
+
+            dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
+            dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
+
+            for j in range(len(self.lons)):
+                # TODO: Can we lump all three test cases together by using the mod function to calculate indices?
+                # Special case for when we're at j=0 (180 W) and need to use the value from j=j_max (180 E)
+                if j == 0:
+                    if not np.isnan(self.tau_x_field[i][j_max]) and not np.isnan(self.tau_x_field[i][1]) \
+                            and not np.isnan(self.tau_y_field[i-1][j]) and not np.isnan(self.tau_y_field[i+1][j]):
+                        # dtauxdy = (self.tau_x_field[i][1] - self.tau_x_field[i][j_max]) / dy
+                        # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
+
+                        dtauydx = (self.tau_y_field[i][j+1] - self.tau_y_field[i][j_max]) / dx
+                        dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
+
+                        self.dtauydx_field[i][j] = dtauydx
+                        self.dtauxdy_field[i][j] = dtauxdy
+                        self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
+                        self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
+                    else:
+                        self.dtauydx_field[i][j] = np.nan
+                        self.dtauxdy_field[i][j] = np.nan
+                        self.wind_stress_curl_field[i][j] = np.nan
+                        self.w_Ekman_field[i][j] = np.nan
+
+                    continue
+
+                # Special case for when we're at j=j_max (180 E) and need to use the value from j=0 (180 W)
+                if j == j_max:
+                    if not np.isnan(self.tau_x_field[i][j-1]) and not np.isnan(self.tau_x_field[i][0]) \
+                            and not np.isnan(self.tau_y_field[i-1][j]) and not np.isnan(self.tau_y_field[i+1][j]):
+                        # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
+                        # dtauxdy = (self.tau_x_field[i][0] - self.tau_x_field[i][j-1]) / dy
+
+                        dtauydx = (self.tau_y_field[i][0] - self.tau_y_field[i][j-1]) / dx
+                        dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
+
+                        self.dtauydx_field[i][j] = dtauydx
+                        self.dtauxdy_field[i][j] = dtauxdy
+                        self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
+                        self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
+                    else:
+                        self.dtauydx_field[i][j] = np.nan
+                        self.dtauxdy_field[i][j] = np.nan
+                        self.wind_stress_curl_field[i][j] = np.nan
+                        self.w_Ekman_field[i][j] = np.nan
+
+                    continue
+
                 if not np.isnan(self.tau_x_field[i][j-1]) and not np.isnan(self.tau_x_field[i][j+1]) \
                         and not np.isnan(self.tau_y_field[i-1][j]) and not np.isnan(self.tau_y_field[i+1][j]):
-                    dx = distance(self.lats[i-1], self.lons[j], self.lats[i+1], self.lons[j])
-                    dy = distance(self.lats[i], self.lons[j-1], self.lats[i], self.lons[j+1])
-
                     # Second-order centered difference scheme where we divide by the distance between the i+1 and i-1
                     # cells, which is just dx as defined in the above line. Textbook formulas will usually have a 2*dx
                     # in the denominator because dx is the width of just one cell.
-                    dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
-                    dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
+                    # TODO: Why does it look like accessing the wrong axis gives the right derivative!?
+                    # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
+                    # dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
+                    dtauydx = (self.tau_y_field[i][j+1] - self.tau_y_field[i][j-1]) / dx
+                    dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
 
+                    self.dtauydx_field[i][j] = dtauydx
+                    self.dtauxdy_field[i][j] = dtauxdy
                     self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
                     self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
-
                 else:
+                    self.dtauydx_field[i][j] = np.nan
+                    self.dtauxdy_field[i][j] = np.nan
                     self.wind_stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
