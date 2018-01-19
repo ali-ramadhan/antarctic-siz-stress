@@ -569,128 +569,13 @@ class SurfaceStressDataWriter(object):
 
         from constants import titles, gs_coords, scale_factor, colorbar_label, cmaps, cmap_ranges
 
-        logger.info('Recalculating tau...')
-        for i in range(len(self.lats)):
-            lat = self.lats[i]
-            f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
-
-            progress_percent = 100 * i / (len(self.lats) - 1)
-            logger.info('(recalc) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
-
-            for j in range(len(self.lons)):
-                # Fixing u_Ekman fuck up
-                u_geo_tmp = np.array([0, 0])
-                u_wind_tmp = np.array([self.u_wind_field[i][j], self.v_wind_field[i][j]])
-                alpha_tmp = self.alpha_field[i][j]
-                u_ice_tmp = np.array([self.u_ice_field[i][j], self.v_ice_field[i][j]])
-
-                # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
-                # then tau is just tau_air and easy to calculate. Note that this encompasses regions of alpha < 0.15 as
-                # well since SeaIceConcentrationDataset returns 0 for alpha < 0.15.
-                if ((alpha_tmp == 0 or np.isnan(alpha_tmp)) and np.isnan(u_ice_tmp[0])) \
-                        and not np.isnan(u_geo_tmp[0]) and not np.isnan(u_wind_tmp[0]):
-                    tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_tmp) * u_wind_tmp
-
-                    self.tau_air_x_field[i][j] = tau_air_vec[0]
-                    self.tau_air_y_field[i][j] = tau_air_vec[1]
-                    self.tau_ice_x_field[i][j] = 0
-                    self.tau_ice_y_field[i][j] = 0
-
-                    self.tau_x_field[i][j] = tau_air_vec[0]
-                    self.tau_y_field[i][j] = tau_air_vec[1]
-                    self.tau_SIZ_x_field[i][j] = np.nan
-                    self.tau_SIZ_y_field[i][j] = np.nan
-
-                    # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-                    # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_air_vec)
-                    # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
-                    tau_x_scalar = tau_air_vec[0]
-                    tau_y_scalar = tau_air_vec[1]
-                    u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
-                    v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
-                    u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
-
-                    self.u_Ekman_field[i][j] = u_Ekman_vec[0]
-                    self.v_Ekman_field[i][j] = u_Ekman_vec[1]
-                    self.u_Ekman_SIZ_field[i][j] = np.nan
-                    self.v_Ekman_SIZ_field[i][j] = np.nan
-                    continue
-
-                # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
-                if np.isnan(alpha_tmp) or np.isnan(u_geo_tmp[0]) or np.isnan(u_wind_tmp[0]) or np.isnan(u_ice_tmp[0]):
-                    self.tau_air_x_field[i][j] = np.nan
-                    self.tau_air_y_field[i][j] = np.nan
-                    self.tau_ice_x_field[i][j] = np.nan
-                    self.tau_ice_y_field[i][j] = np.nan
-                    self.tau_x_field[i][j] = np.nan
-                    self.tau_y_field[i][j] = np.nan
-                    self.tau_SIZ_x_field[i][j] = np.nan
-                    self.tau_SIZ_y_field[i][j] = np.nan
-                    self.u_Ekman_field[i][j] = np.nan
-                    self.v_Ekman_field[i][j] = np.nan
-                    continue
-
-                tau_vec, tau_air_vec, tau_ice_vec = self.surface_stress(f, u_geo_tmp, u_wind_tmp, alpha_tmp, u_ice_tmp)
-
-                self.tau_air_x_field[i][j] = tau_air_vec[0]
-                self.tau_air_y_field[i][j] = tau_air_vec[1]
-                self.tau_ice_x_field[i][j] = tau_ice_vec[0]
-                self.tau_ice_y_field[i][j] = tau_ice_vec[1]
-                self.tau_x_field[i][j] = tau_vec[0]
-                self.tau_y_field[i][j] = tau_vec[1]
-                self.tau_SIZ_x_field[i][j] = tau_vec[0]
-                self.tau_SIZ_y_field[i][j] = tau_vec[1]
-
-                # Not sure why I have to recalculate u_Ekman_vec otherwise it's just zero.
-                # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_45deg, tau_vec)
-                # u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
-                tau_x_scalar = tau_vec[0]
-                tau_y_scalar = tau_vec[1]
-                u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
-                v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
-                u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
-
-                self.u_Ekman_field[i][j] = u_Ekman_vec[0]
-                self.v_Ekman_field[i][j] = u_Ekman_vec[1]
-                self.u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
-                self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
-
         logger.info('Converting and recalculating some fields...')
 
         # Convert tau_air fields into (1-alpha)*tau_air, and tau_ice fields into alpha*tau_ice.
-        for i in range(len(self.lats)):
-            lat = self.lats[i]
-            f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
-
-            for j in range(len(self.lons)):
-                self.tau_air_x_field[i][j] = (1 - self.alpha_field[i][j]) * self.tau_air_x_field[i][j]
-                self.tau_air_y_field[i][j] = (1 - self.alpha_field[i][j]) * self.tau_air_y_field[i][j]
-                self.tau_ice_x_field[i][j] = self.alpha_field[i][j] * self.tau_ice_x_field[i][j]
-                self.tau_ice_y_field[i][j] = self.alpha_field[i][j] * self.tau_ice_y_field[i][j]
-
-                # Properly calculating tau derivatives, wind stress curl, and w_Ekman
-                if i == 0 or i == (len(self.lats)-1) or j == 0 or j == (len(self.lons)-1):
-                    continue
-
-                if not np.isnan(self.tau_x_field[i][j-1]) and not np.isnan(self.tau_x_field[i][j+1]) \
-                        and not np.isnan(self.tau_y_field[i-1][j]) and not np.isnan(self.tau_y_field[i+1][j]):
-                    dx = distance(self.lats[i-1], self.lons[j], self.lats[i+1], self.lons[j])
-                    dy = distance(self.lats[i], self.lons[j-1], self.lats[i], self.lons[j+1])
-
-                    # Second-order centered difference scheme where we divide by the distance between the i+1 and i-1
-                    # cells, which is just dx as defined in the above line. Textbook formulas will usually have a 2*dx
-                    # in the denominator because dx is the width of just one cell.
-                    # self.dtauydx_field[i][j] = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
-                    # self.dtauxdy_field[i][j] = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
-                    self.dtauydx_field[i][j] = (self.tau_y_field[i][j+1] - self.tau_y_field[i][j-1]) / dx
-                    self.dtauxdy_field[i][j] = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
-
-                    self.wind_stress_curl_field[i][j] = self.dtauydx_field[i][j] - self.dtauxdy_field[i][j]
-                    self.w_Ekman_field[i][j] = self.wind_stress_curl_field[i][j] / (rho_0 * f)
-
-                else:
-                    self.wind_stress_curl_field[i][j] = np.nan
-                    self.w_Ekman_field[i][j] = np.nan
+        self.tau_air_x_field = np.multiply(1 - self.alpha_field, self.tau_air_x_field)
+        self.tau_air_y_field = np.multiply(1 - self.alpha_field, self.tau_air_y_field)
+        self.tau_ice_x_field = np.multiply(self.alpha_field, self.tau_ice_x_field)
+        self.tau_ice_y_field = np.multiply(self.alpha_field, self.tau_ice_y_field)
 
         logger.info('Creating diagnostic figure...')
 
