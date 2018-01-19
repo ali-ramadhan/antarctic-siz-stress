@@ -631,8 +631,16 @@ class SurfaceStressDataWriter(object):
             #     im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
             #                        cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
 
+            # Add an extra endpoint so that the last sector gets plotted.
+            # Append the first data column to the end, so that the last sector gets plotted.
+            # im = ax.pcolormesh(np.append(self.lons, 180.0), self.lats,
+            #                    scale_factor[var] * np.c_[fields[var], fields[var][:, 0]],
+            #                    transform=vector_crs, cmap=cmaps[var],
+            #                    vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
+
             im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
                                cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
+
             clb = fig.colorbar(im, ax=ax, extend='both')
             clb.ax.set_title(colorbar_label[var])
 
