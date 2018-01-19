@@ -47,7 +47,11 @@ class SurfaceStressDataWriter(object):
     def __init__(self, date):
         self.lats = np.linspace(lat_min, lat_max, n_lat)
         self.lons = np.linspace(lon_min, lon_max, n_lon)
-        self.lons = self.lons[:-1]  # Remove the +180 longitude as it coincides with the -180 longitude. FIXME???
+
+        # Remove the +180 longitude as it coincides with the -180 longitude.
+        # Actually no, it should not be removed. It's important when plotting the fields if we want the last sector to
+        # be plotted as well.
+        # self.lons = self.lons[:-1]
 
         # Initializing all the fields we want to write to the netCDF file.
         self.tau_air_x_field = np.zeros((len(self.lats), len(self.lons)))
