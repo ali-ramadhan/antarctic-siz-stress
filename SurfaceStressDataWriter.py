@@ -357,6 +357,9 @@ class SurfaceStressDataWriter(object):
         u_ice_field_avg = np.zeros((len(self.lats), len(self.lons)))
         v_ice_field_avg = np.zeros((len(self.lats), len(self.lons)))
 
+        dtauydx_field_avg = np.zeros((len(self.lats), len(self.lons)))
+        dtauxdy_field_avg = np.zeros((len(self.lats), len(self.lons)))
+
         wind_stress_curl_field_avg = np.zeros((len(self.lats), len(self.lons)))
         w_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
 
@@ -382,6 +385,9 @@ class SurfaceStressDataWriter(object):
         alpha_field_days = np.zeros((len(self.lats), len(self.lons)))
         u_ice_field_days = np.zeros((len(self.lats), len(self.lons)))
         v_ice_field_days = np.zeros((len(self.lats), len(self.lons)))
+
+        dtauydx_field_days = np.zeros((len(self.lats), len(self.lons)))
+        dtauxdy_field_days = np.zeros((len(self.lats), len(self.lons)))
 
         wind_stress_curl_field_days = np.zeros((len(self.lats), len(self.lons)))
         w_Ekman_field_days = np.zeros((len(self.lats), len(self.lons)))
@@ -427,6 +433,9 @@ class SurfaceStressDataWriter(object):
             u_ice_field = np.array(current_tau_dataset.variables['ice_u'])
             v_ice_field = np.array(current_tau_dataset.variables['ice_v'])
 
+            dtauydx_field = np.array(current_tau_dataset.variables['dtauydx'])
+            dtauxdy_field = np.array(current_tau_dataset.variables['dtauxdy'])
+
             wind_stress_curl_field = np.array(current_tau_dataset.variables['wind_stress_curl'])
             w_Ekman_field = np.array(current_tau_dataset.variables['Ekman_w'])
 
@@ -452,6 +461,9 @@ class SurfaceStressDataWriter(object):
                 alpha_field_avg = alpha_field_avg + alpha_field/n_days
                 u_ice_field_avg = u_ice_field_avg + u_ice_field/n_days
                 v_ice_field_avg = v_ice_field_avg + v_ice_field/n_days
+
+                dtauydx_field_avg = dtauydx_field_avg + dtauydx_field/n_days
+                dtauxdy_field_avg = dtauxdy_field_avg + dtauxdy_field/n_days
 
                 wind_stress_curl_field_avg = wind_stress_curl_field_avg + wind_stress_curl_field/n_days
                 w_Ekman_field_avg = w_Ekman_field_avg + w_Ekman_field/n_days
@@ -562,6 +574,16 @@ class SurfaceStressDataWriter(object):
                 w_Ekman_field[np.isnan(w_Ekman_field)] = 0
                 w_Ekman_field_days = w_Ekman_field_days + w_Ekman_field
 
+                dtauydx_field_avg = dtauydx_field_avg + np.nan_to_num(dtauydx_field)
+                dtauydx_field[~np.isnan(dtauydx_field)] = 1
+                dtauydx_field[np.isnan(dtauydx_field)] = 0
+                dtauydx_field_days = dtauydx_field_days + dtauydx_field
+
+                dtauxdy_field_avg = dtauxdy_field_avg + np.nan_to_num(dtauxdy_field)
+                dtauxdy_field[~np.isnan(dtauxdy_field)] = 1
+                dtauxdy_field[np.isnan(dtauxdy_field)] = 0
+                dtauxdy_field_days = dtauxdy_field_days + dtauxdy_field
+
         if avg_method == 'full_data_only':
             self.tau_air_x_field = tau_air_x_field_avg
             self.tau_air_y_field = tau_air_y_field_avg
@@ -584,6 +606,9 @@ class SurfaceStressDataWriter(object):
             self.alpha_field = alpha_field_avg
             self.u_ice_field = u_ice_field_avg
             self.v_ice_field = v_ice_field_avg
+
+            self.dtauydx_field = dtauydx_field_avg
+            self.dtauxdy_field = dtauxdy_field_avg
 
             self.wind_stress_curl_field = wind_stress_curl_field_avg
             self.w_Ekman_field = w_Ekman_field_avg
@@ -610,6 +635,9 @@ class SurfaceStressDataWriter(object):
             self.alpha_field = np.divide(alpha_field_avg, alpha_field_days)
             self.u_ice_field = np.divide(u_ice_field_avg, u_ice_field_days)
             self.v_ice_field = np.divide(v_ice_field_avg, v_ice_field_days)
+
+            self.dtauydx_field = np.divide(dtauydx_field_avg, dtauydx_field_days)
+            self.dtauxdy_field = np.divide(dtauxdy_field_avg, dtauxdy_field_days)
 
             self.wind_stress_curl_field = np.divide(wind_stress_curl_field_avg, wind_stress_curl_field_days)
             self.w_Ekman_field = np.divide(w_Ekman_field_avg, w_Ekman_field_days)
@@ -929,5 +957,17 @@ class SurfaceStressDataWriter(object):
         v_ice_var.positive = 'up'
         v_ice_var.long_name = 'Meridional sea ice motion'
         v_ice_var[:] = self.v_ice_field
+
+        dtauydx_var = tau_dataset.createVariable('dtauydx', float, ('lat', 'lon'), zlib=True)
+        dtauydx_var.units = 'N/m^3'
+        dtauydx_var.positive = 'up'
+        dtauydx_var.long_name = 'd/dx (tau_y)'
+        dtauydx_var[:] = self.dtauydx_field
+
+        dtauxdy_var = tau_dataset.createVariable('dtauxdy', float, ('lat', 'lon'), zlib=True)
+        dtauxdy_var.units = 'N/m^3'
+        dtauxdy_var.positive = 'up'
+        dtauxdy_var.long_name = 'd/dy (tau_x)'
+        dtauxdy_var[:] = self.dtauxdy_field
 
         tau_dataset.close()
