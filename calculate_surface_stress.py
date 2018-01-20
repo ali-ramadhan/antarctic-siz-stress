@@ -62,6 +62,14 @@ def process_and_plot_day(date):
     surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
 
 
+def plot_day(date):
+    from SurfaceStressDataWriter import SurfaceStressDataWriter
+    surface_stress_dataset = SurfaceStressDataWriter(None)
+    surface_stress_dataset.date = date
+    surface_stress_dataset.compute_mean_fields([date], avg_method='partial_data_ok')
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
+
+
 def process_month(date_in_month):
     """ Process one month and produce a monthly average. """
     from utils import date_range
@@ -262,5 +270,6 @@ if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
 
-    process_and_plot_day(datetime.date(2015, 7, 16))
+    # process_and_plot_day(datetime.date(2015, 7, 16))
+    plot_day(datetime.date(2015, 7, 16))
     # produce_seasonal_climatology(2011, 2012)
