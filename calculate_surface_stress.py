@@ -163,6 +163,7 @@ def produce_seasonal_mean(date_in_year):
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label)
 
 
+# TODO: Move exception catching into process_day()?
 def process_multiple_years(year_start, year_end):
     for year in range(year_start, year_end + 1):
         for month in range(1, 13):
@@ -188,7 +189,7 @@ def produce_seasonal_climatology(year_start, year_end):
     spring_days = []
     summer_days = []
 
-    for year in range(year_start, year_end + 1):
+    for year in range(year_start, year_end + 1):  # [2006, 2008, 2012, 2013, 2014, 2015]
         fall_days = fall_days + date_range(datetime.date(year, 3, 1), datetime.date(year, 5, 31))
         winter_days = winter_days + date_range(datetime.date(year, 6, 1), datetime.date(year, 8, 31))
         spring_days = spring_days + date_range(datetime.date(year, 9, 1), datetime.date(year, 11, 30))
@@ -205,16 +206,16 @@ def produce_seasonal_climatology(year_start, year_end):
     # surface_stress_dataset.date = summer_days[-1]
     # surface_stress_dataset.compute_mean_fields(summer_days, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=summer_label)
-    #
-    # surface_stress_dataset = SurfaceStressDataWriter(None)
-    # surface_stress_dataset.date = fall_days[-1]
-    # surface_stress_dataset.compute_mean_fields(fall_days, avg_method='partial_data_ok')
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=fall_label)
-    #
-    # surface_stress_dataset = SurfaceStressDataWriter(None)
-    # surface_stress_dataset.date = spring_days[-1]
-    # surface_stress_dataset.compute_mean_fields(spring_days, avg_method='partial_data_ok')
-    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=spring_label)
+
+    surface_stress_dataset = SurfaceStressDataWriter(None)
+    surface_stress_dataset.date = fall_days[-1]
+    surface_stress_dataset.compute_mean_fields(fall_days, avg_method='partial_data_ok')
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=fall_label)
+
+    surface_stress_dataset = SurfaceStressDataWriter(None)
+    surface_stress_dataset.date = spring_days[-1]
+    surface_stress_dataset.compute_mean_fields(spring_days, avg_method='partial_data_ok')
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=spring_label)
 
 
 def produce_monthly_climatology(year_start, year_end):
@@ -258,7 +259,9 @@ def produce_monthly_climatology(year_start, year_end):
 def produce_climatology(year_start, year_end):
     climo_label = str(year_start) + '-' + str(year_end) + '_average'
 
-    dates = date_range(datetime.date(year_start, 1, 1), datetime.date(year_end, 12, 31))
+    dates = []
+    for year in [2006, 2008, 2012, 2013, 2014, 2015]:
+        dates = dates + date_range(datetime.date(year, 1, 1), datetime.date(year, 12, 31))
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = dates[0]
@@ -271,5 +274,7 @@ if __name__ == '__main__':
     from utils import date_range
 
     # process_and_plot_day(datetime.date(2015, 7, 16))
-    plot_day(datetime.date(2015, 7, 16))
+    # plot_day(datetime.date(2015, 7, 16))
     # produce_seasonal_climatology(2011, 2012)
+    # produce_seasonal_climatology(2005, 2015)
+    produce_climatology(2005, 2015)
