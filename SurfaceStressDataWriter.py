@@ -772,6 +772,42 @@ class SurfaceStressDataWriter(object):
         elif plot_type == 'custom':
             plt.gcf().text(0.1, 0.1, custom_label, fontsize=10)
 
+        # Generate density and temperature plots.
+        import gsw
+        import matlab.engine
+        eng = matlab.engine.start_matlab()
+
+        from SalinityDataset import SalinityDataset
+        from TemperatureDataset import TemperatureDataset
+
+        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period='00', grid_size='04', field_type='an')
+        temperature_dataset = TemperatureDataset(time_span='A5B2', avg_period='00', grid_size='04', field_type='an')
+
+        logger.info('Generating neutral density and temperature plots.')
+
+        depth_level = 0  # 0-2.5 m
+        density_field = np.zeros((len(self.lats), len(self.lons)))
+        temperature_field = np.zeros((len(self.lats), len(self.lons)))
+
+        for i in range(len(self.lats)):
+            # if i > 0 and (i % 5) == 0:
+            #     logger.info('Restarting engine...')
+            #     eng = matlab.engine.start_matlab()
+
+            progress_percent = 100 * i / (len(self.lats) - 1)
+            logger.info('(gamma) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.lats[i], lat_max, progress_percent))
+
+            for j in range(len(self.lons)):
+                salinity = salinity_dataset.salinity(self.lats[i], self.lons[j], depth_level)
+                temperature = temperature_dataset.temperature(self.lats[i], self.lons[j], depth_level)
+
+                if np.isnan(salinity) or np.isnan(temperature):
+                    density_field[i][j] = np.nan
+                else:
+                    temperature_field[i][j] = temperature
+                    # density_field[i][j] = gsw.density.rho_t_exact(salinity, temperature, 0) - 1000
+                    density_field[i][j] = eng.eos80_legacy_gamma_n(float(salinity), float(temperature), 0.0,
+                                                                   float(self.lons[j]), float(self.lats[i]))
         logger.info('Saving diagnostic figures to disk...')
 
         if plot_type == 'daily':
