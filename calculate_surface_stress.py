@@ -44,11 +44,18 @@ def check_sea_ice_motion_field():
 def process_day(date):
     """ Process for only one day. """
     from SurfaceStressDataWriter import SurfaceStressDataWriter
-    surface_stress_dataset = SurfaceStressDataWriter(date)
 
-    surface_stress_dataset.compute_daily_surface_stress_field()
-    surface_stress_dataset.compute_daily_ekman_pumping_field()
-    surface_stress_dataset.write_fields_to_netcdf()
+    try:
+        surface_stress_dataset = SurfaceStressDataWriter(date)
+
+        surface_stress_dataset.compute_daily_surface_stress_field()
+        surface_stress_dataset.compute_daily_ekman_pumping_field()
+        surface_stress_dataset.write_fields_to_netcdf()
+
+    except Exception as e:
+        logger.error('Failed to process day {}. Returning.'.format(date))
+        logger.error('{}'.format(e), exc_info=True)
+        return
 
 
 def process_and_plot_day(date):
@@ -161,19 +168,18 @@ def produce_seasonal_mean(date_in_year):
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label)
 
 
-# TODO: Move exception catching into process_day()?
 def process_multiple_years(year_start, year_end):
-    for year in range(year_start, year_end + 1):
+    for year in range(year_end, year_start - 1, -1):
         for month in range(1, 13):
-            date_in_month = datetime.date(year, month, 1)
             n_days = calendar.monthrange(year, month)[1]
+            Parallel(n_jobs=12)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days+1))
 
-            try:
-                Parallel(n_jobs=12)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
-                                    for day in range(1, n_days+1))
-            except Exception as e:
-                logger.error('{}'.format(e), exc_info=True)
-                continue
+            # try:
+            #     Parallel(n_jobs=12)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
+            #                         for day in range(1, n_days+1))
+            # except Exception as e:
+            #     logger.error('{}'.format(e), exc_info=True)
+            #     continue
 
 
 def produce_seasonal_climatology(year_start, year_end):
