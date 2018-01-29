@@ -39,6 +39,12 @@ class SeaIceConcentrationDataset(object):
         elif 1991 <= date.year <= 1994:
             rev = 'f11'
 
+        if date.year == 1995:
+            if date.month < 10:
+                rev = 'f11'
+            else:
+                rev = 'f13'
+
         filename = 'seaice_conc_daily_sh_' + rev + '_' + str(date.year) + str(date.month).zfill(2) + \
                    str(date.day).zfill(2) + '_v03r00.nc'
         return path.join(self.sic_data_dir_path, str(date.year), filename)
