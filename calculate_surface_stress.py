@@ -117,9 +117,7 @@ def produce_monthly_mean(date_in_month):
     # surface_stress_dataset.write_fields_to_netcdf()  # TODO: Add support for mean field netCDF files.
 
 
-def produce_annual_mean(date_in_year):
-    year = date_in_year.year
-
+def produce_annual_mean(year):
     dates = date_range(datetime.date(year, 1, 1), datetime.date(year, 12, 31))
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
@@ -275,6 +273,7 @@ if __name__ == '__main__':
 
     # process_and_plot_day(datetime.date(2015, 7, 16))
     # plot_day(datetime.date(2015, 7, 16))
-    # produce_seasonal_climatology(2011, 2012)
+    # produce_seasonal_climatology(2006, 2015)
     # produce_seasonal_climatology(2005, 2015)
-    produce_climatology(2005, 2015)
+    # produce_climatology(2006, 2015)
+    produce_annual_mean(2012)

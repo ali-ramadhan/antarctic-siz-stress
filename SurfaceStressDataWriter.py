@@ -695,8 +695,8 @@ class SurfaceStressDataWriter(object):
         vector_crs = ccrs.PlateCarree()
 
         # Figure size with an aspect ratio of 16:9 so it fits perfectly on a 1080p or 4K screen.
-        fig = plt.figure(figsize=(16, 9))
-        gs = GridSpec(5, 9)
+        fig = plt.figure(figsize=(20, 9))
+        gs = GridSpec(5, 11)
         matplotlib.rcParams.update({'font.size': 6})
 
         # Plot all the scalar fields
@@ -808,6 +808,49 @@ class SurfaceStressDataWriter(object):
                     # density_field[i][j] = gsw.density.rho_t_exact(salinity, temperature, 0) - 1000
                     density_field[i][j] = eng.eos80_legacy_gamma_n(float(salinity), float(temperature), 0.0,
                                                                    float(self.lons[j]), float(self.lats[i]))
+
+        # Density plot.
+        ax = plt.subplot(gs[slice(0, 2), slice(9, 11)], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('density anomaly')
+
+        im = ax.pcolormesh(self.lons, self.lats, density_field, transform=vector_crs,
+                           cmap='plasma', vmin=26, vmax=28)
+
+        clb = fig.colorbar(im, ax=ax, extend='both')
+        clb.ax.set_title('kg/m$^3$')
+
+        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0], colors='green', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(density_field, mask=np.isnan(self.alpha_field)),
+                   levels=[27.6], colors='blue', linewidths=1, transform=vector_crs)
+
+        zero_stress_line_patch = mpatches.Patch(color='green', label='zero stress ')
+        ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
+        density_patch = mpatches.Patch(color='blue', label='$\gamma$=27.6 kg\m$^3$')
+        plt.legend(handles=[zero_stress_line_patch, ice_edge_patch, density_patch], loc='lower center',
+                   bbox_to_anchor=(0, -0.08, 1, -0.08), ncol=3, mode='expand', borderaxespad=0)
+
+        # Temperature plot.
+        ax = plt.subplot(gs[slice(3, 5), slice(9, 11)], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('surface temperature')
+
+        im = ax.pcolormesh(self.lons, self.lats, temperature_field, transform=vector_crs,
+                           cmap='seismic', vmin=-2.5, vmax=2.5)
+
+        clb = fig.colorbar(im, ax=ax, extend='both')
+        clb.ax.set_title('deg C')
+
+        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0], colors='green', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+
         logger.info('Saving diagnostic figures to disk...')
 
         if plot_type == 'daily':
