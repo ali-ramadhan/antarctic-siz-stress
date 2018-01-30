@@ -291,6 +291,95 @@ def process_neutral_density_fields_multiple_depths(time_span, avg_period, grid_s
                             for lvl in depth_levels)
 
 
+def plot_meridional_salinity_profile(time_span, avg_period, grid_size, field_type, lon, split_depth):
+    import os
+
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import FormatStrFormatter
+    import cmocean.cm
+
+    from SalinityDataset import SalinityDataset
+    from constants import output_dir_path
+
+    image_filepaths = []
+
+    for avg_period in ['00', '13', '14', '15', '16']:
+        salinity_dataset = SalinityDataset(time_span, avg_period, grid_size, field_type)
+        lats, depths, salinity_profile = salinity_dataset.meridional_salinity_profile(lon=lon, lat_min=-80, lat_max=0)
+
+        time_span_str = time_span
+        if time_span == 'A5B2':
+            time_span_str = '2005-12'
+        elif time_span == '95A4':
+            time_span_str = '1995-2004'
+
+        avg_period_str = avg_period
+        if avg_period == '00':
+            avg_period_str = 'mean'
+        elif avg_period == '13':
+            avg_period_str = 'JFM_seasonal'
+        elif avg_period == '14':
+            avg_period_str = 'AMJ_seasonal'
+        elif avg_period == '15':
+            avg_period_str = 'JAS_seasonal'
+        elif avg_period == '16':
+            avg_period_str = 'OND_seasonal'
+
+        title_str = time_span_str + '_' + avg_period_str + '_lon=' + str(int(lon))
+
+        fig, (ax1, ax2) = plt.subplots(2)
+
+        idx_split_depth = np.abs(depths - split_depth).argmin()
+
+        im1 = ax1.pcolormesh(lats, depths[:idx_split_depth], salinity_profile[:idx_split_depth, :],
+                             cmap=cmocean.cm.haline, vmin=33.8, vmax=36)
+        im2 = ax2.pcolormesh(lats, depths[idx_split_depth:], salinity_profile[idx_split_depth:, :],
+                             cmap=cmocean.cm.haline, vmin=33.8, vmax=36)
+
+        idx_40S = np.abs(lats - -40).argmin()
+        idx_60S = np.abs(lats - -60).argmin()
+        idx_max_salinity = salinity_profile[0, idx_60S:idx_40S].argmin() + idx_60S
+        lat_max_salinity = lats[idx_max_salinity]
+        ax1.plot([lat_max_salinity, lat_max_salinity], [0, 50], 'red', lw=2)
+        ax1.text(lat_max_salinity+0.5, 30, '{:.1f}°'.format(lat_max_salinity), fontsize=10, color='red')
+
+        ax1.set_title(title_str, y=1.1, fontsize=12)
+
+        fig.subplots_adjust(left=0.10, bottom=0.20, right=0.95, top=0.9, hspace=0)
+        cbar_ax = fig.add_axes([0.15, 0.1, 0.7, 0.05])
+        clb = fig.colorbar(im1, cax=cbar_ax, extend='both', orientation='horizontal')
+        clb.ax.set_title('salinity (g/kg)', fontsize=12)
+
+        ax1.set_ylim(0, depths[idx_split_depth-1])
+        ax2.set_ylim(depths[idx_split_depth], 5000)
+        ax1.set_xlim(-70, 0)
+        ax2.set_xlim(-70, 0)
+        ax1.invert_yaxis()
+        ax2.invert_yaxis()
+
+        ax1.spines['bottom'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+
+        ax2.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
+        ax1.xaxis.tick_top()
+        ax1.xaxis.set_major_formatter(FormatStrFormatter('%d°'))
+
+        # plt.subplot_tool()
+        # plt.show()
+
+        png_filename = 'salinity_profile_woa13_' + time_span + '_' + avg_period + '_' + grid_size + '_' + \
+                       'lon' + str(int(lon))
+        png_filepath = os.path.join(output_dir_path, 'salinity_profiles', png_filename + '.png')
+
+        image_filepaths.append(png_filepath)
+
+        dir = os.path.dirname(png_filepath)
+        if not os.path.exists(dir):
+            logger.info('Creating directory: {:s}'.format(dir))
+            os.makedirs(dir)
+
+        logger.info('Saving salinity profile: {:s}'.format(png_filepath))
+        plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
@@ -301,15 +390,19 @@ if __name__ == '__main__':
     # produce_seasonal_climatology(2011, 2012)
     # process_multiple_years(1995, 1995)
     # process_day(datetime.date(2015, 1, 1))
-    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='00', grid_size='04', field_type='an',
-                                                   depth_levels=range(8))
-    process_neutral_density_fields_multiple_depths(time_span='95A4', avg_period='00', grid_size='04', field_type='an',
-                                                   depth_levels=range(8))
-    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='13', grid_size='04', field_type='an',
-                                                   depth_levels=range(8))
-    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='14', grid_size='04', field_type='an',
-                                                   depth_levels=range(8))
-    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='15', grid_size='04', field_type='an',
-                                                   depth_levels=range(8))
-    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='16', grid_size='04', field_type='an',
-                                                   depth_levels=range(8))
+
+    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='00', grid_size='04', field_type='an',
+    #                                                depth_levels=range(8))
+    # process_neutral_density_fields_multiple_depths(time_span='95A4', avg_period='00', grid_size='04', field_type='an',
+    #                                                depth_levels=range(8))
+    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='13', grid_size='04', field_type='an',
+    #                                                depth_levels=range(8))
+    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='14', grid_size='04', field_type='an',
+    #                                                depth_levels=range(8))
+    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='15', grid_size='04', field_type='an',
+    #                                                depth_levels=range(8))
+    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='16', grid_size='04', field_type='an',
+    #                                                depth_levels=range(8))
+
+    plot_meridional_salinity_profile(time_span='A5B2', avg_period='15', grid_size='04', field_type='an', lon=80,
+                                     split_depth=500)
