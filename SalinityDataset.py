@@ -35,6 +35,7 @@ class SalinityDataset(object):
 
         self.lats = None
         self.lons = None
+        self.depths = None
         self.salinity_data = None
 
         logger.info('SalinityDataset object initializing for time span {} and averaging period {}...'
@@ -58,10 +59,30 @@ class SalinityDataset(object):
 
         self.lats = np.array(self.salinity_dataset.variables['lat'])
         self.lons = np.array(self.salinity_dataset.variables['lon'])
+        self.depths = np.array(self.salinity_dataset.variables['depth'])
 
         field_var = 's_' + self.field_type
 
         self.salinity_data = np.array(self.salinity_dataset.variables[field_var])
+
+    def meridional_salinity_profile(self, lon, lat_min, lat_max):
+        _, n_levels, n_lats, n_lons = self.salinity_data.shape
+        n_depths = len(self.depths)
+
+        idx_lon = np.abs(self.lons - lon).argmin()
+        idx_lat_min = np.abs(self.lats - lat_min).argmin()
+        idx_lat_max = np.abs(self.lats - lat_max).argmin() + 1
+
+        n_lats = idx_lat_max - idx_lat_min
+        lats = self.lats[idx_lat_min:idx_lat_max]
+
+        salinity_profile = np.zeros((n_lats, n_levels))
+        for i in range(n_depths):
+            salinity_profile[:, i] = self.salinity_data[0, i, idx_lat_min:idx_lat_max, idx_lon]
+
+        salinity_profile[salinity_profile > 1e3] = np.nan
+
+        return lats, self.depths, salinity_profile.transpose()
 
     def salinity(self, lat, lon, depth_levels):
         """
