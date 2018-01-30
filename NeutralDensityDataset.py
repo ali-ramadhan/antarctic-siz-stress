@@ -6,6 +6,7 @@ import netCDF4
 from SalinityDataset import SalinityDataset
 from TemperatureDataset import TemperatureDataset
 
+from utils import log_netCDF_dataset_metadata
 from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
 
 import logging

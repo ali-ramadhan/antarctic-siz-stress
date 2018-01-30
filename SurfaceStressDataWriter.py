@@ -91,8 +91,18 @@ class SurfaceStressDataWriter(object):
             self.u_wind_data = SurfaceWindDataset(self.date)
 
     def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec, u_Ekman_vec_type='vertical_avg'):
-        # Use the Modified Richardson iteration to calculate tau and u_Ekman. Here we set the variables to arbitrary
-        # initial guesses.
+        """
+        Use the modified Richardson iteration to calculate tau and u_Ekman.
+        :param f:
+        :param u_geo_vec:
+        :param u_wind_vec:
+        :param alpha:
+        :param u_ice_vec:
+        :param u_Ekman_vec_type:
+        :return:
+        """
+
+        # Here we set the variables to arbitrary initial guesses before iteratively calculating tau and u_Ekman.
         iter_count = 0
         tau_vec_residual = np.array([1, 1])
         tau_relative_error = 1
