@@ -273,6 +273,24 @@ def produce_climatology(year_start, year_end):
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=climo_label)
 
 
+def process_neutral_density_field(time_span, avg_period, grid_size, field_type, depth_level):
+    from NeutralDensityDataset import NeutralDensityDataset
+
+    try:
+        NeutralDensityDataset(time_span, avg_period, grid_size, field_type, depth_level)
+    except Exception as e:
+        logger.error('Failed to process neutral density ({}, {}, {}, {}, {}). Returning.'
+                     .format(time_span, avg_period, grid_size, field_type, depth_level))
+        logger.error('{}'.format(e), exc_info=True)
+        return
+
+
+def process_neutral_density_fields_multiple_depths(time_span, avg_period, grid_size, field_type, depth_levels):
+    n_jobs = len(depth_levels)
+    Parallel(n_jobs=n_jobs)(delayed(process_neutral_density_field)(time_span, avg_period, grid_size, field_type, lvl)
+                            for lvl in depth_levels)
+
+
 if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
@@ -281,5 +299,17 @@ if __name__ == '__main__':
     # process_day(datetime.date(2015, 7, 16))
     # plot_day(datetime.date(2015, 7, 16))
     # produce_seasonal_climatology(2011, 2012)
-    process_multiple_years(1995, 1995)
+    # process_multiple_years(1995, 1995)
     # process_day(datetime.date(2015, 1, 1))
+    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='00', grid_size='04', field_type='an',
+                                                   depth_levels=range(8))
+    process_neutral_density_fields_multiple_depths(time_span='95A4', avg_period='00', grid_size='04', field_type='an',
+                                                   depth_levels=range(8))
+    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='13', grid_size='04', field_type='an',
+                                                   depth_levels=range(8))
+    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='14', grid_size='04', field_type='an',
+                                                   depth_levels=range(8))
+    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='15', grid_size='04', field_type='an',
+                                                   depth_levels=range(8))
+    process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='16', grid_size='04', field_type='an',
+                                                   depth_levels=range(8))
