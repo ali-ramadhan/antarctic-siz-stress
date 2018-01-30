@@ -380,6 +380,29 @@ def plot_meridional_salinity_profile(time_span, avg_period, grid_size, field_typ
 
         logger.info('Saving salinity profile: {:s}'.format(png_filepath))
         plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+    from PIL import Image
+
+    images = map(Image.open, image_filepaths)
+    widths, heights = zip(*(i.size for i in images))
+
+    total_width = sum(widths)
+    max_height = max(heights)
+
+    new_im = Image.new('RGB', (total_width, max_height))
+
+    x_offset = 0
+    for im in images:
+        new_im.paste(im, (x_offset, 0))
+        x_offset += im.size[0]
+
+    all_filename = 'salinity_profile_woa13_' + time_span + '_all_' + grid_size + '_' + 'lon' + str(int(lon))
+    all_filepath = os.path.join(output_dir_path, 'salinity_profiles', all_filename + '.png')
+
+    logger.info('Saving combined salinity profiles: {:s}'.format(all_filepath))
+    new_im.save(all_filepath)
+
+
 if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
