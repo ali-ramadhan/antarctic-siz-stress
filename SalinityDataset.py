@@ -63,19 +63,36 @@ class SalinityDataset(object):
 
         self.salinity_data = np.array(self.salinity_dataset.variables[field_var])
 
-    def salinity(self, lat, lon, depth_level):
+    def salinity(self, lat, lon, depth_levels):
+        """
+        :param lat:
+        :param lon:
+        :param depth_levels: Single depth level (int) or multiple depth levels (List[int]).
+        :return: Salinity in SI units (g/kg). If given an integer depth level, the salinity for that depth level will be
+                 returned. If given a list of integer depth levels, the average salinity over the given depth levels
+                 will be returned.
+        """
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
-        # logger.info('salinity_data.shape={}'.format(self.salinity_data.shape))
-
         idx_lat = np.abs(self.lats - lat).argmin()
         idx_lon = np.abs(self.lons - lon).argmin()
-        salinity_scalar = self.salinity_data[0][depth_level][idx_lat][idx_lon]
 
-        # logger.info('lat={}, lon={}, lats[idx_lat]={}, lons[idx_lon]={}, salinity_scalar={}'.format(lat, lon, self.lats[idx_lat], self.lons[idx_lon], salinity_scalar))
+        if isinstance(depth_levels, int):
+            salinity_scalar = self.salinity_data[0][depth_levels][idx_lat][idx_lon]
 
-        if salinity_scalar > 1e3:
-            return np.nan
-        else:
-            return salinity_scalar
+            if salinity_scalar > 1e3:
+                return np.nan
+            else:
+                return salinity_scalar
+
+        elif isinstance(depth_levels, list):
+            salinity_avg = 0
+            for level in depth_levels:
+                salinity_scalar = self.salinity_data[0][level][idx_lat][idx_lon]
+                if salinity_scalar > 1e3:
+                    return np.nan
+                else:
+                    salinity_avg = salinity_avg + (salinity_scalar/len(depth_levels))
+
+            return salinity_avg

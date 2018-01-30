@@ -63,15 +63,36 @@ class TemperatureDataset(object):
 
         self.temperature_data = np.array(self.temperature_dataset.variables[field_var])
 
-    def temperature(self, lat, lon, depth_level):
+    def temperature(self, lat, lon, depth_levels):
+        """
+        :param lat:
+        :param lon:
+        :param depth_levels: Single depth level (int) or multiple depth levels (List[int]).
+        :return: Temperature in degrees Celcius. If given an integer depth level, the temperature for that depth level
+                 will be returned. If given a list of integer depth levels, the average temperature over the given depth
+                 levels will be returned.
+        """
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
         idx_lat = np.abs(self.lats - lat).argmin()
         idx_lon = np.abs(self.lons - lon).argmin()
-        temperature_scalar = self.temperature_data[0][depth_level][idx_lat][idx_lon]
 
-        if temperature_scalar > 1e3:
-            return np.nan
-        else:
-            return temperature_scalar
+        if isinstance(depth_levels, int):
+            temperature_scalar = self.temperature_data[0][depth_levels][idx_lat][idx_lon]
+
+            if temperature_scalar > 1e3:
+                return np.nan
+            else:
+                return temperature_scalar
+
+        elif isinstance(depth_levels, list):
+            temperature_avg = 0
+            for level in depth_levels:
+                temperature_scalar = self.temperature_data[0][level][idx_lat][idx_lon]
+                if temperature_scalar > 1e3:
+                    return np.nan
+                else:
+                    temperature_avg = temperature_avg + (temperature_scalar/len(depth_levels))
+
+            return temperature_avg
