@@ -35,6 +35,7 @@ class TemperatureDataset(object):
 
         self.lats = None
         self.lons = None
+        self.depths = None
         self.temperature_data = None
 
         logger.info('TemperatureDataset object initializing for time span {} and averaging period {}...'
@@ -58,10 +59,30 @@ class TemperatureDataset(object):
 
         self.lats = np.array(self.temperature_dataset.variables['lat'])
         self.lons = np.array(self.temperature_dataset.variables['lon'])
+        self.depths = np.array(self.temperature_dataset.variables['depth'])
 
         field_var = 't_' + self.field_type
 
         self.temperature_data = np.array(self.temperature_dataset.variables[field_var])
+
+    def meridional_temperature_profile(self, lon, lat_min, lat_max):
+        _, n_levels, n_lats, n_lons = self.temperature_data.shape
+        n_depths = len(self.depths)
+
+        idx_lon = np.abs(self.lons - lon).argmin()
+        idx_lat_min = np.abs(self.lats - lat_min).argmin()
+        idx_lat_max = np.abs(self.lats - lat_max).argmin() + 1
+
+        n_lats = idx_lat_max - idx_lat_min
+        lats = self.lats[idx_lat_min:idx_lat_max]
+
+        temperature_profile = np.zeros((n_lats, n_levels))
+        for i in range(n_depths):
+            temperature_profile[:, i] = self.temperature_data[0, i, idx_lat_min:idx_lat_max, idx_lon]
+
+        temperature_profile[temperature_profile > 1e3] = np.nan
+
+        return lats, self.depths, temperature_profile.transpose()
 
     def temperature(self, lat, lon, depth_levels):
         """
