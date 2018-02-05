@@ -17,6 +17,7 @@ from joblib import Parallel, delayed
 
 # Configure logger first before importing any sub-module that depend on the logger being already configured.
 import logging.config
+
 logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ def check_distances():
     """ Double checking some distances. """
     from utils import distance
     logger.info('distance(-89.999, 0, -89.999, 180) = {}'.format(distance(-89.999, 0, -89.999, 180)))
-    logger.info('2*distance(0, 0, 0, 180) = {}'.format(2*distance(0, 0, 0, 180)))
+    logger.info('2*distance(0, 0, 0, 180) = {}'.format(2 * distance(0, 0, 0, 180)))
     logger.info('distance(-80, 74, -80, 74.5) = {}'.format(distance(-80, 74, -80, 74.5)))
     logger.info('distance(-80, 74.5, -80, 74) = {}'.format(distance(-80, 74.5, -80, 74)))
     logger.info('distance(-80, 74, -80.5, 74) = {}'.format(distance(-80, 74, -80.5, 74)))
@@ -87,7 +88,7 @@ def process_month(date_in_month):
     n_days = calendar.monthrange(year, month)[1]
     dates = date_range(datetime.date(year, month, 1), datetime.date(year, month, n_days))
 
-    Parallel(n_jobs=5)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days+1))
+    Parallel(n_jobs=5)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days + 1))
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = date_in_month
@@ -159,10 +160,10 @@ def produce_seasonal_mean(date_in_year):
         surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=season['label'])
 
     # Process summer (DJF) separately.
-    dec = date_range(datetime.date(year-1, 12, 1), datetime.date(year-1, 12, 31))
+    dec = date_range(datetime.date(year - 1, 12, 1), datetime.date(year - 1, 12, 31))
     janfeb = date_range(datetime.date(year, 1, 1), datetime.date(year, 2, 28))  # TODO: Feb 29
     dates = dec + janfeb
-    custom_label = 'Summer_DJF_' + str(year-1) + '-' + str(year) + '_average'
+    custom_label = 'Summer_DJF_' + str(year - 1) + '-' + str(year) + '_average'
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = dates[0]
@@ -174,7 +175,7 @@ def process_multiple_years(year_start, year_end):
     for year in range(year_end, year_start - 1, -1):
         for month in range(1, 13):
             n_days = calendar.monthrange(year, month)[1]
-            Parallel(n_jobs=12)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days+1))
+            Parallel(n_jobs=12)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days + 1))
 
             # try:
             #     Parallel(n_jobs=12)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
@@ -201,7 +202,7 @@ def produce_seasonal_climatology(year_start, year_end):
         spring_days = spring_days + date_range(datetime.date(year, 9, 1), datetime.date(year, 11, 30))
 
         summer_days = summer_days + date_range(datetime.date(year, 12, 1), datetime.date(year, 12, 31)) \
-                      + date_range(datetime.date(year+1, 1, 1), datetime.date(year+1, 2, 28))
+                      + date_range(datetime.date(year + 1, 1, 1), datetime.date(year + 1, 2, 28))
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = winter_days[-1]
@@ -291,7 +292,7 @@ def process_neutral_density_fields_multiple_depths(time_span, avg_period, grid_s
                             for lvl in depth_levels)
 
 
-def plot_meridional_salinity_profile(time_span, avg_period, grid_size, field_type, lon, split_depth):
+def plot_meridional_salinity_profiles(time_span, grid_size, field_type, lon, split_depth):
     import os
 
     import matplotlib.pyplot as plt
@@ -317,43 +318,47 @@ def plot_meridional_salinity_profile(time_span, avg_period, grid_size, field_typ
         if avg_period == '00':
             avg_period_str = 'mean'
         elif avg_period == '13':
-            avg_period_str = 'JFM_seasonal'
+            avg_period_str = 'JFM-seasonal'
         elif avg_period == '14':
-            avg_period_str = 'AMJ_seasonal'
+            avg_period_str = 'AMJ-seasonal'
         elif avg_period == '15':
-            avg_period_str = 'JAS_seasonal'
+            avg_period_str = 'JAS-seasonal'
         elif avg_period == '16':
-            avg_period_str = 'OND_seasonal'
+            avg_period_str = 'OND-seasonal'
 
-        title_str = time_span_str + '_' + avg_period_str + '_lon=' + str(int(lon))
+        title_str = time_span_str + '-' + avg_period_str + '-lon=' + str(int(lon))
 
         fig, (ax1, ax2) = plt.subplots(2)
 
+        levels = np.linspace(33.8, 36, 21)
         idx_split_depth = np.abs(depths - split_depth).argmin()
 
-        im1 = ax1.pcolormesh(lats, depths[:idx_split_depth], salinity_profile[:idx_split_depth, :],
-                             cmap=cmocean.cm.haline, vmin=33.8, vmax=36)
-        im2 = ax2.pcolormesh(lats, depths[idx_split_depth:], salinity_profile[idx_split_depth:, :],
-                             cmap=cmocean.cm.haline, vmin=33.8, vmax=36)
 
-        idx_40S = np.abs(lats - -40).argmin()
-        idx_60S = np.abs(lats - -60).argmin()
-        idx_max_salinity = salinity_profile[0, idx_60S:idx_40S].argmin() + idx_60S
-        lat_max_salinity = lats[idx_max_salinity]
-        ax1.plot([lat_max_salinity, lat_max_salinity], [0, 50], 'red', lw=2)
-        ax1.text(lat_max_salinity+0.5, 30, '{:.1f}°'.format(lat_max_salinity), fontsize=10, color='red')
+        im1 = ax1.contourf(lats, depths[:idx_split_depth], salinity_profile[:idx_split_depth, :],
+                             cmap=cmocean.cm.haline, colors=None, vmin=33.8, vmax=36, levels=levels, extend='both')
+        im2 = ax2.contourf(lats, depths[idx_split_depth:], salinity_profile[idx_split_depth:, :],
+                             cmap=cmocean.cm.haline, colors=None, vmin=33.8, vmax=36, levels=levels, extend='both')
 
-        ax1.set_title(title_str, y=1.1, fontsize=12)
+        # plt.xticks(list(plt.xticks()[0]) + [split_depth])
+
+        idx_40S = np.nanargmin(np.abs(lats - -40))
+        idx_80S = np.nanargmin(np.abs(lats - -80))
+        idx_min_salinity = np.nanargmin(salinity_profile[0, idx_80S:idx_40S]) + idx_80S
+        lat_min_salinity = lats[idx_min_salinity]
+        ax1.plot([lat_min_salinity, lat_min_salinity], [0, 50], 'red', lw=2)
+        ax1.text(lat_min_salinity + 0.5, 30, '{:.1f}°'.format(lat_min_salinity), fontsize=10, color='red')
+
+        ax1.set_title(title_str, y=1.15, fontsize=12)
 
         fig.subplots_adjust(left=0.10, bottom=0.20, right=0.95, top=0.9, hspace=0)
         cbar_ax = fig.add_axes([0.15, 0.1, 0.7, 0.05])
         clb = fig.colorbar(im1, cax=cbar_ax, extend='both', orientation='horizontal')
         clb.ax.set_title('salinity (g/kg)', fontsize=12)
 
-        ax1.set_ylim(0, depths[idx_split_depth-1])
+        ax1.set_ylim(0, depths[idx_split_depth - 1])
         ax2.set_ylim(depths[idx_split_depth], 5000)
-        ax1.set_xlim(-70, 0)
-        ax2.set_xlim(-70, 0)
+        ax1.set_xlim(-75, 0)
+        ax2.set_xlim(-75, 0)
         ax1.invert_yaxis()
         ax2.invert_yaxis()
 
@@ -581,5 +586,21 @@ if __name__ == '__main__':
     # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='16', grid_size='04', field_type='an',
     #                                                depth_levels=range(8))
 
-    plot_meridional_salinity_profile(time_span='A5B2', avg_period='15', grid_size='04', field_type='an', lon=80,
-                                     split_depth=500)
+    # plot_meridional_salinity_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-135, split_depth=250)
+    # plot_meridional_salinity_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-30, split_depth=250)
+    # plot_meridional_salinity_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=250)
+
+    # plot_meridional_temperature_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-135, split_depth=500)
+    # plot_meridional_temperature_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-30, split_depth=500)
+    # plot_meridional_temperature_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=500)
+    #
+    # dates = []
+    # for year in range(2005, 2006):
+    #     dates = dates + date_range(datetime.date(year, 7, 1), datetime.date(year, 9, 30))
+    #
+    # surface_stress_dataset = SurfaceStressDataWriter(None)
+    # surface_stress_dataset.date = dates[-1]
+    # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
+    # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='2005-2012_JAS')
+
+    look_at_neutral_density_contours()
