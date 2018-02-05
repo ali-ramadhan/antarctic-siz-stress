@@ -383,18 +383,22 @@ def plot_meridional_salinity_profile(time_span, avg_period, grid_size, field_typ
 
     from PIL import Image
 
-    images = map(Image.open, image_filepaths)
+    images = []
+    for fp in image_filepaths:
+        images.append(Image.open(fp, 'r'))
+
     widths, heights = zip(*(i.size for i in images))
 
-    total_width = sum(widths)
-    max_height = max(heights)
+    w = widths[0]
+    h = heights[0]
 
-    new_im = Image.new('RGB', (total_width, max_height))
+    new_im = Image.new('RGB', (3*w, 2*h), color=(255, 255, 255))
 
-    x_offset = 0
-    for im in images:
-        new_im.paste(im, (x_offset, 0))
-        x_offset += im.size[0]
+    new_im.paste(images[1], (0, 0))
+    new_im.paste(images[2], (w, 0))
+    new_im.paste(images[3], (0, h))
+    new_im.paste(images[4], (w, h))
+    new_im.paste(images[0], (2*w, int(np.ceil(0.5*h))))
 
     all_filename = 'salinity_profile_woa13_' + time_span + '_all_' + grid_size + '_' + 'lon' + str(int(lon))
     all_filepath = os.path.join(output_dir_path, 'salinity_profiles', all_filename + '.png')
