@@ -652,7 +652,7 @@ class SurfaceStressDataWriter(object):
             self.wind_stress_curl_field = np.divide(wind_stress_curl_field_avg, wind_stress_curl_field_days)
             self.w_Ekman_field = np.divide(w_Ekman_field_avg, w_Ekman_field_days)
 
-    def plot_diagnostic_fields(self, plot_type, custom_label=None):
+    def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
@@ -661,6 +661,7 @@ class SurfaceStressDataWriter(object):
 
         import cartopy
         import cartopy.crs as ccrs
+        import cmocean.cm
 
         from constants import titles, gs_coords, scale_factor, colorbar_label, cmaps, cmap_ranges
 
@@ -726,13 +727,6 @@ class SurfaceStressDataWriter(object):
             #     im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
             #                        cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
 
-            # Add an extra endpoint so that the last sector gets plotted.
-            # Append the first data column to the end, so that the last sector gets plotted.
-            # im = ax.pcolormesh(np.append(self.lons, 180.0), self.lats,
-            #                    scale_factor[var] * np.c_[fields[var], fields[var][:, 0]],
-            #                    transform=vector_crs, cmap=cmaps[var],
-            #                    vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
-
             im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
                                cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
 
@@ -769,23 +763,6 @@ class SurfaceStressDataWriter(object):
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
-        # Add date label to bottom left.
-        if plot_type == 'daily':
-            date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
-            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
-        elif plot_type == 'monthly':
-            date_str = '{:%b %Y} average'.format(self.date)
-            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
-        elif plot_type == 'annual':
-            date_str = '{:%Y} (annual mean)'.format(self.date)
-            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
-        elif plot_type == 'custom':
-            plt.gcf().text(0.1, 0.1, custom_label, fontsize=10)
-
-        # Generate density and temperature plots.
-        import gsw
-        import matlab.engine
-        eng = matlab.engine.start_matlab()
         from NeutralDensityDataset import NeutralDensityDataset
         neutral_density_dataset = NeutralDensityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
                                                         field_type='an', depth_level=0)
@@ -943,6 +920,19 @@ class SurfaceStressDataWriter(object):
         plt.legend(handles=[zero_stress_line_patch, ice_edge_patch, density_274_patch, density_275_patch,
                             density_276_patch, density_277_patch, density_278_patch],
                    loc='lower center', bbox_to_anchor=(0, -0.3, 1, -0.3), ncol=2, mode='expand', borderaxespad=0)
+
+        # Add date label to bottom left.
+        if plot_type == 'daily':
+            date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
+            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
+        elif plot_type == 'monthly':
+            date_str = '{:%b %Y} average'.format(self.date)
+            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
+        elif plot_type == 'annual':
+            date_str = '{:%Y} (annual mean)'.format(self.date)
+            plt.gcf().text(0.1, 0.1, date_str, fontsize=10)
+        elif plot_type == 'custom':
+            plt.gcf().text(0.1, 0.1, custom_label, fontsize=10)
 
         logger.info('Saving diagnostic figures to disk...')
 
