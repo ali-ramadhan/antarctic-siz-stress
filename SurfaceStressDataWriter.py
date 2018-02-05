@@ -873,21 +873,76 @@ class SurfaceStressDataWriter(object):
                    levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
         # Temperature plot.
-        ax = plt.subplot(gs[slice(3, 5), slice(9, 11)], projection=ccrs.SouthPolarStereo())
+        ax = plt.subplot(gs[0, 10], projection=ccrs.SouthPolarStereo())
         ax.add_feature(land_50m)
         ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
         ax.set_title('surface temperature')
 
         im = ax.pcolormesh(self.lons, self.lats, temperature_field, transform=vector_crs,
-                           cmap='seismic', vmin=-2.5, vmax=2.5)
+                           cmap=cmocean.cm.thermal, vmin=-2.5, vmax=2.5)
 
         clb = fig.colorbar(im, ax=ax, extend='both')
         clb.ax.set_title('deg C')
 
         ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
+
+        # Salinity plot.
+        ax = plt.subplot(gs[1, 10], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('surface salinity')
+
+        im = ax.pcolormesh(self.lons, self.lats, salinity_field, transform=vector_crs,
+                           cmap=cmocean.cm.haline, vmin=33.75, vmax=35)
+
+        clb = fig.colorbar(im, ax=ax, extend='both')
+        clb.ax.set_title('g/kg')
+
+        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
+
+        # Neutral density plot.
+        ax = plt.subplot(gs[slice(2, 4), slice(9, 11)], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('neutral density')
+
+        im = ax.pcolormesh(self.lons, self.lats, neutral_density_field, transform=vector_crs,
+                           cmap=cmocean.cm.dense, vmin=26, vmax=28)
+
+        clb = fig.colorbar(im, ax=ax, extend='both')
+        clb.ax.set_title('kg/m$^3$')
+
+        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                    levels=[0], colors='green', linewidths=1, transform=vector_crs)
         ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                    levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
+                   levels=[27.4], colors='lemonchiffon', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
+                   levels=[27.5], colors='burlywood', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
+                   levels=[27.6], colors='orange', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
+                   levels=[27.7], colors='darkorange', linewidths=1, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
+                   levels=[27.8], colors='crimson', linewidths=1, transform=vector_crs)
+
+        zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+        ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
+        density_274_patch = mpatches.Patch(color='lemonchiffon', label='$\gamma$=27.4 kg\m$^3$')
+        density_275_patch = mpatches.Patch(color='burlywood', label='$\gamma$=27.5 kg\m$^3$')
+        density_276_patch = mpatches.Patch(color='orange', label='$\gamma$=27.6 kg\m$^3$')
+        density_277_patch = mpatches.Patch(color='darkorange', label='$\gamma$=27.7 kg\m$^3$')
+        density_278_patch = mpatches.Patch(color='crimson', label='$\gamma$=27.8 kg\m$^3$')
+        plt.legend(handles=[zero_stress_line_patch, ice_edge_patch, density_274_patch, density_275_patch,
+                            density_276_patch, density_277_patch, density_278_patch],
+                   loc='lower center', bbox_to_anchor=(0, -0.3, 1, -0.3), ncol=2, mode='expand', borderaxespad=0)
 
         logger.info('Saving diagnostic figures to disk...')
 
