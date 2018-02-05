@@ -786,63 +786,91 @@ class SurfaceStressDataWriter(object):
         import gsw
         import matlab.engine
         eng = matlab.engine.start_matlab()
+        from NeutralDensityDataset import NeutralDensityDataset
+        neutral_density_dataset = NeutralDensityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
+                                                        field_type='an', depth_level=0)
+        salinity_field = neutral_density_dataset.salinity_field
+        temperature_field = neutral_density_dataset.temperature_field
+        neutral_density_field = neutral_density_dataset.neutral_density_field
 
+        # Calculate and plot salt transport.
         from SalinityDataset import SalinityDataset
-        from TemperatureDataset import TemperatureDataset
+        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
 
-        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period='00', grid_size='04', field_type='an')
-        temperature_dataset = TemperatureDataset(time_span='A5B2', avg_period='00', grid_size='04', field_type='an')
+        zonal_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
+        merid_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
 
-        logger.info('Generating neutral density and temperature plots.')
+        for i in range(1, len(self.lats) - 1):
+            lat = self.lats[i]
 
-        depth_level = 0  # 0-2.5 m
-        density_field = np.zeros((len(self.lats), len(self.lons)))
-        temperature_field = np.zeros((len(self.lats), len(self.lons)))
+            progress_percent = 100 * i / (len(self.lats) - 2)
+            logger.info('(salt_transport) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
 
-        for i in range(len(self.lats)):
-            # if i > 0 and (i % 5) == 0:
-            #     logger.info('Restarting engine...')
-            #     eng = matlab.engine.start_matlab()
+            dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
+            dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
 
-            progress_percent = 100 * i / (len(self.lats) - 1)
-            logger.info('(gamma) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.lats[i], lat_max, progress_percent))
+            for j in range(1, len(self.lons) - 1):
+                lon = self.lons[j]
 
-            for j in range(len(self.lons)):
-                salinity = salinity_dataset.salinity(self.lats[i], self.lons[j], depth_level)
-                temperature = temperature_dataset.temperature(self.lats[i], self.lons[j], depth_level)
+                u_Ekman_scalar = self.u_Ekman_field[i][j]
+                v_Ekman_scalar = self.v_Ekman_field[i][j]
 
-                if np.isnan(salinity) or np.isnan(temperature):
-                    density_field[i][j] = np.nan
+                salinity_ip1_j = salinity_dataset.salinity(self.lats[i+1], lon, 0)
+                salinity_im1_j = salinity_dataset.salinity(self.lats[i-1], lon, 0)
+                salinity_i_jp1 = salinity_dataset.salinity(lat, self.lons[j+1], 0)
+                salinity_i_jm1 = salinity_dataset.salinity(lat, self.lons[j-1], 0)
+
+                if not np.isnan(u_Ekman_scalar) and not np.isnan(salinity_i_jm1) \
+                        and not np.isnan(salinity_i_jp1):
+                    dSdx = (salinity_i_jp1 - salinity_i_jm1) / dx
+                    # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
+                    zonal_salt_transport_field[i][j] = u_Ekman_scalar * dSdx
                 else:
-                    temperature_field[i][j] = temperature
-                    # density_field[i][j] = gsw.density.rho_t_exact(salinity, temperature, 0) - 1000
-                    density_field[i][j] = eng.eos80_legacy_gamma_n(float(salinity), float(temperature), 0.0,
-                                                                   float(self.lons[j]), float(self.lats[i]))
+                    zonal_salt_transport_field[i][j] = np.nan
 
-        # Density plot.
-        ax = plt.subplot(gs[slice(0, 2), slice(9, 11)], projection=ccrs.SouthPolarStereo())
+                if not np.isnan(v_Ekman_scalar) and not np.isnan(salinity_im1_j) \
+                        and not np.isnan(salinity_ip1_j):
+                    dSdy = (salinity_ip1_j - salinity_im1_j) / dy
+                    # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
+                    merid_salt_transport_field[i][j] = v_Ekman_scalar * dSdy
+                else:
+                    merid_salt_transport_field[i][j] = np.nan
+
+        # Zonal freshwater flux plot.
+        ax = plt.subplot(gs[0, 9], projection=ccrs.SouthPolarStereo())
         ax.add_feature(land_50m)
         ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('density anomaly')
+        ax.set_title('u_Ekman*(dS/dx)')
 
-        im = ax.pcolormesh(self.lons, self.lats, density_field, transform=vector_crs,
-                           cmap='plasma', vmin=26, vmax=28)
+        max_zst = np.abs(np.nanmax(zonal_salt_transport_field)) / 10
+        im = ax.pcolormesh(self.lons, self.lats, zonal_salt_transport_field, transform=vector_crs,
+                           cmap=cmocean.cm.balance, vmin=-max_zst, vmax=max_zst)
 
         clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('kg/m$^3$')
+        clb.ax.set_title('m*g/(s*kg)')
 
         ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=1, transform=vector_crs)
+                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
         ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(density_field, mask=np.isnan(self.alpha_field)),
-                   levels=[27.6], colors='blue', linewidths=1, transform=vector_crs)
+                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
-        zero_stress_line_patch = mpatches.Patch(color='green', label='zero stress ')
-        ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
-        density_patch = mpatches.Patch(color='blue', label='$\gamma$=27.6 kg\m$^3$')
-        plt.legend(handles=[zero_stress_line_patch, ice_edge_patch, density_patch], loc='lower center',
-                   bbox_to_anchor=(0, -0.08, 1, -0.08), ncol=3, mode='expand', borderaxespad=0)
+        # Meridional freshwater flux plot.
+        ax = plt.subplot(gs[1, 9], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('v_Ekman*(dS/dy)')
+
+        max_mst = np.abs(np.nanmax(merid_salt_transport_field)) / 10
+        im = ax.pcolormesh(self.lons, self.lats, merid_salt_transport_field, transform=vector_crs,
+                           cmap=cmocean.cm.balance, vmin=-max_mst, vmax=max_mst)
+
+        clb = fig.colorbar(im, ax=ax, extend='both')
+        clb.ax.set_title('m*g/(s*kg)')
+
+        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
         # Temperature plot.
         ax = plt.subplot(gs[slice(3, 5), slice(9, 11)], projection=ccrs.SouthPolarStereo())
