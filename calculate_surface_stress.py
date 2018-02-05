@@ -517,6 +517,42 @@ def plot_meridional_temperature_profiles(time_span, grid_size, field_type, lon, 
 
     logger.info('Saving combined temperature profiles: {:s}'.format(all_filepath))
     new_im.save(all_filepath)
+
+
+def look_at_neutral_density_contours():
+    # Just looking at the surface neutral density for A5B2.
+    for avg_period in ['13', '14', '15', '16']:
+        dates = []
+        for year in range(2005, 2013):
+            if avg_period == '00' or avg_period == '13':
+                dates = dates + date_range(datetime.date(year, 1, 1), datetime.date(year, 3, 31))
+            if avg_period == '00' or avg_period == '14':
+                dates = dates + date_range(datetime.date(year, 4, 1), datetime.date(year, 6, 30))
+            if avg_period == '00' or avg_period == '15':
+                dates = dates + date_range(datetime.date(year, 7, 1), datetime.date(year, 9, 30))
+            if avg_period == '00' or avg_period == '16':
+                dates = dates + date_range(datetime.date(year, 10, 1), datetime.date(year, 12, 31))
+
+        custom_label = ''
+        if avg_period == '00':
+            custom_label = '2005-2012_climo'
+        elif avg_period == '13':
+            custom_label = '2005-2012_seasonal_JFM'
+        elif avg_period == '14':
+            custom_label = '2005-2012_seasonal_AMJ'
+        elif avg_period == '15':
+            custom_label = '2005-2012_seasonal_JAS'
+        elif avg_period == '16':
+            custom_label = '2005-2012_seasonal_OND'
+
+        surface_stress_dataset = SurfaceStressDataWriter(None)
+        surface_stress_dataset.date = dates[-1]
+        surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
+        surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label, avg_period=avg_period)
+
+    # TODO: Look at the depth-averaged neutral density.
+
+
 if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
