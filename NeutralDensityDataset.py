@@ -18,7 +18,7 @@ class NeutralDensityDataset(object):
 
     neutral_density_output_dir = path.join(output_dir_path, 'neutral_density')
 
-    def __init__(self, time_span, avg_period, grid_size, field_type, depth_level):
+    def __init__(self, time_span, avg_period, grid_size, field_type, depth_levels):
         """
         :param time_span: Choose from '5564', '6574', '7584', '8594', '95A4', 'A5B2', 'decav', and 'all'.
         :param avg_period: Choose from annual ('00'), monthly ('01'-'12'), and seasonal ('13' for JFM, '14' for AMJ,
@@ -33,7 +33,7 @@ class NeutralDensityDataset(object):
         self.avg_period = avg_period
         self.grid_size = grid_size
         self.field_type = field_type
-        self.depth_level = depth_level
+        self.depth_levels = depth_levels
 
         self.grid_size_dir = None
         if grid_size == '04':
@@ -52,27 +52,28 @@ class NeutralDensityDataset(object):
         self.lats = np.linspace(lat_min, lat_max, n_lat)
         self.lons = np.linspace(lon_min, lon_max, n_lon)
 
-        self.neutral_density_field = np.zeros((len(self.lats), len(self.lons)))
-        self.salinity_field = np.zeros((len(self.lats), len(self.lons)))
-        self.temperature_field = np.zeros((len(self.lats), len(self.lons)))
+        self.neutral_density_field = np.zeros((len(self.depth_levels), len(self.lats), len(self.lons)))
+        self.salinity_field = np.zeros((len(self.depth_levels), len(self.lats), len(self.lons)))
+        self.temperature_field = np.zeros((len(self.depth_levels), len(self.lats), len(self.lons)))
 
         self.salinity_dataset = SalinityDataset(time_span, avg_period, grid_size, field_type)
         self.temperature_dataset = TemperatureDataset(time_span, avg_period, grid_size, field_type)
 
         # If dataset already exists and is stored, load it up.
-        neutral_density_dataset_filepath = self.neutral_density_dataset_filepath()
+        for i in range(len(self.depth_levels)):
+            neutral_density_dataset_filepath = self.neutral_density_dataset_filepath(self.depth_levels[i])
 
-        try:
-            self.neutral_density_dataset = netCDF4.Dataset(neutral_density_dataset_filepath)
-            log_netCDF_dataset_metadata(self.neutral_density_dataset)
-            self.salinity_field = np.array(self.neutral_density_dataset.variables['salinity'])
-            self.temperature_field = np.array(self.neutral_density_dataset.variables['temperature'])
-            self.neutral_density_field = np.array(self.neutral_density_dataset.variables['neutral_density'])
-            return
-        except Exception as e:
-            logger.error('{}'.format(e))
-            logger.warning('{:s} not found. Neutral density field will now be computed...'
-                           .format(neutral_density_dataset_filepath))
+            try:
+                self.neutral_density_dataset = netCDF4.Dataset(neutral_density_dataset_filepath)
+                log_netCDF_dataset_metadata(self.neutral_density_dataset)
+                self.salinity_field[i] = np.array(self.neutral_density_dataset.variables['salinity'])
+                self.temperature_field[i] = np.array(self.neutral_density_dataset.variables['temperature'])
+                self.neutral_density_field[i] = np.array(self.neutral_density_dataset.variables['neutral_density'])
+            except Exception as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Neutral density field will now be computed...'
+                               .format(neutral_density_dataset_filepath))
+        return
 
         self.neutral_density_dataset = None
         self.salinity_field = np.zeros((len(self.lats), len(self.lons)))
@@ -82,9 +83,9 @@ class NeutralDensityDataset(object):
         self.calculate_neutral_density_field()
         self.save_neutral_density_dataset()
 
-    def neutral_density_dataset_filepath(self):
+    def neutral_density_dataset_filepath(self, depth_level):
         filename = 'neutral_density_woa13_' + self.time_span + '_' + self.avg_period + '_' + self.grid_size + \
-                   'depth_' + str(self.depth_level) + '_v2.nc'
+                   'depth_' + str(depth_level) + '_v2.nc'
 
         return path.join(self.neutral_density_output_dir, filename)
 
@@ -165,7 +166,6 @@ class NeutralDensityDataset(object):
 
         gamma_n_dataset.close()
 
-    def gamma_n(self, lat, lon):
     def meridional_gamma_profile(self, lon, lat_min, lat_max):
         n_levels, n_lats, n_lons = self.neutral_density_field.shape
         n_depths = len(self.depth_levels)
@@ -184,14 +184,17 @@ class NeutralDensityDataset(object):
         # gamma_profile[gamma_profile > 1e3] = np.nan
 
         return lats, self.depth_levels, gamma_profile.transpose()
+
+    def gamma_n(self, lat, lon, depth_level):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
         idx_lat = np.abs(self.lats - lat).argmin()
         idx_lon = np.abs(self.lons - lon).argmin()
-        neutral_density_scalar = self.neutral_density_field[idx_lat][idx_lon]
+        neutral_density_scalar = self.neutral_density_field[depth_level][idx_lat][idx_lon]
 
         return neutral_density_scalar
+
     def gamma_n_depth_averaged(self, lat, lon, depth_levels):
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
