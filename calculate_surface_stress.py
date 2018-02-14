@@ -528,7 +528,6 @@ def plot_meridional_temperature_profiles(time_span, grid_size, field_type, lon, 
     new_im.save(all_filepath)
 
 
-def look_at_neutral_density_contours():
 def plot_meridional_gamma_profiles(time_span, grid_size, field_type, lon, split_depth):
     import os
 
@@ -655,10 +654,12 @@ def plot_meridional_gamma_profiles(time_span, grid_size, field_type, lon, split_
     # logger.info('Saving combined gamma profiles: {:s}'.format(all_filepath))
     # new_im.save(all_filepath)
 
+
+def look_at_neutral_density_contours(year_start, year_end):
     # Just looking at the surface neutral density for A5B2.
-    for avg_period in ['13', '14', '15', '16']:
+    for avg_period in ['00']:  # '['13', '14', '15', '16', '00']:
         dates = []
-        for year in range(2005, 2013):
+        for year in range(year_start, year_end+1):
             if avg_period == '00' or avg_period == '13':
                 dates = dates + date_range(datetime.date(year, 1, 1), datetime.date(year, 3, 31))
             if avg_period == '00' or avg_period == '14':
@@ -670,22 +671,20 @@ def plot_meridional_gamma_profiles(time_span, grid_size, field_type, lon, split_
 
         custom_label = ''
         if avg_period == '00':
-            custom_label = '2005-2012_climo'
+            custom_label = str(year_start) + '-' + str(year_end) + '_climo'
         elif avg_period == '13':
-            custom_label = '2005-2012_seasonal_JFM'
+            custom_label = str(year_start) + '-' + str(year_end) + '_seasonal_JFM'
         elif avg_period == '14':
-            custom_label = '2005-2012_seasonal_AMJ'
+            custom_label = str(year_start) + '-' + str(year_end) + '_seasonal_AMJ'
         elif avg_period == '15':
-            custom_label = '2005-2012_seasonal_JAS'
+            custom_label = str(year_start) + '-' + str(year_end) + '_seasonal_JAS'
         elif avg_period == '16':
-            custom_label = '2005-2012_seasonal_OND'
+            custom_label = str(year_start) + '-' + str(year_end) + '_seasonal_OND'
 
         surface_stress_dataset = SurfaceStressDataWriter(None)
         surface_stress_dataset.date = dates[-1]
         surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
         surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label, avg_period=avg_period)
-
-    # TODO: Look at the depth-averaged neutral density.
 
 
 if __name__ == '__main__':
@@ -729,4 +728,11 @@ if __name__ == '__main__':
     # surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     # surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label='2005-2012_JAS')
 
-    look_at_neutral_density_contours()
+    # look_at_neutral_density_contours(2005, 2012)
+    # look_at_neutral_density_contours(2014, 2015)
+    # look_at_neutral_density_contours(1992, 1993)
+    #
+    plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-135, split_depth=250)
+    plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-30, split_depth=250)
+    plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=250)
+
