@@ -174,3 +174,15 @@ class NeutralDensityDataset(object):
         neutral_density_scalar = self.neutral_density_field[idx_lat][idx_lon]
 
         return neutral_density_scalar
+    def gamma_n_depth_averaged(self, lat, lon, depth_levels):
+        assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
+        assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
+
+        idx_lat = np.abs(self.lats - lat).argmin()
+        idx_lon = np.abs(self.lons - lon).argmin()
+
+        gamma_n_bar = 0
+        for lvl in depth_levels:
+            gamma_n_bar = gamma_n_bar + (self.neutral_density_field[lvl][idx_lat][idx_lon] / len(depth_levels))
+
+        return gamma_n_bar
