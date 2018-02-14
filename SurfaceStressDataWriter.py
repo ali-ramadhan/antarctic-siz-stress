@@ -763,12 +763,29 @@ class SurfaceStressDataWriter(object):
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
+        from SalinityDataset import SalinityDataset
+        from TemperatureDataset import TemperatureDataset
         from NeutralDensityDataset import NeutralDensityDataset
+
+        levels = [0, 1, 2, 3, 4, 5, 6, 7]
+        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
+        temperature_dataset = TemperatureDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
+                                                 field_type='an')
         neutral_density_dataset = NeutralDensityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
-                                                        field_type='an', depth_level=0)
-        salinity_field = neutral_density_dataset.salinity_field
-        temperature_field = neutral_density_dataset.temperature_field
-        neutral_density_field = neutral_density_dataset.neutral_density_field
+                                                        field_type='an', depth_levels=levels)
+
+        salinity_field = np.zeros((len(self.lats), len(self.lons)))
+        temperature_field = np.zeros((len(self.lats), len(self.lons)))
+        neutral_density_field = np.zeros((len(self.lats), len(self.lons)))
+
+        logger.info('Calculating average T, S, gamma_n...')
+        for i in range(len(self.lats)):
+            lat = self.lats[i]
+            for j in range(len(self.lons)):
+                lon = self.lons[j]
+                salinity_field[i][j] = salinity_dataset.salinity(lat, lon, levels)
+                temperature_field[i][j] = temperature_dataset.temperature(lat, lon, levels)
+                neutral_density_field[i][j] = neutral_density_dataset.gamma_n_depth_averaged(lat, lon, levels)
 
         # Calculate and plot salt transport.
         from SalinityDataset import SalinityDataset
