@@ -529,6 +529,132 @@ def plot_meridional_temperature_profiles(time_span, grid_size, field_type, lon, 
 
 
 def look_at_neutral_density_contours():
+def plot_meridional_gamma_profiles(time_span, grid_size, field_type, lon, split_depth):
+    import os
+
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import FormatStrFormatter
+    import cmocean.cm
+
+    from NeutralDensityDataset import NeutralDensityDataset
+    from constants import output_dir_path
+
+    image_filepaths = []
+
+    for avg_period in ['00']:
+        gamma_dataset = NeutralDensityDataset(time_span, avg_period, grid_size, field_type, depth_levels=np.arange(100))
+        lats, depths, gamma_profile = gamma_dataset.meridional_gamma_profile(lon=lon, lat_min=-80, lat_max=-40)
+
+        depths = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100,
+                  125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500,
+                  550, 600, 650, 700, 750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400,
+                  1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800, 1850, 1900, 1950, 2000,
+                  2100, 2200, 2300, 2400, 2500, 2600, 2700, 2800, 2900, 3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700,
+                  3800, 3900, 4000, 4100, 4200, 4300, 4400, 4500, 4600, 4700, 4800, 4900, 5000, 5100, 5200, 5300]
+        depths = np.array(depths)
+
+        time_span_str = time_span
+        if time_span == 'A5B2':
+            time_span_str = '2005-12'
+        elif time_span == '95A4':
+            time_span_str = '1995-2004'
+
+        avg_period_str = avg_period
+        if avg_period == '00':
+            avg_period_str = 'mean'
+        elif avg_period == '13':
+            avg_period_str = 'JFM-seasonal'
+        elif avg_period == '14':
+            avg_period_str = 'AMJ-seasonal'
+        elif avg_period == '15':
+            avg_period_str = 'JAS-seasonal'
+        elif avg_period == '16':
+            avg_period_str = 'OND-seasonal'
+
+        title_str = time_span_str + '-' + avg_period_str + '-lon=' + str(int(lon))
+
+        fig, (ax1, ax2) = plt.subplots(2)
+
+        levels = np.linspace(26.6, 28, 21)
+        idx_split_depth = np.abs(depths - split_depth).argmin()
+
+        im1 = ax1.contourf(lats, depths[:idx_split_depth], gamma_profile[:idx_split_depth, :],
+                             cmap=cmocean.cm.dense, colors=None, vmin=26.6, vmax=28, levels=levels, extend='both')
+        im2 = ax2.contourf(lats, depths[idx_split_depth:], gamma_profile[idx_split_depth:, :],
+                             cmap=cmocean.cm.dense, colors=None, vmin=26.6, vmax=28, levels=levels, extend='both')
+
+        # plt.xticks(list(plt.xticks()[0]) + [split_depth])
+
+        idx_40S = np.nanargmin(np.abs(lats - -40))
+        idx_80S = np.nanargmin(np.abs(lats - -80))
+        idx_min_gamma = np.nanargmax(gamma_profile[0, idx_80S:idx_40S]) + idx_80S
+        lat_min_gamma = lats[idx_min_gamma]
+        ax1.plot([lat_min_gamma, lat_min_gamma], [0, 50], 'red', lw=2)
+        ax1.text(lat_min_gamma + 0.5, 30, '{:.1f}°'.format(lat_min_gamma), fontsize=10, color='red')
+
+        ax1.set_title(title_str, y=1.15, fontsize=12)
+
+        fig.subplots_adjust(left=0.10, bottom=0.20, right=0.95, top=0.9, hspace=0)
+        cbar_ax = fig.add_axes([0.15, 0.1, 0.7, 0.05])
+        clb = fig.colorbar(im1, cax=cbar_ax, extend='both', orientation='horizontal')
+        clb.ax.set_title('gamma_n (kg/m$^3$)', fontsize=12)
+
+        ax1.set_ylim(0, depths[idx_split_depth - 1])
+        ax2.set_ylim(depths[idx_split_depth], 5000)
+        ax1.set_xlim(-75, -40)
+        ax2.set_xlim(-75, -40)
+        ax1.invert_yaxis()
+        ax2.invert_yaxis()
+
+        ax1.spines['bottom'].set_visible(False)
+        ax2.spines['top'].set_visible(False)
+
+        ax2.xaxis.set_tick_params(which='both', bottom=False, labelbottom=False)
+        ax1.xaxis.tick_top()
+        ax1.xaxis.set_major_formatter(FormatStrFormatter('%d°'))
+
+        # plt.subplot_tool()
+        # plt.show()
+
+        png_filename = 'gamma_profile_woa13_' + time_span + '_' + avg_period + '_' + grid_size + '_' + \
+                       'lon' + str(int(lon))
+        png_filepath = os.path.join(output_dir_path, 'gamma_profiles', png_filename + '.png')
+
+        image_filepaths.append(png_filepath)
+
+        dir = os.path.dirname(png_filepath)
+        if not os.path.exists(dir):
+            logger.info('Creating directory: {:s}'.format(dir))
+            os.makedirs(dir)
+
+        logger.info('Saving gamma profile: {:s}'.format(png_filepath))
+        plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+    # from PIL import Image
+    #
+    # images = []
+    # for fp in image_filepaths:
+    #     images.append(Image.open(fp, 'r'))
+    #
+    # widths, heights = zip(*(i.size for i in images))
+    #
+    # w = widths[0]
+    # h = heights[0]
+    #
+    # new_im = Image.new('RGB', (3*w, 2*h), color=(255, 255, 255))
+    #
+    # new_im.paste(images[1], (0, 0))
+    # new_im.paste(images[2], (w, 0))
+    # new_im.paste(images[3], (0, h))
+    # new_im.paste(images[4], (w, h))
+    # new_im.paste(images[0], (2*w, int(np.ceil(0.5*h))))
+    #
+    # all_filename = 'gamma_profile_woa13_' + time_span + '_all_' + grid_size + '_' + 'lon' + str(int(lon))
+    # all_filepath = os.path.join(output_dir_path, 'gamma_profiles', all_filename + '.png')
+    #
+    # logger.info('Saving combined gamma profiles: {:s}'.format(all_filepath))
+    # new_im.save(all_filepath)
+
     # Just looking at the surface neutral density for A5B2.
     for avg_period in ['13', '14', '15', '16']:
         dates = []
