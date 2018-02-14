@@ -166,6 +166,24 @@ class NeutralDensityDataset(object):
         gamma_n_dataset.close()
 
     def gamma_n(self, lat, lon):
+    def meridional_gamma_profile(self, lon, lat_min, lat_max):
+        n_levels, n_lats, n_lons = self.neutral_density_field.shape
+        n_depths = len(self.depth_levels)
+
+        idx_lon = np.abs(self.lons - lon).argmin()
+        idx_lat_min = np.abs(self.lats - lat_min).argmin()
+        idx_lat_max = np.abs(self.lats - lat_max).argmin() + 1
+
+        n_lats = idx_lat_max - idx_lat_min
+        lats = self.lats[idx_lat_min:idx_lat_max]
+
+        gamma_profile = np.zeros((n_lats, n_levels))
+        for i in range(n_depths):
+            gamma_profile[:, i] = self.neutral_density_field[i, idx_lat_min:idx_lat_max, idx_lon]
+
+        # gamma_profile[gamma_profile > 1e3] = np.nan
+
+        return lats, self.depth_levels, gamma_profile.transpose()
         assert -90 <= lat <= 90, "Latitude value {} out of bounds!".format(lat)
         assert -180 <= lon <= 180, "Longitude value {} out of bounds!".format(lon)
 
