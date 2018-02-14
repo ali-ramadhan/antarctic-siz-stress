@@ -960,6 +960,75 @@ class SurfaceStressDataWriter(object):
 
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
         # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
+        """
+
+        """ Calculate ice divergence \grad \dot (h*u_ice) ~ f - r """
+        ice_div_x_field = np.zeros((len(self.lats), len(self.lons)))
+        ice_div_y_field = np.zeros((len(self.lats), len(self.lons)))
+        ice_div_field = np.zeros((len(self.lats), len(self.lons)))
+
+        h = 1  # [m]
+        for i in range(1, len(self.lats) - 1):
+            lat = self.lats[i]
+
+            progress_percent = 100 * i / (len(self.lats) - 2)
+            logger.info('(ice_div) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+
+            dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
+            dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
+            for j in range(1, len(self.lons) - 1):
+                lon = self.lons[j]
+
+                u_ice_i_jp1 = self.u_ice_field[i][j+1]
+                u_ice_i_jm1 = self.u_ice_field[i][j-1]
+                v_ice_ip1_j = self.v_ice_field[i+1][j]
+                v_ice_im1_j = self.v_ice_field[i-1][j]
+
+                if not np.isnan(u_ice_i_jm1) and not np.isnan(u_ice_i_jp1):
+                    dudx = (u_ice_i_jp1 - u_ice_i_jm1) / dx
+                    # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
+                    ice_div_x_field[i][j] = h * dudx
+                else:
+                    ice_div_x_field[i][j] = np.nan
+
+                if not np.isnan(v_ice_im1_j) and not np.isnan(v_ice_ip1_j):
+                    dvdy = (v_ice_ip1_j - v_ice_im1_j) / dy
+                    # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
+                    ice_div_y_field[i][j] = h * dvdy
+                else:
+                    ice_div_y_field[i][j] = np.nan
+
+                if not np.isnan(ice_div_x_field[i][j]) and not np.isnan(ice_div_y_field[i][j]):
+                    ice_div_field[i][j] = ice_div_x_field[i][j] + ice_div_y_field[i][j]
+                else:
+                    ice_div_field[i][j] = np.nan
+
+        fig = plt.figure(figsize=(4, 4))
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                       facecolor='dimgray', linewidth=0)
+        vector_crs = ccrs.PlateCarree()
+
+        ax = plt.axes(projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('d/dx (h*u_ice) + d/dy (h*v_ice)')
+
+        max_val = 5e-7
+        im = ax.pcolormesh(self.lons, self.lats, ice_div_field, transform=vector_crs,
+                           cmap=cmocean.cm.balance, vmin=-max_val, vmax=max_val)
+
+        clb = fig.colorbar(im, ax=ax, extend='both')
+        clb.ax.set_title('m/s')
+
+        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
+
+        ice_div_png_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), 'surface_stress_' + custom_label + '_ice_div.png')
+
+        plt.savefig(ice_div_png_filepath, dpi=600, format='png', transparent=False, bbox_inches='tight')
+        logger.info('Saved diagnostic figure: {:s}'.format(ice_div_png_filepath))
 
     # TODO: This function can be made MUCH shorter!
     def write_fields_to_netcdf(self):
