@@ -82,6 +82,32 @@ class SurfaceStressDataWriter(object):
         self.dtauxdy_field = np.zeros((len(self.lats), len(self.lons)))
         self.dtauydx_field = np.zeros((len(self.lats), len(self.lons)))
 
+        self.var_fields = {
+            'tau_air_x': self.tau_air_x_field,
+            'tau_air_y': self.tau_air_y_field,
+            'tau_ice_x': self.tau_ice_x_field,
+            'tau_ice_y': self.tau_ice_y_field,
+            'tau_x': self.tau_x_field,
+            'tau_y': self.tau_y_field,
+            'tau_SIZ_x': self.tau_SIZ_x_field,
+            'tau_SIZ_y': self.tau_SIZ_y_field,
+            'wind_stress_curl': self.wind_stress_curl_field,
+            'Ekman_w': self.w_Ekman_field,
+            'Ekman_u': self.u_Ekman_field,
+            'Ekman_v': self.v_Ekman_field,
+            'Ekman_SIZ_u': self.u_Ekman_SIZ_field,
+            'Ekman_SIZ_v': self.v_Ekman_SIZ_field,
+            'geo_u': self.u_geo_field,
+            'geo_v': self.v_geo_field,
+            'wind_u': self.u_wind_field,
+            'wind_v': self.v_wind_field,
+            'alpha': self.alpha_field,
+            'ice_u': self.u_ice_field,
+            'ice_v': self.v_ice_field,
+            'dtauydx': self.dtauydx_field,
+            'dtauxdy': self.dtauxdy_field
+        }
+
         if date is not None:
             self.date = date
 
@@ -339,68 +365,22 @@ class SurfaceStressDataWriter(object):
 
     # TODO: This function can be made MUCH shorter!
     def compute_mean_fields(self, dates, avg_method):
-        from constants import output_dir_path
+        from constants import output_dir_path, netcdf_var_names
         from utils import log_netCDF_dataset_metadata
 
         n_days = len(dates)
 
+        # Dictionary storing all the averaged fields.
+        field_avg = {}
+
+        # Dictionary storing the number of days of available data at each gridpoint for each field (these are used when
+        # avg_method = 'partial_data_ok').
+        field_days = {}
+
         # Initializing all the fields we want to calculate an average for.
-        tau_air_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        tau_air_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        tau_ice_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        tau_ice_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        tau_SIZ_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        tau_SIZ_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        tau_x_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        tau_y_field_avg = np.zeros((len(self.lats), len(self.lons)))
-
-        u_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        v_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        u_Ekman_SIZ_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        v_Ekman_SIZ_field_avg = np.zeros((len(self.lats), len(self.lons)))
-
-        u_geo_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        v_geo_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        u_wind_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        v_wind_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        alpha_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        u_ice_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        v_ice_field_avg = np.zeros((len(self.lats), len(self.lons)))
-
-        dtauydx_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        dtauxdy_field_avg = np.zeros((len(self.lats), len(self.lons)))
-
-        wind_stress_curl_field_avg = np.zeros((len(self.lats), len(self.lons)))
-        w_Ekman_field_avg = np.zeros((len(self.lats), len(self.lons)))
-
-        # Number of days with available data for each grid point (for 'partial_data_ok' avg_method).
-        tau_air_x_field_days = np.zeros((len(self.lats), len(self.lons)))
-        tau_air_y_field_days = np.zeros((len(self.lats), len(self.lons)))
-        tau_ice_x_field_days = np.zeros((len(self.lats), len(self.lons)))
-        tau_ice_y_field_days = np.zeros((len(self.lats), len(self.lons)))
-        tau_SIZ_x_field_days = np.zeros((len(self.lats), len(self.lons)))
-        tau_SIZ_y_field_days = np.zeros((len(self.lats), len(self.lons)))
-        tau_x_field_days = np.zeros((len(self.lats), len(self.lons)))
-        tau_y_field_days = np.zeros((len(self.lats), len(self.lons)))
-
-        u_Ekman_field_days = np.zeros((len(self.lats), len(self.lons)))
-        v_Ekman_field_days = np.zeros((len(self.lats), len(self.lons)))
-        u_Ekman_SIZ_field_days = np.zeros((len(self.lats), len(self.lons)))
-        v_Ekman_SIZ_field_days = np.zeros((len(self.lats), len(self.lons)))
-
-        u_geo_field_days = np.zeros((len(self.lats), len(self.lons)))
-        v_geo_field_days = np.zeros((len(self.lats), len(self.lons)))
-        u_wind_field_days = np.zeros((len(self.lats), len(self.lons)))
-        v_wind_field_days = np.zeros((len(self.lats), len(self.lons)))
-        alpha_field_days = np.zeros((len(self.lats), len(self.lons)))
-        u_ice_field_days = np.zeros((len(self.lats), len(self.lons)))
-        v_ice_field_days = np.zeros((len(self.lats), len(self.lons)))
-
-        dtauydx_field_days = np.zeros((len(self.lats), len(self.lons)))
-        dtauxdy_field_days = np.zeros((len(self.lats), len(self.lons)))
-
-        wind_stress_curl_field_days = np.zeros((len(self.lats), len(self.lons)))
-        w_Ekman_field_days = np.zeros((len(self.lats), len(self.lons)))
+        for var_name in netcdf_var_names:
+            field_avg[var_name] = np.zeros((len(self.lats), len(self.lons)))
+            field_days[var_name] = np.zeros((len(self.lats), len(self.lons)))
 
         for date in dates:
             tau_nc_filename = 'surface_stress_' + str(date.year) + str(date.month).zfill(2) \
@@ -415,242 +395,33 @@ class SurfaceStressDataWriter(object):
             except OSError as e:
                 logger.error('{}'.format(e))
                 logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
-                n_days = n_days - 1
+                n_days = n_days - 1  # Must account for lost day if using avg_method='full_data_only'.
                 continue
 
             self.lats = np.array(current_tau_dataset.variables['lat'])
             self.lons = np.array(current_tau_dataset.variables['lon'])
 
-            tau_air_x_field = np.array(current_tau_dataset.variables['tau_air_x'])
-            tau_air_y_field = np.array(current_tau_dataset.variables['tau_air_y'])
-            tau_ice_x_field = np.array(current_tau_dataset.variables['tau_ice_x'])
-            tau_ice_y_field = np.array(current_tau_dataset.variables['tau_ice_y'])
-            tau_SIZ_x_field = np.array(current_tau_dataset.variables['tau_SIZ_x'])
-            tau_SIZ_y_field = np.array(current_tau_dataset.variables['tau_SIZ_y'])
-            tau_x_field = np.array(current_tau_dataset.variables['tau_x'])
-            tau_y_field = np.array(current_tau_dataset.variables['tau_y'])
-
-            u_Ekman_field = np.array(current_tau_dataset.variables['Ekman_u'])
-            v_Ekman_field = np.array(current_tau_dataset.variables['Ekman_v'])
-            u_Ekman_SIZ_field = np.array(current_tau_dataset.variables['Ekman_SIZ_u'])
-            v_Ekman_SIZ_field = np.array(current_tau_dataset.variables['Ekman_SIZ_v'])
-
-            u_geo_field = np.array(current_tau_dataset.variables['geo_u'])
-            v_geo_field = np.array(current_tau_dataset.variables['geo_v'])
-            u_wind_field = np.array(current_tau_dataset.variables['wind_u'])
-            v_wind_field = np.array(current_tau_dataset.variables['wind_v'])
-            alpha_field = np.array(current_tau_dataset.variables['alpha'])
-            u_ice_field = np.array(current_tau_dataset.variables['ice_u'])
-            v_ice_field = np.array(current_tau_dataset.variables['ice_v'])
-
-            dtauydx_field = np.array(current_tau_dataset.variables['dtauydx'])
-            dtauxdy_field = np.array(current_tau_dataset.variables['dtauxdy'])
-
-            wind_stress_curl_field = np.array(current_tau_dataset.variables['wind_stress_curl'])
-            w_Ekman_field = np.array(current_tau_dataset.variables['Ekman_w'])
+            daily_fields = {}
+            for var_name in netcdf_var_names:
+                daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
 
             if avg_method == 'full_data_only':
-                tau_air_x_field_avg = tau_air_x_field_avg + tau_air_x_field/n_days
-                tau_air_y_field_avg = tau_air_y_field_avg + tau_air_y_field/n_days
-                tau_ice_x_field_avg = tau_ice_x_field_avg + tau_ice_x_field/n_days
-                tau_ice_y_field_avg = tau_ice_y_field_avg + tau_ice_y_field/n_days
-                tau_SIZ_x_field_avg = tau_SIZ_x_field_avg + tau_SIZ_x_field/n_days
-                tau_SIZ_y_field_avg = tau_SIZ_y_field_avg + tau_SIZ_y_field/n_days
-                tau_x_field_avg = tau_x_field_avg + tau_x_field/n_days
-                tau_y_field_avg = tau_y_field_avg + tau_y_field/n_days
-
-                u_Ekman_field_avg = u_Ekman_field_avg + u_Ekman_field/n_days
-                v_Ekman_field_avg = v_Ekman_field_avg + v_Ekman_field/n_days
-                u_Ekman_SIZ_field_avg = u_Ekman_SIZ_field_avg + u_Ekman_SIZ_field/n_days
-                v_Ekman_SIZ_field_avg = v_Ekman_SIZ_field_avg + v_Ekman_SIZ_field/n_days
-
-                u_geo_field_avg = u_geo_field_avg + u_geo_field/n_days
-                v_geo_field_avg = v_geo_field_avg + v_geo_field/n_days
-                u_wind_field_avg = u_wind_field_avg + u_wind_field/n_days
-                v_wind_field_avg = v_wind_field_avg + v_wind_field/n_days
-                alpha_field_avg = alpha_field_avg + alpha_field/n_days
-                u_ice_field_avg = u_ice_field_avg + u_ice_field/n_days
-                v_ice_field_avg = v_ice_field_avg + v_ice_field/n_days
-
-                dtauydx_field_avg = dtauydx_field_avg + dtauydx_field/n_days
-                dtauxdy_field_avg = dtauxdy_field_avg + dtauxdy_field/n_days
-
-                wind_stress_curl_field_avg = wind_stress_curl_field_avg + wind_stress_curl_field/n_days
-                w_Ekman_field_avg = w_Ekman_field_avg + w_Ekman_field/n_days
+                for var_name in netcdf_var_names:
+                    field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
 
             elif avg_method == 'partial_data_ok':
-                tau_air_x_field_avg = tau_air_x_field_avg + np.nan_to_num(tau_air_x_field)
-                tau_air_x_field[~np.isnan(tau_air_x_field)] = 1
-                tau_air_x_field[np.isnan(tau_air_x_field)] = 0
-                tau_air_x_field_days = tau_air_x_field_days + tau_air_x_field
-
-                tau_air_y_field_avg = tau_air_y_field_avg + np.nan_to_num(tau_air_y_field)
-                tau_air_y_field[~np.isnan(tau_air_y_field)] = 1
-                tau_air_y_field[np.isnan(tau_air_y_field)] = 0
-                tau_air_y_field_days = tau_air_y_field_days + tau_air_y_field
-
-                tau_ice_x_field_avg = tau_ice_x_field_avg + np.nan_to_num(tau_ice_x_field)
-                tau_ice_x_field[~np.isnan(tau_ice_x_field)] = 1
-                tau_ice_x_field[np.isnan(tau_ice_x_field)] = 0
-                tau_ice_x_field_days = tau_ice_x_field_days + tau_ice_x_field
-
-                tau_ice_y_field_avg = tau_ice_y_field_avg + np.nan_to_num(tau_ice_y_field)
-                tau_ice_y_field[~np.isnan(tau_ice_y_field)] = 1
-                tau_ice_y_field[np.isnan(tau_ice_y_field)] = 0
-                tau_ice_y_field_days = tau_ice_y_field_days + tau_ice_y_field
-
-                tau_SIZ_x_field_avg = tau_SIZ_x_field_avg + np.nan_to_num(tau_SIZ_x_field)
-                tau_SIZ_x_field[~np.isnan(tau_SIZ_x_field)] = 1
-                tau_SIZ_x_field[np.isnan(tau_SIZ_x_field)] = 0
-                tau_SIZ_x_field_days = tau_SIZ_x_field_days + tau_SIZ_x_field
-
-                tau_SIZ_y_field_avg = tau_SIZ_y_field_avg + np.nan_to_num(tau_SIZ_y_field)
-                tau_SIZ_y_field[~np.isnan(tau_SIZ_y_field)] = 1
-                tau_SIZ_y_field[np.isnan(tau_SIZ_y_field)] = 0
-                tau_SIZ_y_field_days = tau_SIZ_y_field_days + tau_SIZ_y_field
-
-                tau_x_field_avg = tau_x_field_avg + np.nan_to_num(tau_x_field)
-                tau_x_field[~np.isnan(tau_x_field)] = 1
-                tau_x_field[np.isnan(tau_x_field)] = 0
-                tau_x_field_days = tau_x_field_days + tau_x_field
-
-                tau_y_field_avg = tau_y_field_avg + np.nan_to_num(tau_y_field)
-                tau_y_field[~np.isnan(tau_y_field)] = 1
-                tau_y_field[np.isnan(tau_y_field)] = 0
-                tau_y_field_days = tau_y_field_days + tau_y_field
-
-                u_Ekman_field_avg = u_Ekman_field_avg + np.nan_to_num(u_Ekman_field)
-                u_Ekman_field[~np.isnan(u_Ekman_field)] = 1
-                u_Ekman_field[np.isnan(u_Ekman_field)] = 0
-                u_Ekman_field_days = u_Ekman_field_days + u_Ekman_field
-
-                v_Ekman_field_avg = v_Ekman_field_avg + np.nan_to_num(v_Ekman_field)
-                v_Ekman_field[~np.isnan(v_Ekman_field)] = 1
-                v_Ekman_field[np.isnan(v_Ekman_field)] = 0
-                v_Ekman_field_days = v_Ekman_field_days + v_Ekman_field
-
-                u_Ekman_SIZ_field_avg = u_Ekman_SIZ_field_avg + np.nan_to_num(u_Ekman_SIZ_field)
-                u_Ekman_SIZ_field[~np.isnan(u_Ekman_SIZ_field)] = 1
-                u_Ekman_SIZ_field[np.isnan(u_Ekman_SIZ_field)] = 0
-                u_Ekman_SIZ_field_days = u_Ekman_SIZ_field_days + u_Ekman_SIZ_field
-
-                v_Ekman_SIZ_field_avg = v_Ekman_SIZ_field_avg + np.nan_to_num(v_Ekman_SIZ_field)
-                v_Ekman_SIZ_field[~np.isnan(v_Ekman_SIZ_field)] = 1
-                v_Ekman_SIZ_field[np.isnan(v_Ekman_SIZ_field)] = 0
-                v_Ekman_SIZ_field_days = v_Ekman_SIZ_field_days + v_Ekman_SIZ_field
-
-                u_geo_field_avg = u_geo_field_avg + np.nan_to_num(u_geo_field)
-                u_geo_field[~np.isnan(u_geo_field)] = 1
-                u_geo_field[np.isnan(u_geo_field)] = 0
-                u_geo_field_days = u_geo_field_days + u_geo_field
-
-                v_geo_field_avg = v_geo_field_avg + np.nan_to_num(v_geo_field)
-                v_geo_field[~np.isnan(v_geo_field)] = 1
-                v_geo_field[np.isnan(v_geo_field)] = 0
-                v_geo_field_days = v_geo_field_days + v_geo_field
-
-                u_wind_field_avg = u_wind_field_avg + np.nan_to_num(u_wind_field)
-                u_wind_field[~np.isnan(u_wind_field)] = 1
-                u_wind_field[np.isnan(u_wind_field)] = 0
-                u_wind_field_days = u_wind_field_days + u_wind_field
-
-                v_wind_field_avg = v_wind_field_avg + np.nan_to_num(v_wind_field)
-                v_wind_field[~np.isnan(v_wind_field)] = 1
-                v_wind_field[np.isnan(v_wind_field)] = 0
-                v_wind_field_days = v_wind_field_days + v_wind_field
-
-                alpha_field_avg = alpha_field_avg + np.nan_to_num(alpha_field)
-                alpha_field[~np.isnan(alpha_field)] = 1
-                alpha_field[np.isnan(alpha_field)] = 0
-                alpha_field_days = alpha_field_days + alpha_field
-
-                u_ice_field_avg = u_ice_field_avg + np.nan_to_num(u_ice_field)
-                u_ice_field[~np.isnan(u_ice_field)] = 1
-                u_ice_field[np.isnan(u_ice_field)] = 0
-                u_ice_field_days = u_ice_field_days + u_ice_field
-
-                v_ice_field_avg = v_ice_field_avg + np.nan_to_num(v_ice_field)
-                v_ice_field[~np.isnan(v_ice_field)] = 1
-                v_ice_field[np.isnan(v_ice_field)] = 0
-                v_ice_field_days = v_ice_field_days + v_ice_field
-
-                wind_stress_curl_field_avg = wind_stress_curl_field_avg + np.nan_to_num(wind_stress_curl_field)
-                wind_stress_curl_field[~np.isnan(wind_stress_curl_field)] = 1
-                wind_stress_curl_field[np.isnan(wind_stress_curl_field)] = 0
-                wind_stress_curl_field_days = wind_stress_curl_field_days + wind_stress_curl_field
-
-                w_Ekman_field_avg = w_Ekman_field_avg + np.nan_to_num(w_Ekman_field)
-                w_Ekman_field[~np.isnan(w_Ekman_field)] = 1
-                w_Ekman_field[np.isnan(w_Ekman_field)] = 0
-                w_Ekman_field_days = w_Ekman_field_days + w_Ekman_field
-
-                dtauydx_field_avg = dtauydx_field_avg + np.nan_to_num(dtauydx_field)
-                dtauydx_field[~np.isnan(dtauydx_field)] = 1
-                dtauydx_field[np.isnan(dtauydx_field)] = 0
-                dtauydx_field_days = dtauydx_field_days + dtauydx_field
-
-                dtauxdy_field_avg = dtauxdy_field_avg + np.nan_to_num(dtauxdy_field)
-                dtauxdy_field[~np.isnan(dtauxdy_field)] = 1
-                dtauxdy_field[np.isnan(dtauxdy_field)] = 0
-                dtauxdy_field_days = dtauxdy_field_days + dtauxdy_field
+                field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
+                daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
+                daily_fields[np.isnan(daily_fields[var_name])] = 0
+                field_days[var_name] = field_days[var_name] + daily_fields[var_name]
 
         if avg_method == 'full_data_only':
-            self.tau_air_x_field = tau_air_x_field_avg
-            self.tau_air_y_field = tau_air_y_field_avg
-            self.tau_ice_x_field = tau_ice_x_field_avg
-            self.tau_ice_y_field = tau_ice_y_field_avg
-            self.tau_SIZ_x_field = tau_SIZ_x_field_avg
-            self.tau_SIZ_y_field = tau_SIZ_y_field_avg
-            self.tau_x_field = tau_x_field_avg
-            self.tau_y_field = tau_y_field_avg
-
-            self.u_Ekman_field = u_Ekman_field_avg
-            self.v_Ekman_field = v_Ekman_field_avg
-            self.u_Ekman_SIZ_field = u_Ekman_SIZ_field_avg
-            self.v_Ekman_SIZ_field = v_Ekman_SIZ_field_avg
-
-            self.u_geo_field = u_geo_field_avg
-            self.v_geo_field = v_geo_field_avg
-            self.u_wind_field = u_wind_field_avg
-            self.v_wind_field = v_wind_field_avg
-            self.alpha_field = alpha_field_avg
-            self.u_ice_field = u_ice_field_avg
-            self.v_ice_field = v_ice_field_avg
-
-            self.dtauydx_field = dtauydx_field_avg
-            self.dtauxdy_field = dtauxdy_field_avg
-
-            self.wind_stress_curl_field = wind_stress_curl_field_avg
-            self.w_Ekman_field = w_Ekman_field_avg
+            for var_name in netcdf_var_names:
+                self.var_fields[var_name] = field_avg[var_name]
 
         elif avg_method == 'partial_data_ok':
-            self.tau_air_x_field = np.divide(tau_air_x_field_avg, tau_air_x_field_days)
-            self.tau_air_y_field = np.divide(tau_air_y_field_avg, tau_air_y_field_days)
-            self.tau_ice_x_field = np.divide(tau_ice_x_field_avg, tau_ice_x_field_days)
-            self.tau_ice_y_field = np.divide(tau_ice_y_field_avg, tau_ice_y_field_days)
-            self.tau_SIZ_x_field = np.divide(tau_SIZ_x_field_avg, tau_SIZ_x_field_days)
-            self.tau_SIZ_y_field = np.divide(tau_SIZ_y_field_avg, tau_SIZ_y_field_days)
-            self.tau_x_field = np.divide(tau_x_field_avg, tau_x_field_days)
-            self.tau_y_field = np.divide(tau_y_field_avg, tau_y_field_days)
-
-            self.u_Ekman_field = np.divide(u_Ekman_field_avg, u_Ekman_field_days)
-            self.v_Ekman_field = np.divide(v_Ekman_field_avg, v_Ekman_field_days)
-            self.u_Ekman_SIZ_field = np.divide(u_Ekman_SIZ_field_avg, u_Ekman_SIZ_field_days)
-            self.v_Ekman_SIZ_field = np.divide(v_Ekman_SIZ_field_avg, v_Ekman_SIZ_field_days)
-
-            self.u_geo_field = np.divide(u_geo_field_avg, u_geo_field_days)
-            self.v_geo_field = np.divide(v_geo_field_avg, v_geo_field_days)
-            self.u_wind_field = np.divide(u_wind_field_avg, u_wind_field_days)
-            self.v_wind_field = np.divide(v_wind_field_avg, v_wind_field_days)
-            self.alpha_field = np.divide(alpha_field_avg, alpha_field_days)
-            self.u_ice_field = np.divide(u_ice_field_avg, u_ice_field_days)
-            self.v_ice_field = np.divide(v_ice_field_avg, v_ice_field_days)
-
-            self.dtauydx_field = np.divide(dtauydx_field_avg, dtauydx_field_days)
-            self.dtauxdy_field = np.divide(dtauxdy_field_avg, dtauxdy_field_days)
-
-            self.wind_stress_curl_field = np.divide(wind_stress_curl_field_avg, wind_stress_curl_field_days)
-            self.w_Ekman_field = np.divide(w_Ekman_field_avg, w_Ekman_field_days)
+            for var_name in netcdf_var_names:
+                self.var_fields[var_name] = np.divide(field_avg[var_name], field_days[var_name])
 
     def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
         import matplotlib
@@ -1047,8 +818,9 @@ class SurfaceStressDataWriter(object):
         plt.savefig(ice_div_png_filepath, dpi=600, format='png', transparent=False, bbox_inches='tight')
         logger.info('Saved diagnostic figure: {:s}'.format(ice_div_png_filepath))
 
-    # TODO: This function can be made MUCH shorter!
     def write_fields_to_netcdf(self):
+        from constants import netcdf_var_names, var_units, var_positive, var_long_names
+
         tau_nc_filename = 'surface_stress_' + str(self.date.year) + str(self.date.month).zfill(2) \
                        + str(self.date.day).zfill(2) + '.nc'
         tau_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_nc_filename)
@@ -1081,141 +853,11 @@ class SurfaceStressDataWriter(object):
         lat_var.units = 'degrees west/east'
         lon_var[:] = self.lons
 
-        tau_air_x_var = tau_dataset.createVariable('tau_air_x', float, ('lat', 'lon'), zlib=True)
-        tau_air_x_var.units = 'N/m^2'
-        tau_air_x_var.positive = 'up'
-        tau_air_x_var.long_name = 'Zonal air surface stress'
-        tau_air_x_var[:] = self.tau_air_x_field
-
-        tau_air_y_var = tau_dataset.createVariable('tau_air_y', float, ('lat', 'lon'), zlib=True)
-        tau_air_y_var.units = 'N/m^2'
-        tau_air_y_var.positive = 'up'
-        tau_air_y_var.long_name = 'Meridional air surface stress'
-        tau_air_y_var[:] = self.tau_air_y_field
-
-        tau_ice_x_var = tau_dataset.createVariable('tau_ice_x', float, ('lat', 'lon'), zlib=True)
-        tau_ice_x_var.units = 'N/m^2'
-        tau_ice_x_var.positive = 'up'
-        tau_ice_x_var.long_name = 'Zonal ice surface stress'
-        tau_ice_x_var[:] = self.tau_ice_x_field
-
-        tau_ice_y_var = tau_dataset.createVariable('tau_ice_y', float, ('lat', 'lon'), zlib=True)
-        tau_ice_y_var.units = 'N/m^2'
-        tau_ice_y_var.positive = 'up'
-        tau_ice_y_var.long_name = 'Meridional ice surface stress'
-        tau_ice_y_var[:] = self.tau_ice_y_field
-
-        tau_x_var = tau_dataset.createVariable('tau_x', float, ('lat', 'lon'), zlib=True)
-        tau_x_var.units = 'N/m^2'
-        tau_x_var.positive = 'up'
-        tau_x_var.long_name = 'Zonal surface stress'
-        tau_x_var[:] = self.tau_x_field
-
-        tau_y_var = tau_dataset.createVariable('tau_y', float, ('lat', 'lon'), zlib=True)
-        tau_y_var.units = 'N/m^2'
-        tau_y_var.positive = 'up'
-        tau_y_var.long_name = 'Meridional surface stress'
-        tau_y_var[:] = self.tau_y_field
-
-        tau_SIZ_x_var = tau_dataset.createVariable('tau_SIZ_x', float, ('lat', 'lon'), zlib=True)
-        tau_SIZ_x_var.units = 'N/m^2'
-        tau_SIZ_x_var.positive = 'up'
-        tau_SIZ_x_var.long_name = 'Zonal surface stress in the SIZ'
-        tau_SIZ_x_var[:] = self.tau_SIZ_x_field
-
-        tau_SIZ_y_var = tau_dataset.createVariable('tau_SIZ_y', float, ('lat', 'lon'), zlib=True)
-        tau_SIZ_y_var.units = 'N/m^2'
-        tau_SIZ_y_var.positive = 'up'
-        tau_SIZ_y_var.long_name = 'Meridional surface stress in the SIZ'
-        tau_SIZ_y_var[:] = self.tau_SIZ_y_field
-
-        curl_tau_var = tau_dataset.createVariable('wind_stress_curl', float, ('lat', 'lon'), zlib=True)
-        curl_tau_var.units = 'N/m^3'
-        curl_tau_var.positive = 'up'
-        curl_tau_var.long_name = 'Wind stress curl'
-        curl_tau_var[:] = self.wind_stress_curl_field
-
-        w_Ekman_var = tau_dataset.createVariable('Ekman_w', float, ('lat', 'lon'), zlib=True)
-        w_Ekman_var.units = 'm/s'  # TODO: Save as [m/year].
-        w_Ekman_var.positive = 'up'
-        w_Ekman_var.long_name = 'Ekman pumping'
-        w_Ekman_var[:] = self.w_Ekman_field
-
-        u_Ekman_var = tau_dataset.createVariable('Ekman_u', float, ('lat', 'lon'), zlib=True)
-        u_Ekman_var.units = 'm/s'
-        u_Ekman_var.positive = 'up'
-        u_Ekman_var.long_name = 'Zonal Ekman transport velocity'
-        u_Ekman_var[:] = self.u_Ekman_field
-
-        v_Ekman_var = tau_dataset.createVariable('Ekman_v', float, ('lat', 'lon'), zlib=True)
-        v_Ekman_var.units = 'm/s'
-        v_Ekman_var.positive = 'up'
-        v_Ekman_var.long_name = 'Meridional Ekman transport velocity'
-        v_Ekman_var[:] = self.v_Ekman_field
-
-        u_Ekman_SIZ_var = tau_dataset.createVariable('Ekman_SIZ_u', float, ('lat', 'lon'), zlib=True)
-        u_Ekman_SIZ_var.units = 'm/s'
-        u_Ekman_SIZ_var.positive = 'up'
-        u_Ekman_SIZ_var.long_name = 'Zonal Ekman transport velocity in the SIZ'
-        u_Ekman_SIZ_var[:] = self.u_Ekman_SIZ_field
-
-        v_Ekman_SIZ_var = tau_dataset.createVariable('Ekman_SIZ_v', float, ('lat', 'lon'), zlib=True)
-        v_Ekman_SIZ_var.units = 'm/s'
-        v_Ekman_SIZ_var.positive = 'up'
-        v_Ekman_SIZ_var.long_name = 'Meridional Ekman transport velocity in the SIZ'
-        v_Ekman_SIZ_var[:] = self.v_Ekman_SIZ_field
-
-        u_geo_var = tau_dataset.createVariable('geo_u', float, ('lat', 'lon'), zlib=True)
-        u_geo_var.units = 'm/s'
-        u_geo_var.positive = 'up'
-        u_geo_var.long_name = 'Mean zonal geostrophic velocity'
-        u_geo_var[:] = self.u_geo_field
-
-        v_geo_var = tau_dataset.createVariable('geo_v', float, ('lat', 'lon'), zlib=True)
-        v_geo_var.units = 'm/s'
-        v_geo_var.positive = 'up'
-        v_geo_var.long_name = 'Mean meridional geostrophic velocity'
-        v_geo_var[:] = self.v_geo_field
-
-        u_wind_var = tau_dataset.createVariable('wind_u', float, ('lat', 'lon'), zlib=True)
-        u_wind_var.units = 'm/s'
-        u_wind_var.positive = 'up'
-        u_wind_var.long_name = 'Zonal wind velocity'
-        u_wind_var[:] = self.u_wind_field
-
-        v_wind_var = tau_dataset.createVariable('wind_v', float, ('lat', 'lon'), zlib=True)
-        v_wind_var.units = 'm/s'
-        v_wind_var.positive = 'up'
-        v_wind_var.long_name = 'Meridional wind velocity'
-        v_wind_var[:] = self.v_wind_field
-
-        alpha_var = tau_dataset.createVariable('alpha', float, ('lat', 'lon'), zlib=True)
-        alpha_var.units = 'fractional'
-        alpha_var.long_name = 'Sea ice concentration'
-        alpha_var[:] = self.alpha_field
-
-        u_ice_var = tau_dataset.createVariable('ice_u', float, ('lat', 'lon'), zlib=True)
-        u_ice_var.units = 'm/s'
-        u_ice_var.positive = 'up'
-        u_ice_var.long_name = 'Zonal sea ice motion'
-        u_ice_var[:] = self.u_ice_field
-
-        v_ice_var = tau_dataset.createVariable('ice_v', float, ('lat', 'lon'), zlib=True)
-        v_ice_var.units = 'm/s'
-        v_ice_var.positive = 'up'
-        v_ice_var.long_name = 'Meridional sea ice motion'
-        v_ice_var[:] = self.v_ice_field
-
-        dtauydx_var = tau_dataset.createVariable('dtauydx', float, ('lat', 'lon'), zlib=True)
-        dtauydx_var.units = 'N/m^3'
-        dtauydx_var.positive = 'up'
-        dtauydx_var.long_name = 'd/dx (tau_y)'
-        dtauydx_var[:] = self.dtauydx_field
-
-        dtauxdy_var = tau_dataset.createVariable('dtauxdy', float, ('lat', 'lon'), zlib=True)
-        dtauxdy_var.units = 'N/m^3'
-        dtauxdy_var.positive = 'up'
-        dtauxdy_var.long_name = 'd/dy (tau_x)'
-        dtauxdy_var[:] = self.dtauxdy_field
+        for var_name in netcdf_var_names:
+            field_var = tau_dataset.createVariable(var_name, float, ('lat', 'lon'), zlib=True)
+            field_var.units = var_units[var_name]
+            field_var.positive = var_positive[var_name]
+            field_var.long_name = var_long_names[var_name]
+            field_var[:] = self.var_fields[var_name]
 
         tau_dataset.close()
