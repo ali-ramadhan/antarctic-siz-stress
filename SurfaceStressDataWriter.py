@@ -10,7 +10,6 @@ from SeaIceConcentrationDataset import SeaIceConcentrationDataset
 from SeaIceMotionDataset import SeaIceMotionDataset
 
 from utils import distance
-from constants import output_dir_path
 from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
 from constants import rho_air, rho_seawater, C_air, C_seawater
 from constants import Omega, rho_0, D_e
@@ -363,7 +362,12 @@ class SurfaceStressDataWriter(object):
                     self.wind_stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
-    # TODO: This function can be made MUCH shorter!
+    def compute_salt_transport_fields(self):
+        pass
+
+    def compute_ice_divergence_field(self):
+        pass
+
     def compute_mean_fields(self, dates, avg_method):
         from constants import output_dir_path, netcdf_var_names
         from utils import log_netCDF_dataset_metadata
@@ -436,7 +440,7 @@ class SurfaceStressDataWriter(object):
 
         from constants import titles, gs_coords, scale_factor, colorbar_label, cmaps, cmap_ranges
 
-        logger.info('Converting and recalculating some fields...')
+        logger.info('Converting and recalculating tau_air and tau_ice fields...')
 
         # Convert tau_air fields into (1-alpha)*tau_air, and tau_ice fields into alpha*tau_ice.
         self.tau_air_x_field = np.multiply(1 - self.alpha_field, self.tau_air_x_field)
@@ -476,7 +480,7 @@ class SurfaceStressDataWriter(object):
                                                        facecolor='dimgray', linewidth=0)
         vector_crs = ccrs.PlateCarree()
 
-        # Figure size with an aspect ratio of 16:9 so it fits perfectly on a 1080p or 4K screen.
+        # Figure size with an aspect ratio of 16:9 so it fits perfectly on a 1080p/4K screen. Well now it's 20:9.
         fig = plt.figure(figsize=(20, 9))
         gs = GridSpec(5, 11)
         matplotlib.rcParams.update({'font.size': 6})
@@ -504,7 +508,7 @@ class SurfaceStressDataWriter(object):
             clb = fig.colorbar(im, ax=ax, extend='both')
             clb.ax.set_title(colorbar_label[var])
 
-            # Add selected vector fields.
+            # Add vector fields to the u_ice and tau_x fields.
             if var == 'u_ice':
                 ax.quiver(self.lons[::10], self.lats[::10], self.u_ice_field[::10, ::10], self.v_ice_field[::10, ::10],
                           transform=vector_crs, units='width', width=0.002, scale=2)
@@ -512,7 +516,7 @@ class SurfaceStressDataWriter(object):
                 ax.quiver(self.lons[::10], self.lats[::10], self.tau_x_field[::10, ::10], self.tau_y_field[::10, ::10],
                           transform=vector_crs, units='width', width=0.002, scale=4)
 
-            # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots (plus legends)
+            # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots (plus legends).
             if var == 'tau_x' or var == 'tau_y' or var == 'w_Ekman':
                 ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='green', linewidths=1, transform=vector_crs)
@@ -527,7 +531,7 @@ class SurfaceStressDataWriter(object):
                 plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch], loc='lower center',
                            bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0)
 
-            # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots
+            # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots.
             if var == 'u_Ekman' or var == 'v_Ekman' or var == 'dtauydx' or var == 'dtauxdy':
                 ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
@@ -748,7 +752,6 @@ class SurfaceStressDataWriter(object):
 
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
         # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
-        """
 
         """ Calculate ice divergence \grad \dot (h*u_ice) ~ f - r """
         ice_div_x_field = np.zeros((len(self.lats), len(self.lons)))
@@ -828,6 +831,8 @@ class SurfaceStressDataWriter(object):
         if not os.path.exists(tau_dir):
             logger.info('Creating directory: {:s}'.format(tau_dir))
             os.makedirs(tau_dir)
+
+        logger.info('Saving fields to netCDF file: {:s}'.format(tau_filepath))
 
         tau_dataset = netCDF4.Dataset(tau_filepath, 'w')
 
