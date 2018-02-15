@@ -177,30 +177,6 @@ titles = {
     'w_Ekman': 'w_Ekman'
 }
 
-descriptions = {
-    'u_geo': 'Zonal geostrophic velocity',
-    'v_geo': 'Meridional geostrophic velocity',
-    'u_wind': 'Zonal wind velocity',
-    'v_wind': 'Meridional wind velocity',
-    'u_ice': 'Zonal sea ice motion',
-    'v_ice': 'Meridional sea ice motion',
-    'alpha': 'Sea ice concentration',
-    'tau_air_x': 'Zonal air surface stress',
-    'tau_air_y': 'Meridional air surface stress',
-    'tau_ice_x': 'Zonal sea ice surface stress',
-    'tau_ice_y': 'Meridional sea ice surface stress',
-    'tau_x': 'Zonal surface stress',
-    'tau_y': 'Meridional surface stress',
-    'u_Ekman': 'Zonal Ekman velocity',
-    'v_Ekman': 'Meridional Ekman velocity',
-    'dtauxdy': 'd/dy (tau_y)',
-    'dtauydx': 'd/dx (tau_x)',
-    # 'tau_SIZ_x': 'Zonal surface stress in the SIZ',
-    # 'tau_SIZ_y': 'Meridional surface stress in the SIZ',
-    'curl_tau': 'Vertical wind stress curl',
-    'w_Ekman': 'Ekman pumping'
-}
-
 gs_coords = {
     'u_geo': (0, 0),
     'v_geo': (1, 0),
