@@ -63,6 +63,96 @@ u_ice_interp_method = 'cubic'
 u_wind_interp_method = 'cubic'
 
 """ Constants for diagnostic field plots """
+# The name of each field stored in the netCDF files.
+netcdf_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y', 'tau_SIZ_x', 'tau_SIZ_y',
+                    'wind_stress_curl', 'Ekman_w', 'Ekman_u', 'Ekman_v', 'Ekman_SIZ_u', 'Ekman_SIZ_v',
+                    'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
+                    'dtauydx', 'dtauxdy']
+
+# The name of each field that will be plotted.
+plot_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y',
+                  'Ekman_u', 'Ekman_v', 'wind_stress_curl', 'Ekman_w',
+                  'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
+                  'dtauydx', 'dtauxdy']
+
+var_units = {
+    'tau_air_x': 'N/m^2',
+    'tau_air_y': 'N/m^2',
+    'tau_ice_x': 'N/m^2',
+    'tau_ice_y': 'N/m^2',
+    'tau_x': 'N/m^2',
+    'tau_y': 'N/m^2',
+    'tau_SIZ_x': 'N/m^2',
+    'tau_SIZ_y': 'N/m^2',
+    'wind_stress_curl': 'N/m^3',
+    'Ekman_w': 'm/s',  # TODO: Save as [m/year].
+    'Ekman_u': 'm/s',
+    'Ekman_v': 'm/s',
+    'Ekman_SIZ_u': 'm/s',
+    'Ekman_SIZ_v': 'm/s',
+    'geo_u': 'm/s',
+    'geo_v': 'm/s',
+    'wind_u': 'm/s',
+    'wind_v': 'm/s',
+    'alpha': 'fractional',
+    'ice_u': 'm/s',
+    'ice_v': 'm/s',
+    'dtauydx': 'N/m^3',
+    'dtauxdy': 'N/m^3'
+}
+
+var_positive = {
+    'tau_air_x': 'up',
+    'tau_air_y': 'up',
+    'tau_ice_x': 'up',
+    'tau_ice_y': 'up',
+    'tau_x': 'up',
+    'tau_y': 'up',
+    'tau_SIZ_x': 'up',
+    'tau_SIZ_y': 'up',
+    'wind_stress_curl': 'up',
+    'Ekman_w': 'up',
+    'Ekman_u': 'up',
+    'Ekman_v': 'up',
+    'Ekman_SIZ_u': 'up',
+    'Ekman_SIZ_v': 'up',
+    'geo_u': 'up',
+    'geo_v': 'up',
+    'wind_u': 'up',
+    'wind_v': 'up',
+    'alpha': 'up',
+    'ice_u': 'up',
+    'ice_v': 'up',
+    'dtauydx': 'up',
+    'dtauxdy': 'up'
+}
+
+var_long_names = {
+    'geo_u': 'Zonal geostrophic velocity',
+    'geo_v': 'Meridional geostrophic velocity',
+    'wind_u': 'Zonal wind velocity',
+    'wind_v': 'Meridional wind velocity',
+    'ice_u': 'Zonal sea ice motion',
+    'ice_v': 'Meridional sea ice motion',
+    'alpha': 'Sea ice concentration',
+    'tau_air_x': 'Zonal air surface stress',
+    'tau_air_y': 'Meridional air surface stress',
+    'tau_ice_x': 'Zonal sea ice surface stress',
+    'tau_ice_y': 'Meridional sea ice surface stress',
+    'tau_SIZ_x': 'Zonal surface stress in the SIZ',
+    'tau_SIZ_y': 'Meridional surface stress in the SIZ',
+    'tau_x': 'Zonal surface stress',
+    'tau_y': 'Meridional surface stress',
+    'Ekman_u': 'Zonal Ekman velocity',
+    'Ekman_v': 'Meridional Ekman velocity',
+    'Ekman_SIZ_u': 'Zonal Ekman velocity in the SIZ',
+    'Ekman_SIZ_v': 'Meridional Ekman velocity in the SIZ',
+    'dtauxdy': 'd/dy (tau_y)',
+    'dtauydx': 'd/dx (tau_x)',
+    'wind_stress_curl': 'Vertical wind stress curl',
+    'Ekman_w': 'Ekman pumping'
+}
+
 titles = {
     'u_geo': 'u_geo',
     'v_geo': 'v_geo',
