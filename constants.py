@@ -63,17 +63,18 @@ u_ice_interp_method = 'cubic'
 u_wind_interp_method = 'cubic'
 
 """ Constants for diagnostic field plots """
+# Don't think I need these lists as I can just use SurfaceStressDataWriter.var_fields.keys() and figure_fields.keys().
 # The name of each field stored in the netCDF files.
-netcdf_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y', 'tau_SIZ_x', 'tau_SIZ_y',
-                    'wind_stress_curl', 'Ekman_w', 'Ekman_u', 'Ekman_v', 'Ekman_SIZ_u', 'Ekman_SIZ_v',
-                    'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
-                    'dtauydx', 'dtauxdy']
+# netcdf_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y', 'tau_SIZ_x', 'tau_SIZ_y',
+#                     'wind_stress_curl', 'Ekman_w', 'Ekman_u', 'Ekman_v', 'Ekman_SIZ_u', 'Ekman_SIZ_v',
+#                     'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
+#                     'dtauydx', 'dtauxdy']
 
 # The name of each field that will be plotted.
-plot_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y',
-                  'Ekman_u', 'Ekman_v', 'wind_stress_curl', 'Ekman_w',
-                  'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
-                  'dtauydx', 'dtauxdy']
+# plot_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y',
+#                   'Ekman_u', 'Ekman_v', 'wind_stress_curl', 'Ekman_w',
+#                   'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
+#                   'dtauydx', 'dtauxdy']
 
 var_units = {
     'tau_air_x': 'N/m^2',
