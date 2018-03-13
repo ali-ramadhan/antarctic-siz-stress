@@ -1,5 +1,8 @@
 from os import path
 
+from matplotlib import cm
+import cmocean.cm
+
 """ Data directory constants """
 # Current Working Directory
 cwd = path.dirname(path.abspath(__file__))
@@ -148,8 +151,8 @@ var_long_names = {
     'Ekman_v': 'Meridional Ekman velocity',
     'Ekman_SIZ_u': 'Zonal Ekman velocity in the SIZ',
     'Ekman_SIZ_v': 'Meridional Ekman velocity in the SIZ',
-    'dtauxdy': 'd/dy (tau_y)',
-    'dtauydx': 'd/dx (tau_x)',
+    'dtauxdy': 'd/dy (tau_x)',
+    'dtauydx': 'd/dx (tau_y)',
     'wind_stress_curl': 'Vertical wind stress curl',
     'Ekman_w': 'Ekman pumping'
 }
@@ -278,7 +281,7 @@ cmaps = {
     'v_wind': 'seismic',
     'u_ice': 'seismic',
     'v_ice': 'seismic',
-    'alpha': 'plasma',
+    'alpha': cmocean.cm.ice,
     'tau_air_x': 'seismic',
     'tau_air_y': 'seismic',
     'tau_ice_x': 'seismic',
