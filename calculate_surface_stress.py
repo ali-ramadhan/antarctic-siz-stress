@@ -51,7 +51,7 @@ def process_day(date):
 
         surface_stress_dataset.compute_daily_surface_stress_field()
         surface_stress_dataset.compute_daily_ekman_pumping_field()
-        surface_stress_dataset.write_fields_to_netcdf()
+        surface_stress_dataset.write_fields_to_netcdf(field_type='daily')
 
     except Exception as e:
         logger.error('Failed to process day {}. Returning.'.format(date))
@@ -66,15 +66,15 @@ def process_and_plot_day(date):
 
     surface_stress_dataset.compute_daily_surface_stress_field()
     surface_stress_dataset.compute_daily_ekman_pumping_field()
-    surface_stress_dataset.write_fields_to_netcdf()
-    surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
+    surface_stress_dataset.write_fields_to_netcdf(field_type='daily')
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='daily', custom_label='no_custom_label_', avg_period='00')
 
 
 def plot_day(date):
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = date
-    surface_stress_dataset.compute_mean_fields([date], avg_method='partial_data_ok')
+    surface_stress_dataset.compute_mean_fields([date], avg_method='full_data_only')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='daily')
 
 
@@ -94,7 +94,7 @@ def process_month(date_in_month):
     surface_stress_dataset.date = date_in_month
     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='monthly')
-
+    surface_stress_dataset.write_fields_to_netcdf(field_type='monthly')
 
 def process_year(date_in_year):
     """ Process an entire year and produce an annual mean. """
@@ -122,18 +122,17 @@ def produce_monthly_mean(date_in_month):
     surface_stress_dataset.date = date1
     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='monthly')
-    # surface_stress_dataset.write_fields_to_netcdf()  # TODO: Add support for mean field netCDF files.
+    surface_stress_dataset.write_fields_to_netcdf(field_type='monthly')
 
 
-def produce_annual_mean(date_in_year):
-    year = date_in_year.year
-
+def produce_annual_mean(year):
     dates = date_range(datetime.date(year, 1, 1), datetime.date(year, 12, 31))
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = dates[0]
     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='annual')
+    surface_stress_dataset.write_fields_to_netcdf(field_type='annual')
 
 
 def produce_seasonal_mean(date_in_year):
@@ -169,6 +168,7 @@ def produce_seasonal_mean(date_in_year):
     surface_stress_dataset.date = dates[0]
     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label)
+    surface_stress_dataset.write_fields_to_netcdf(field_type='seasonal')
 
 
 def process_multiple_years(year_start, year_end):
@@ -208,6 +208,7 @@ def produce_seasonal_climatology(year_start, year_end):
     surface_stress_dataset.date = winter_days[-1]
     surface_stress_dataset.compute_mean_fields(winter_days, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=winter_label)
+    surface_stress_dataset.write_fields_to_netcdf(field_type='seasonal_climo')
 
     # surface_stress_dataset = SurfaceStressDataWriter(None)
     # surface_stress_dataset.date = summer_days[-1]
@@ -256,11 +257,13 @@ def produce_monthly_climatology(year_start, year_end):
     surface_stress_dataset.date = feb_days[-1]
     surface_stress_dataset.compute_mean_fields(feb_days, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=feb_label)
+    surface_stress_dataset.write_fields_to_netcdf(field_type='monthly_climo')
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = sep_days[-1]
     surface_stress_dataset.compute_mean_fields(sep_days, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=sep_label)
+    surface_stress_dataset.write_fields_to_netcdf(field_type='monthly_climo')
 
 
 def produce_climatology(year_start, year_end):
@@ -272,6 +275,7 @@ def produce_climatology(year_start, year_end):
     surface_stress_dataset.date = dates[0]
     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=climo_label)
+    surface_stress_dataset.write_fields_to_netcdf(field_type='climo')
 
 
 def process_neutral_density_field(time_span, avg_period, grid_size, field_type, depth_level):
@@ -332,7 +336,6 @@ def plot_meridional_salinity_profiles(time_span, grid_size, field_type, lon, spl
 
         levels = np.linspace(33.8, 36, 21)
         idx_split_depth = np.abs(depths - split_depth).argmin()
-
 
         im1 = ax1.contourf(lats, depths[:idx_split_depth], salinity_profile[:idx_split_depth, :],
                              cmap=cmocean.cm.haline, colors=None, vmin=33.8, vmax=36, levels=levels, extend='both')
