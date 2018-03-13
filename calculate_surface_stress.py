@@ -690,16 +690,110 @@ def look_at_neutral_density_contours(year_start, year_end):
         surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label, avg_period=avg_period)
 
 
+def analyze_zero_zonal_stress_line():
+    import os
+    import csv
+    from constants import output_dir_path
+    surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
+
+    import matplotlib.pyplot as plt
+    import cartopy
+    import cartopy.crs as ccrs
+
+    years = np.arange(1992, 2016, 1)
+
+    lon_bins = np.arange(-180, 180, 1)
+    lat_northward = np.empty((len(lon_bins), len(years)))
+    lat_northward[:] = -180
+
+    fig = plt.figure(figsize=(16, 9))
+    ax = fig.add_subplot(111)
+
+    NUM_COLORS = len(years)
+    cm = plt.get_cmap('gist_rainbow')
+    ax.set_color_cycle([cm(1. * i / NUM_COLORS) for i in range(NUM_COLORS)])
+
+    for i in range(len(years)):
+        year = years[i]
+
+        csv_filename = 'zero_zonal_stress_line_contour' + str(year) + '.csv'
+        csv_filepath = os.path.join(surface_stress_dir, str(year), csv_filename)
+
+        with open(csv_filepath, 'r') as f:
+            reader = csv.reader(f)
+
+            lons = np.array(reader.__next__())
+            reader.__next__()  # Not sure why csv writer skipped a line...
+            lats = np.array(reader.__next__())
+
+        lons = lons.astype(float)
+        lats = lats.astype(float)
+
+        for j in range(len(lons)):
+            lon = lons[j]
+            lat = lats[j]
+
+            closest_lon_idx = np.abs(lon_bins - lon).argmin()
+            closest_lon = lons[closest_lon_idx]
+
+            if lat > lat_northward[closest_lon_idx][i]:
+                lat_northward[closest_lon_idx][i] = lat
+
+        logger.info('{:d} max lat: {:f}'.format(year, np.max(lat_northward[:, i])))
+
+        # Mask values that we don't have data for.
+        lat_northward[lat_northward[:, i] == -180, i] = np.nan
+
+        plt.plot(lon_bins, lat_northward[:, i], label=str(year))
+        # plt.scatter(lon_bins, lat_northward, marker=',', s=2, label=str(year))
+
+    plt.legend()
+    # plt.savefig('tau_x_zero_line.png', dpi=600, format='png', transparent=False, bbox_inches='tight')
+    plt.show()
+
+    from scipy import stats
+
+    slopes = np.zeros(len(lon_bins))
+    intercepts = np.zeros(len(lon_bins))
+    r_values = np.zeros(len(lon_bins))
+    p_values = np.zeros(len(lon_bins))
+    std_errs = np.zeros(len(lon_bins))
+
+    # Do linear regression for the N/S position of the line at each longitude.
+    for i in range(len(lon_bins)):
+        logger.info(lon_bins[i])
+        lat_time_series = lat_northward[i, :]
+
+        slope, intercept, r_value, p_value, std_err = stats.linregress(years, lat_time_series)
+        slopes[i] = slope
+        intercepts[i] = intercept
+        r_values[i] = r_value**2
+        p_values[i] = p_value
+        std_errs[i] = std_err
+
+    plt.plot(lon_bins, slopes, label='slopes')
+    # plt.plot(lon_bins, intercepts, label='intercepts')
+    # plt.plot(lon_bins, r_values, label='r_values')
+    # plt.plot(lon_bins, p_values, label='p_values')
+    # plt.plot(lon_bins, std_errs, label='std_errs')
+    plt.legend()
+    plt.show()
+
+
 if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
 
-    # process_and_plot_day(datetime.date(2015, 7, 16))
+    process_and_plot_day(datetime.date(2015, 7, 16))
     # process_day(datetime.date(2015, 7, 16))
     # plot_day(datetime.date(2015, 7, 16))
+    # produce_monthly_mean(datetime.date(2015, 7, 1))
     # produce_seasonal_climatology(2011, 2012)
     # process_multiple_years(1995, 1995)
     # process_day(datetime.date(2015, 1, 1))
+
+    # for year in range(2013, 2016):
+    #     produce_annual_mean(year)
 
     # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='00', grid_size='04', field_type='an',
     #                                                depth_levels=range(8))
@@ -735,7 +829,8 @@ if __name__ == '__main__':
     # look_at_neutral_density_contours(2014, 2015)
     # look_at_neutral_density_contours(1992, 1993)
     #
-    plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-135, split_depth=250)
-    plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-30, split_depth=250)
-    plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=250)
+    # plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-135, split_depth=250)
+    # plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-30, split_depth=250)
+    # plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=250)
 
+    # analyze_zero_zonal_stress_line()
