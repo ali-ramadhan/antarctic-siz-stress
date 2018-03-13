@@ -568,13 +568,17 @@ class SurfaceStressDataWriter(object):
                 daily_fields[np.isnan(daily_fields[var_name])] = 0
                 field_days[var_name] = field_days[var_name] + daily_fields[var_name]
 
+        # Remember that the [:] syntax is used is so that we perform deep copies. Otherwise, e.g.
+        # self.var_fields['ice_u'] will point to a different array than the original self.u_ice_field, and will NOT be
+        # the same object as self.figure_fields['u_ice']!.
         if avg_method == 'full_data_only':
-            for var_name in netcdf_var_names:
-                self.var_fields[var_name] = field_avg[var_name]
+            for var_name in self.var_fields.keys():
+                self.var_fields[var_name][:] = field_avg[var_name][:]
 
         elif avg_method == 'partial_data_ok':
-            for var_name in netcdf_var_names:
-                self.var_fields[var_name] = np.divide(field_avg[var_name], field_days[var_name])
+            for var_name in self.var_fields.keys():
+                field_avg[var_name] = np.divide(field_avg[var_name], field_days[var_name])
+                self.var_fields[var_name][:] = field_avg[var_name][:]
 
     def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
         import matplotlib
