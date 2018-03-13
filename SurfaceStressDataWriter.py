@@ -531,7 +531,7 @@ class SurfaceStressDataWriter(object):
         field_days = {}
 
         # Initializing all the fields we want to calculate an average for.
-        for var_name in netcdf_var_names:
+        for var_name in self.var_fields.keys():
             field_avg[var_name] = np.zeros((len(self.lats), len(self.lons)))
             field_days[var_name] = np.zeros((len(self.lats), len(self.lons)))
 
@@ -555,18 +555,19 @@ class SurfaceStressDataWriter(object):
             self.lons = np.array(current_tau_dataset.variables['lon'])
 
             daily_fields = {}
-            for var_name in netcdf_var_names:
+            for var_name in self.var_fields.keys():
                 daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
 
             if avg_method == 'full_data_only':
-                for var_name in netcdf_var_names:
+                for var_name in self.var_fields.keys():
                     field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
 
             elif avg_method == 'partial_data_ok':
-                field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
-                daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
-                daily_fields[np.isnan(daily_fields[var_name])] = 0
-                field_days[var_name] = field_days[var_name] + daily_fields[var_name]
+                for var_name in self.var_fields.keys():
+                    field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
+                    daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
+                    daily_fields[var_name][np.isnan(daily_fields[var_name])] = 0
+                    field_days[var_name] = field_days[var_name] + daily_fields[var_name]
 
         # Remember that the [:] syntax is used is so that we perform deep copies. Otherwise, e.g.
         # self.var_fields['ice_u'] will point to a different array than the original self.u_ice_field, and will NOT be
@@ -580,7 +581,7 @@ class SurfaceStressDataWriter(object):
                 field_avg[var_name] = np.divide(field_avg[var_name], field_days[var_name])
                 self.var_fields[var_name][:] = field_avg[var_name][:]
 
-    def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
+    def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period='00'):
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
@@ -601,31 +602,11 @@ class SurfaceStressDataWriter(object):
         self.tau_ice_x_field = np.multiply(self.alpha_field, self.tau_ice_x_field)
         self.tau_ice_y_field = np.multiply(self.alpha_field, self.tau_ice_y_field)
 
-        logger.info('Creating diagnostic figure...')
+        self.compute_freshwater_flux_field(avg_period)
+        self.compute_ice_divergence_field()
+        self.process_thermodynamic_fields(avg_period)
 
-        fields = {
-            'u_geo': self.u_geo_field,
-            'v_geo': self.v_geo_field,
-            'u_wind': self.u_wind_field,
-            'v_wind': self.v_wind_field,
-            'u_ice': self.u_ice_field,
-            'v_ice': self.v_ice_field,
-            'alpha': self.alpha_field,
-            'tau_air_x': self.tau_air_x_field,
-            'tau_air_y': self.tau_air_y_field,
-            'tau_ice_x': self.tau_ice_x_field,
-            'tau_ice_y': self.tau_ice_y_field,
-            'tau_x': self.tau_x_field,
-            'tau_y': self.tau_y_field,
-            'u_Ekman': self.u_Ekman_field,
-            'v_Ekman': self.v_Ekman_field,
-            'dtauydx': self.dtauydx_field,
-            'dtauxdy': self.dtauxdy_field,
-            'curl_tau': self.wind_stress_curl_field,
-            # 'tau_SIZ_x': self.tau_SIZ_x_field,
-            # 'tau_SIZ_y': self.tau_SIZ_y_field,
-            'w_Ekman': self.w_Ekman_field
-        }
+        logger.info('Creating diagnostic figure...')
 
         # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
         # the smaller plots.
@@ -639,12 +620,13 @@ class SurfaceStressDataWriter(object):
         matplotlib.rcParams.update({'font.size': 6})
 
         # Plot all the scalar fields
-        for var in fields.keys():
+        for var in self.figure_fields.keys():
             ax = plt.subplot(gs[gs_coords[var]], projection=ccrs.SouthPolarStereo())
             ax.add_feature(land_50m)
             ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
             ax.set_title(titles[var])
 
+            # Use symmetric logarithmic scale for v_Ekman.
             # if var == 'v_Ekman':
             #     im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
             #                        cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1],
@@ -655,7 +637,7 @@ class SurfaceStressDataWriter(object):
             #     im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
             #                        cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
 
-            im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * fields[var], transform=vector_crs,
+            im = ax.pcolormesh(self.lons, self.lats, scale_factor[var] * self.figure_fields[var], transform=vector_crs,
                                cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
 
             clb = fig.colorbar(im, ax=ax, extend='both')
@@ -670,8 +652,8 @@ class SurfaceStressDataWriter(object):
                           transform=vector_crs, units='width', width=0.002, scale=4)
 
             # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots (plus legends).
-            if var == 'tau_x' or var == 'tau_y' or var == 'w_Ekman':
-                ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+            if var in ['tau_x', 'tau_y', 'w_Ekman', 'neutral_density']:
+                cs = ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='green', linewidths=1, transform=vector_crs)
                 ax.contour(self.lons, self.lats, np.ma.array(self.u_wind_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='gold', linewidths=1, transform=vector_crs)
@@ -681,8 +663,16 @@ class SurfaceStressDataWriter(object):
                 zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
                 zero_wind_line_patch = mpatches.Patch(color='gold', label='zero zonal wind line')
                 ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
-                plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch], loc='lower center',
-                           bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0)
+
+                if var == 'neutral_density':
+                    plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch],
+                               loc='lower center', bbox_to_anchor=(0, -0.3, 1, -0.3), ncol=1, mode='expand',
+                               borderaxespad=0)
+                else:
+                    plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch],
+                               loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand',
+                               borderaxespad=0)
+
                 # Extract zero zonal stress line (tau_x == 0) contours and save them for further analysis.
                 if var == 'tau_x':
                     paths = cs.collections[0].get_paths()
@@ -715,186 +705,12 @@ class SurfaceStressDataWriter(object):
                         logger.info('Saved zero zonal stress contour to file: {:s}'.format(csv_filepath))
 
             # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots.
-            if var == 'u_Ekman' or var == 'v_Ekman' or var == 'dtauydx' or var == 'dtauxdy':
+            if var in ['u_Ekman', 'v_Ekman', 'dtauydx', 'dtauxdy', 'freshwater_flux', 'ice_div', 'temperature',
+                       'salinity']:
                 ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
                            levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
-
-        from SalinityDataset import SalinityDataset
-        from TemperatureDataset import TemperatureDataset
-        from NeutralDensityDataset import NeutralDensityDataset
-
-        levels = [0, 1, 2, 3, 4, 5, 6, 7]
-        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
-        temperature_dataset = TemperatureDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
-                                                 field_type='an')
-        neutral_density_dataset = NeutralDensityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
-                                                        field_type='an', depth_levels=levels)
-
-        salinity_field = np.zeros((len(self.lats), len(self.lons)))
-        temperature_field = np.zeros((len(self.lats), len(self.lons)))
-        neutral_density_field = np.zeros((len(self.lats), len(self.lons)))
-
-        logger.info('Calculating average T, S, gamma_n...')
-        for i in range(len(self.lats)):
-            lat = self.lats[i]
-            for j in range(len(self.lons)):
-                lon = self.lons[j]
-                salinity_field[i][j] = salinity_dataset.salinity(lat, lon, levels)
-                temperature_field[i][j] = temperature_dataset.temperature(lat, lon, levels)
-                neutral_density_field[i][j] = neutral_density_dataset.gamma_n_depth_averaged(lat, lon, levels)
-
-        # Calculate and plot salt transport.
-        from SalinityDataset import SalinityDataset
-        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
-
-        zonal_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
-        merid_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
-
-        for i in range(1, len(self.lats) - 1):
-            lat = self.lats[i]
-
-            progress_percent = 100 * i / (len(self.lats) - 2)
-            logger.info('(salt_transport) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
-
-            dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
-            dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
-
-            for j in range(1, len(self.lons) - 1):
-                lon = self.lons[j]
-
-                u_Ekman_scalar = self.u_Ekman_field[i][j]
-                v_Ekman_scalar = self.v_Ekman_field[i][j]
-
-                salinity_ip1_j = salinity_dataset.salinity(self.lats[i+1], lon, 0)
-                salinity_im1_j = salinity_dataset.salinity(self.lats[i-1], lon, 0)
-                salinity_i_jp1 = salinity_dataset.salinity(lat, self.lons[j+1], 0)
-                salinity_i_jm1 = salinity_dataset.salinity(lat, self.lons[j-1], 0)
-
-                if not np.isnan(u_Ekman_scalar) and not np.isnan(salinity_i_jm1) \
-                        and not np.isnan(salinity_i_jp1):
-                    dSdx = (salinity_i_jp1 - salinity_i_jm1) / dx
-                    # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
-                    zonal_salt_transport_field[i][j] = u_Ekman_scalar * dSdx
-                else:
-                    zonal_salt_transport_field[i][j] = np.nan
-
-                if not np.isnan(v_Ekman_scalar) and not np.isnan(salinity_im1_j) \
-                        and not np.isnan(salinity_ip1_j):
-                    dSdy = (salinity_ip1_j - salinity_im1_j) / dy
-                    # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
-                    merid_salt_transport_field[i][j] = v_Ekman_scalar * dSdy
-                else:
-                    merid_salt_transport_field[i][j] = np.nan
-
-        # Zonal freshwater flux plot.
-        ax = plt.subplot(gs[0, 9], projection=ccrs.SouthPolarStereo())
-        ax.add_feature(land_50m)
-        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('u_Ekman*(dS/dx)')
-
-        max_zst = np.abs(np.nanmax(zonal_salt_transport_field)) / 10
-        im = ax.pcolormesh(self.lons, self.lats, zonal_salt_transport_field, transform=vector_crs,
-                           cmap=cmocean.cm.balance, vmin=-max_zst, vmax=max_zst)
-
-        clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('m*g/(s*kg)')
-
-        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
-
-        # Meridional freshwater flux plot.
-        ax = plt.subplot(gs[1, 9], projection=ccrs.SouthPolarStereo())
-        ax.add_feature(land_50m)
-        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('v_Ekman*(dS/dy)')
-
-        max_mst = np.abs(np.nanmax(merid_salt_transport_field)) / 10
-        im = ax.pcolormesh(self.lons, self.lats, merid_salt_transport_field, transform=vector_crs,
-                           cmap=cmocean.cm.balance, vmin=-max_mst, vmax=max_mst)
-
-        clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('m*g/(s*kg)')
-
-        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
-
-        # Temperature plot.
-        ax = plt.subplot(gs[0, 10], projection=ccrs.SouthPolarStereo())
-        ax.add_feature(land_50m)
-        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('surface temperature')
-
-        im = ax.pcolormesh(self.lons, self.lats, temperature_field, transform=vector_crs,
-                           cmap=cmocean.cm.thermal, vmin=-2.5, vmax=2.5)
-
-        clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('deg C')
-
-        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
-
-        # Salinity plot.
-        ax = plt.subplot(gs[1, 10], projection=ccrs.SouthPolarStereo())
-        ax.add_feature(land_50m)
-        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('surface salinity')
-
-        im = ax.pcolormesh(self.lons, self.lats, salinity_field, transform=vector_crs,
-                           cmap=cmocean.cm.haline, vmin=33.75, vmax=35)
-
-        clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('g/kg')
-
-        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
-
-        # Neutral density plot.
-        ax = plt.subplot(gs[slice(2, 4), slice(9, 11)], projection=ccrs.SouthPolarStereo())
-        ax.add_feature(land_50m)
-        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('neutral density')
-
-        im = ax.pcolormesh(self.lons, self.lats, neutral_density_field, transform=vector_crs,
-                           cmap=cmocean.cm.dense, vmin=26, vmax=28)
-
-        clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('kg/m$^3$')
-
-        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=1, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
-                   levels=[27.4], colors='lemonchiffon', linewidths=1, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
-                   levels=[27.5], colors='burlywood', linewidths=1, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
-                   levels=[27.6], colors='orange', linewidths=1, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
-                   levels=[27.7], colors='darkorange', linewidths=1, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(neutral_density_field, mask=np.isnan(self.alpha_field)),
-                   levels=[27.8], colors='crimson', linewidths=1, transform=vector_crs)
-
-        zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
-        ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
-        density_274_patch = mpatches.Patch(color='lemonchiffon', label='$\gamma$=27.4 kg\m$^3$')
-        density_275_patch = mpatches.Patch(color='burlywood', label='$\gamma$=27.5 kg\m$^3$')
-        density_276_patch = mpatches.Patch(color='orange', label='$\gamma$=27.6 kg\m$^3$')
-        density_277_patch = mpatches.Patch(color='darkorange', label='$\gamma$=27.7 kg\m$^3$')
-        density_278_patch = mpatches.Patch(color='crimson', label='$\gamma$=27.8 kg\m$^3$')
-        plt.legend(handles=[zero_stress_line_patch, ice_edge_patch, density_274_patch, density_275_patch,
-                            density_276_patch, density_277_patch, density_278_patch],
-                   loc='lower center', bbox_to_anchor=(0, -0.3, 1, -0.3), ncol=2, mode='expand', borderaxespad=0)
 
         # Add date label to bottom left.
         if plot_type == 'daily':
@@ -936,86 +752,19 @@ class SurfaceStressDataWriter(object):
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
         # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
 
-        """ Calculate ice divergence \grad \dot (h*u_ice) ~ f - r """
-        ice_div_x_field = np.zeros((len(self.lats), len(self.lons)))
-        ice_div_y_field = np.zeros((len(self.lats), len(self.lons)))
-        ice_div_field = np.zeros((len(self.lats), len(self.lons)))
+    def write_fields_to_netcdf(self, field_type='daily', season_str=None, year_start=None, year_end=None):
+        from constants import var_units, var_positive, var_long_names
+        from utils import get_netCDF_filepath
 
-        h = 1  # [m]
-        for i in range(1, len(self.lats) - 1):
-            lat = self.lats[i]
+        tau_filepath = get_netCDF_filepath(self.date, field_type=field_type, season_str=season_str,
+                                           year_start=year_start, year_end=year_end)
 
-            progress_percent = 100 * i / (len(self.lats) - 2)
-            logger.info('(ice_div) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
-
-            dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
-            dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
-            for j in range(1, len(self.lons) - 1):
-                lon = self.lons[j]
-
-                u_ice_i_jp1 = self.u_ice_field[i][j+1]
-                u_ice_i_jm1 = self.u_ice_field[i][j-1]
-                v_ice_ip1_j = self.v_ice_field[i+1][j]
-                v_ice_im1_j = self.v_ice_field[i-1][j]
-
-                if not np.isnan(u_ice_i_jm1) and not np.isnan(u_ice_i_jp1):
-                    dudx = (u_ice_i_jp1 - u_ice_i_jm1) / dx
-                    # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
-                    ice_div_x_field[i][j] = h * dudx
-                else:
-                    ice_div_x_field[i][j] = np.nan
-
-                if not np.isnan(v_ice_im1_j) and not np.isnan(v_ice_ip1_j):
-                    dvdy = (v_ice_ip1_j - v_ice_im1_j) / dy
-                    # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
-                    ice_div_y_field[i][j] = h * dvdy
-                else:
-                    ice_div_y_field[i][j] = np.nan
-
-                if not np.isnan(ice_div_x_field[i][j]) and not np.isnan(ice_div_y_field[i][j]):
-                    ice_div_field[i][j] = ice_div_x_field[i][j] + ice_div_y_field[i][j]
-                else:
-                    ice_div_field[i][j] = np.nan
-
-        fig = plt.figure(figsize=(4, 4))
-        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
-                                                       facecolor='dimgray', linewidth=0)
-        vector_crs = ccrs.PlateCarree()
-
-        ax = plt.axes(projection=ccrs.SouthPolarStereo())
-        ax.add_feature(land_50m)
-        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('d/dx (h*u_ice) + d/dy (h*v_ice)')
-
-        max_val = 5e-7
-        im = ax.pcolormesh(self.lons, self.lats, ice_div_field, transform=vector_crs,
-                           cmap=cmocean.cm.balance, vmin=-max_val, vmax=max_val)
-
-        clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('m/s')
-
-        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
-
-        ice_div_png_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), 'surface_stress_' + custom_label + '_ice_div.png')
-
-        plt.savefig(ice_div_png_filepath, dpi=600, format='png', transparent=False, bbox_inches='tight')
-        logger.info('Saved diagnostic figure: {:s}'.format(ice_div_png_filepath))
-
-    def write_fields_to_netcdf(self):
-        from constants import netcdf_var_names, var_units, var_positive, var_long_names
-
-        tau_nc_filename = 'surface_stress_' + str(self.date.year) + str(self.date.month).zfill(2) \
-                       + str(self.date.day).zfill(2) + '.nc'
-        tau_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_nc_filename)
         tau_dir = os.path.dirname(tau_filepath)
         if not os.path.exists(tau_dir):
             logger.info('Creating directory: {:s}'.format(tau_dir))
             os.makedirs(tau_dir)
 
-        logger.info('Saving fields to netCDF file: {:s}'.format(tau_filepath))
+        logger.info('Saving fields (field_type={:s}) to netCDF file: {:s}'.format(field_type, tau_filepath))
 
         tau_dataset = netCDF4.Dataset(tau_filepath, 'w')
 
@@ -1041,7 +790,7 @@ class SurfaceStressDataWriter(object):
         lat_var.units = 'degrees west/east'
         lon_var[:] = self.lons
 
-        for var_name in netcdf_var_names:
+        for var_name in self.var_fields.keys():
             field_var = tau_dataset.createVariable(var_name, float, ('lat', 'lon'), zlib=True)
             field_var.units = var_units[var_name]
             field_var.positive = var_positive[var_name]
