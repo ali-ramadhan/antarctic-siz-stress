@@ -175,7 +175,12 @@ titles = {
     # 'tau_SIZ_x': 'Zonal surface stress in the SIZ',
     # 'tau_SIZ_y': 'Meridional surface stress in the SIZ',
     'curl_tau': 'curl_tau',
-    'w_Ekman': 'w_Ekman'
+    'w_Ekman': 'w_Ekman',
+    'freshwater_flux': 'u_Ek · grad(S)',
+    'ice_div': 'div(h*u_ice)',
+    'temperature': 'surface temperature',
+    'salinity': 'surface salinity',
+    'neutral_density': 'neutral density'
 }
 
 gs_coords = {
@@ -199,7 +204,12 @@ gs_coords = {
     # 'tau_SIZ_x': (1, 7),
     # 'tau_SIZ_y': (1, 7),
     'curl_tau': (0, 8),
-    'w_Ekman': (slice(2, 5), slice(6, 9))
+    'w_Ekman': (slice(2, 5), slice(6, 9)),
+    'freshwater_flux': (0, 9),
+    'ice_div': (1, 9),
+    'temperature': (0, 10),
+    'salinity': (1, 10),
+    'neutral_density': (slice(2, 4), slice(9, 11))
 }
 
 scale_factor = {
@@ -223,7 +233,12 @@ scale_factor = {
     'curl_tau': 1e7,
     # 'tau_SIZ_x': 1,
     # 'tau_SIZ_y': 1,
-    'w_Ekman': 3600 * 365 * 24  # [m/s] -> [m/year]
+    'w_Ekman': 3600 * 365 * 24,  # [m/s] -> [m/year]
+    'freshwater_flux': 1,
+    'ice_div': 3600 * 365 * 24,  # [m/s] -> [m/year]
+    'temperature': 1,
+    'salinity': 1,
+    'neutral_density': 1
 }
 
 colorbar_label = {
@@ -247,7 +262,12 @@ colorbar_label = {
     'curl_tau': r'10$^{-7}$ N/m$^3$',
     # 'tau_SIZ_x': r'N/m$^2$',
     # 'tau_SIZ_y': r'N/m$^2$',
-    'w_Ekman': r'm/year'
+    'w_Ekman': r'm/year',
+    'freshwater_flux': 'm*g/(s*kg)',
+    'ice_div': 'm/year',
+    'temperature': '°C',
+    'salinity': 'g/kg',
+    'neutral_density': 'kg/m$^3$'
 }
 
 # 'seismic' seems like a stronger version of 'RdBu_r', although I like the colors of 'RdBu_r' better.
@@ -272,7 +292,12 @@ cmaps = {
     'curl_tau': 'seismic',
     # 'tau_SIZ_x': 'seismic',
     # 'tau_SIZ_y': 'seismic',
-    'w_Ekman': 'seismic'
+    'w_Ekman': 'seismic',
+    'freshwater_flux': 'seismic',
+    'ice_div': 'seismic',
+    'temperature': cmocean.cm.thermal,
+    'salinity': cmocean.cm.haline,
+    'neutral_density': cm.get_cmap('viridis', 10)
 }
 
 cmap_ranges = {
@@ -296,5 +321,10 @@ cmap_ranges = {
     'curl_tau': (-5, 5),
     # 'tau_SIZ_x': (-0.5, 0.5),
     # 'tau_SIZ_y': (-0.5, 0.5),
-    'w_Ekman': (-100, 100)
+    'w_Ekman': (-100, 100),
+    'freshwater_flux': (-1e-7, 1e-7),
+    'ice_div': (-1, 1),
+    'temperature': (-2.5, 2.5),
+    'salinity': (33.75, 35),
+    'neutral_density': (27, 28)
 }
