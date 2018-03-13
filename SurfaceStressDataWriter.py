@@ -81,6 +81,14 @@ class SurfaceStressDataWriter(object):
         self.dtauxdy_field = np.zeros((len(self.lats), len(self.lons)))
         self.dtauydx_field = np.zeros((len(self.lats), len(self.lons)))
 
+        # The fields below are really only used for mean fields, not daily fields.
+        self.freshwater_flux_field =np.zeros((len(self.lats), len(self.lons)))
+        self.ice_div_field = np.zeros((len(self.lats), len(self.lons)))
+
+        self.salinity_field = np.zeros((len(self.lats), len(self.lons)))
+        self.temperature_field = np.zeros((len(self.lats), len(self.lons)))
+        self.neutral_density_field = np.zeros((len(self.lats), len(self.lons)))
+
         self.var_fields = {
             'tau_air_x': self.tau_air_x_field,
             'tau_air_y': self.tau_air_y_field,
