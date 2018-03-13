@@ -115,6 +115,35 @@ class SurfaceStressDataWriter(object):
             'dtauxdy': self.dtauxdy_field
         }
 
+        self.figure_fields = {
+            'u_geo': self.u_geo_field,
+            'v_geo': self.v_geo_field,
+            'u_wind': self.u_wind_field,
+            'v_wind': self.v_wind_field,
+            'u_ice': self.u_ice_field,
+            'v_ice': self.v_ice_field,
+            'alpha': self.alpha_field,
+            'tau_air_x': self.tau_air_x_field,
+            'tau_air_y': self.tau_air_y_field,
+            'tau_ice_x': self.tau_ice_x_field,
+            'tau_ice_y': self.tau_ice_y_field,
+            'tau_x': self.tau_x_field,
+            'tau_y': self.tau_y_field,
+            'u_Ekman': self.u_Ekman_field,
+            'v_Ekman': self.v_Ekman_field,
+            'dtauydx': self.dtauydx_field,
+            'dtauxdy': self.dtauxdy_field,
+            'curl_tau': self.wind_stress_curl_field,
+            # 'tau_SIZ_x': self.tau_SIZ_x_field,
+            # 'tau_SIZ_y': self.tau_SIZ_y_field,
+            'w_Ekman': self.w_Ekman_field,
+            'freshwater_flux': self.freshwater_flux_field,
+            'ice_div': self.ice_div_field,
+            'temperature': self.temperature_field,
+            'salinity': self.salinity_field,
+            'neutral_density': self.neutral_density_field
+        }
+
         if date is not None:
             self.date = date
 
