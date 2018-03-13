@@ -679,6 +679,36 @@ class SurfaceStressDataWriter(object):
                 ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
                 plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch], loc='lower center',
                            bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0)
+                # Extract zero zonal stress line (tau_x == 0) contours and save them for further analysis.
+                if var == 'tau_x':
+                    paths = cs.collections[0].get_paths()
+
+                    x = np.array([])
+                    y = np.array([])
+                    for path in cs.collections[0].get_paths():
+                        vertices = path.vertices
+                        x = np.append(x, vertices[:, 0])
+                        y = np.append(y, vertices[:, 1])
+
+                    logger.info('x={:}'.format(x))
+                    logger.info('y={:}'.format(y))
+                    # ax.scatter(x, y, transform=vector_crs)
+
+                    import csv
+
+                    if custom_label is not None:
+                        csv_filename = custom_label + '.csv'
+                    elif plot_type == 'annual':
+                        csv_filename = 'zero_zonal_stress_line_contour' + str(self.date.year) + '.csv'
+                    else:
+                        csv_filename = 'zero_zonal_stress_line_contour.csv'
+
+                    csv_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), csv_filename)
+                    with open(csv_filepath, 'w') as fp:
+                        wr = csv.writer(fp)
+                        wr.writerow(x)
+                        wr.writerow(y)
+                        logger.info('Saved zero zonal stress contour to file: {:s}'.format(csv_filepath))
 
             # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots.
             if var == 'u_Ekman' or var == 'v_Ekman' or var == 'dtauydx' or var == 'dtauxdy':
