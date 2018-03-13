@@ -360,3 +360,43 @@ def plot_vector_field(self):
     plt.hist(self.u_ice, bins=50)
     plt.hist(self.v_ice, bins=250)
     plt.show()
+
+
+def get_netCDF_filepath(date, field_type, season_str=None, year_start=None, year_end=None):
+    from os import path
+    from constants import output_dir_path
+
+    surface_stress_dir = path.join(output_dir_path, 'surface_stress')
+
+    year = str(date.year)
+    month = str(date.month).zfill(2)
+    day = str(date.day).zfill(2)
+    year_range = str(year_start) + '-' + str(year_end)
+
+    if field_type == 'daily':
+        filename = 'surface_stress_' + year + month + day + '.nc'
+        filepath = path.join(surface_stress_dir, year, filename)
+    elif field_type == 'monthly':
+        filename = 'surface_stress_' + year + month + '_monthly_avg.nc'
+        filepath = path.join(surface_stress_dir, year, filename)
+    elif field_type == 'annual':
+        filename = 'surface_stress_' + year + '_annual_avg.nc'
+        filepath = path.join(surface_stress_dir, year, filename)
+    elif field_type == 'seasonal':
+        filename = 'surface_stress_' + year + season_str + '_seasonal_avg.nc'
+        filepath = path.join(surface_stress_dir, year, filename)
+    elif field_type == 'monthly_climo':
+        filename = 'surface_stress_' + month + '_' + year_range + '_monthly_climo.nc'
+        filepath = path.join(surface_stress_dir, 'monthly_climo', filename)
+    elif field_type == 'seasonal_climo':
+        filename = 'surface_stress_' + season_str + '_' + year_range + '_seasonal_climo.nc'
+        filepath = path.join(surface_stress_dir, 'seasonal_climo', filename)
+    elif field_type == 'climo':
+        filename = 'surface_stress_' + year_range + '_climo.nc'
+        filepath = path.join(surface_stress_dir, 'climo', filename)
+
+    return filepath
+
+
+def get_zero_zonal_stress_line():
+    pass
