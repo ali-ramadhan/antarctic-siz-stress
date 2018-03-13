@@ -399,14 +399,126 @@ class SurfaceStressDataWriter(object):
                     self.wind_stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
-    def compute_salt_transport_fields(self):
-        pass
+    def compute_freshwater_flux_field(self, avg_period):
+        """ Calculate freshwater flux div(u_Ek*S) ~ S(m - f)  """
+        from SalinityDataset import SalinityDataset
+        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
+
+        zonal_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
+        merid_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
+
+        for i in range(1, len(self.lats) - 1):
+            lat = self.lats[i]
+
+            progress_percent = 100 * i / (len(self.lats) - 2)
+            logger.info('(freshwater_flux) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+
+            dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
+            dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
+
+            # TODO: Consider the j=0 (180 W) and j=j_max (180 E) edge cases.
+            for j in range(1, len(self.lons) - 1):
+                lon = self.lons[j]
+
+                u_Ekman_scalar = self.u_Ekman_field[i][j]
+                v_Ekman_scalar = self.v_Ekman_field[i][j]
+
+                salinity_ip1_j = salinity_dataset.salinity(self.lats[i+1], lon, 0)
+                salinity_im1_j = salinity_dataset.salinity(self.lats[i-1], lon, 0)
+                salinity_i_jp1 = salinity_dataset.salinity(lat, self.lons[j+1], 0)
+                salinity_i_jm1 = salinity_dataset.salinity(lat, self.lons[j-1], 0)
+
+                if not np.isnan(u_Ekman_scalar) and not np.isnan(salinity_i_jm1) \
+                        and not np.isnan(salinity_i_jp1):
+                    dSdx = (salinity_i_jp1 - salinity_i_jm1) / dx
+                    # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
+                    zonal_salt_transport_field[i][j] = u_Ekman_scalar * dSdx
+                else:
+                    zonal_salt_transport_field[i][j] = np.nan
+
+                if not np.isnan(v_Ekman_scalar) and not np.isnan(salinity_im1_j) \
+                        and not np.isnan(salinity_ip1_j):
+                    dSdy = (salinity_ip1_j - salinity_im1_j) / dy
+                    # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
+                    merid_salt_transport_field[i][j] = v_Ekman_scalar * dSdy
+                else:
+                    merid_salt_transport_field[i][j] = np.nan
+
+                if not np.isnan(zonal_salt_transport_field[i][j]) and not np.isnan(merid_salt_transport_field[i][j]):
+                    self.freshwater_flux_field[i][j] = zonal_salt_transport_field[i][j] \
+                                                       + merid_salt_transport_field[i][j]
+                else:
+                    self.freshwater_flux_field[i][j] = np.nan
 
     def compute_ice_divergence_field(self):
-        pass
+        """ Calculate ice divergence \grad \cdot (h*u_ice) ~ f - r """
+        ice_div_x_field = np.zeros((len(self.lats), len(self.lons)))
+        ice_div_y_field = np.zeros((len(self.lats), len(self.lons)))
+
+        h = 1  # [m]
+        for i in range(1, len(self.lats) - 1):
+            lat = self.lats[i]
+
+            progress_percent = 100 * i / (len(self.lats) - 2)
+            logger.info('(ice_div) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+
+            dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
+            dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
+
+            # TODO: Consider the j=0 (180 W) and j=j_max (180 E) edge cases.
+            for j in range(1, len(self.lons) - 1):
+                lon = self.lons[j]
+
+                u_ice_i_jp1 = self.u_ice_field[i][j+1]
+                u_ice_i_jm1 = self.u_ice_field[i][j-1]
+                v_ice_ip1_j = self.v_ice_field[i+1][j]
+                v_ice_im1_j = self.v_ice_field[i-1][j]
+
+                if not np.isnan(u_ice_i_jm1) and not np.isnan(u_ice_i_jp1):
+                    dudx = (u_ice_i_jp1 - u_ice_i_jm1) / dx
+                    # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
+                    ice_div_x_field[i][j] = h * dudx
+                else:
+                    ice_div_x_field[i][j] = np.nan
+
+                if not np.isnan(v_ice_im1_j) and not np.isnan(v_ice_ip1_j):
+                    dvdy = (v_ice_ip1_j - v_ice_im1_j) / dy
+                    # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
+                    ice_div_y_field[i][j] = h * dvdy
+                else:
+                    ice_div_y_field[i][j] = np.nan
+
+                if not np.isnan(ice_div_x_field[i][j]) and not np.isnan(ice_div_y_field[i][j]):
+                    self.ice_div_field[i][j] = ice_div_x_field[i][j] + ice_div_y_field[i][j]
+                else:
+                    self.ice_div_field[i][j] = np.nan
+
+    def process_thermodynamic_fields(self, avg_period):
+        logger.info('Calculating average T, S, gamma_n...')
+        from SalinityDataset import SalinityDataset
+        from TemperatureDataset import TemperatureDataset
+        from NeutralDensityDataset import NeutralDensityDataset
+
+        levels = [0, 1, 2, 3, 4, 5, 6, 7]
+        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
+        temperature_dataset = TemperatureDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
+                                                 field_type='an')
+        neutral_density_dataset = NeutralDensityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
+                                                        field_type='an', depth_levels=levels)
+
+        for i in range(len(self.lats)):
+            lat = self.lats[i]
+
+            progress_percent = 100 * i / (len(self.lats))
+            logger.info('(T, S, gamma) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+            for j in range(len(self.lons)):
+                lon = self.lons[j]
+                self.salinity_field[i][j] = salinity_dataset.salinity(lat, lon, levels)
+                self.temperature_field[i][j] = temperature_dataset.temperature(lat, lon, levels)
+                self.neutral_density_field[i][j] = neutral_density_dataset.gamma_n_depth_averaged(lat, lon, levels)
 
     def compute_mean_fields(self, dates, avg_method):
-        from constants import output_dir_path, netcdf_var_names
+        from constants import output_dir_path
         from utils import log_netCDF_dataset_metadata
 
         n_days = len(dates)
