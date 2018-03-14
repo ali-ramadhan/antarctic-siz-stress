@@ -362,16 +362,19 @@ def plot_vector_field(self):
     plt.show()
 
 
-def get_netCDF_filepath(date, field_type, season_str=None, year_start=None, year_end=None):
+def get_netCDF_filepath(field_type, date=None, season_str=None, year_start=None, year_end=None):
     from os import path
     from constants import output_dir_path
 
     surface_stress_dir = path.join(output_dir_path, 'surface_stress')
 
-    year = str(date.year)
-    month = str(date.month).zfill(2)
-    day = str(date.day).zfill(2)
-    year_range = str(year_start) + '-' + str(year_end)
+    if date is not None:
+        year = str(date.year)
+        month = str(date.month).zfill(2)
+        day = str(date.day).zfill(2)
+
+    if year_start is not None and year_end is not None:
+        year_range = str(year_start) + '-' + str(year_end)
 
     if field_type == 'daily':
         filename = 'surface_stress_' + year + month + day + '.nc'
@@ -383,7 +386,7 @@ def get_netCDF_filepath(date, field_type, season_str=None, year_start=None, year
         filename = 'surface_stress_' + year + '_annual_avg.nc'
         filepath = path.join(surface_stress_dir, year, filename)
     elif field_type == 'seasonal':
-        filename = 'surface_stress_' + year + season_str + '_seasonal_avg.nc'
+        filename = 'surface_stress_' + year + '_' + season_str + '_seasonal_avg.nc'
         filepath = path.join(surface_stress_dir, year, filename)
     elif field_type == 'monthly_climo':
         filename = 'surface_stress_' + month + '_' + year_range + '_monthly_climo.nc'
