@@ -398,5 +398,54 @@ def get_netCDF_filepath(date, field_type, season_str=None, year_start=None, year
     return filepath
 
 
-def get_zero_zonal_stress_line():
-    pass
+def get_field_from_netcdf(tau_filepath, var):
+    import netCDF4
+
+    try:
+        tau_dataset = netCDF4.Dataset(tau_filepath)
+        log_netCDF_dataset_metadata(tau_dataset)
+    except OSError as e:
+        logger.error('{}'.format(e))
+        logger.error('Dataset not found: {:s}'.format(tau_filepath))
+
+    lats = np.array(tau_dataset.variables['lat'])
+    lons = np.array(tau_dataset.variables['lon'])
+    field = np.array(tau_dataset.variables[var])
+
+    return lons, lats, field
+
+
+def get_zero_zonal_stress_line(tau_filepath):
+    import netCDF4
+    import matplotlib.pyplot as plt
+    import cartopy
+    import cartopy.crs as ccrs
+
+    try:
+        current_tau_dataset = netCDF4.Dataset(tau_filepath)
+        log_netCDF_dataset_metadata(current_tau_dataset)
+    except OSError as e:
+        logger.error('{}'.format(e))
+
+    lats = np.array(current_tau_dataset.variables['lat'])
+    lons = np.array(current_tau_dataset.variables['lon'])
+    tau_x_field = np.array(current_tau_dataset.variables['tau_x'])
+    alpha_field = np.array(current_tau_dataset.variables['alpha'])
+
+    # Contour the zonal stress field so we can then just extract the zero contour.
+    vector_crs = ccrs.PlateCarree()
+    fig = plt.figure()
+    ax = plt.subplot(111, projection=ccrs.SouthPolarStereo())
+    cs = ax.contour(lons, lats, np.ma.array(tau_x_field, mask=np.isnan(alpha_field)), levels=[0], transform=vector_crs)
+
+    # Extract the zero zonal stress line (tau_x == 0) contour piece by piece.
+    contour_lons = np.array([])
+    contour_lats = np.array([])
+    for path in cs.collections[0].get_paths():
+        vertices = path.vertices
+        contour_lons = np.append(contour_lons, vertices[:, 0])
+        contour_lats = np.append(contour_lats, vertices[:, 1])
+
+    plt.close()
+
+    return contour_lons, contour_lats
