@@ -274,7 +274,7 @@ def produce_climatology(year_start, year_end):
     surface_stress_dataset.date = dates[0]
     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=climo_label)
-    surface_stress_dataset.write_fields_to_netcdf(field_type='climo')
+    surface_stress_dataset.write_fields_to_netcdf(field_type='climo', year_start=year_start, year_end=year_end)
 
 
 def process_neutral_density_field(time_span, avg_period, grid_size, field_type, depth_level):
@@ -775,16 +775,24 @@ if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
 
-    process_and_plot_day(datetime.date(2015, 7, 16))
+    # process_and_plot_day(datetime.date(2015, 7, 16))
     # process_day(datetime.date(2015, 7, 16))
     # plot_day(datetime.date(2015, 7, 16))
-    # produce_monthly_mean(datetime.date(2015, 7, 1))
-    # produce_seasonal_climatology(2011, 2012)
-    # process_multiple_years(1995, 1995)
     # process_day(datetime.date(2015, 1, 1))
 
-    # for year in range(2013, 2016):
+    # produce_monthly_mean(datetime.date(2015, 7, 1))
+    # produce_monthly_climatology([6, 10], 1998, 2003)
+
+    # produce_seasonal_climatology(['JFM', 'AMJ', 'JAS', 'OND'], 1992, 2015)
+    # for year in range(1992, 2016):
+    #     produce_seasonal_mean(['JFM'], year)
+
+    # process_multiple_years(1995, 1995)
+
+    # for year in range(1992, 2016):
     #     produce_annual_mean(year)
+
+    # produce_climatology(1992, 2015)
 
     # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='00', grid_size='04', field_type='an',
     #                                                depth_levels=range(8))
@@ -824,4 +832,4 @@ if __name__ == '__main__':
     # plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-30, split_depth=250)
     # plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=250)
 
-    # analyze_zero_zonal_stress_line()
+    analyze_zero_zonal_stress_line(custom_str='climo')

@@ -18,6 +18,8 @@ data_dir_path = 'D:\\data\\'
 # output_dir_path = '/d1/alir/output/'
 output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 
+figure_dir_path = 'C:\\Users\\Ali\\Downloads\\surface_stress\\figures\\'
+
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
 g = 9.80665  # standard acceleration due to gravity [m/s^2]
