@@ -673,37 +673,6 @@ class SurfaceStressDataWriter(object):
                                loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand',
                                borderaxespad=0)
 
-                # Extract zero zonal stress line (tau_x == 0) contours and save them for further analysis.
-                if var == 'tau_x':
-                    paths = cs.collections[0].get_paths()
-
-                    x = np.array([])
-                    y = np.array([])
-                    for path in cs.collections[0].get_paths():
-                        vertices = path.vertices
-                        x = np.append(x, vertices[:, 0])
-                        y = np.append(y, vertices[:, 1])
-
-                    logger.info('x={:}'.format(x))
-                    logger.info('y={:}'.format(y))
-                    # ax.scatter(x, y, transform=vector_crs)
-
-                    import csv
-
-                    if custom_label is not None:
-                        csv_filename = custom_label + '.csv'
-                    elif plot_type == 'annual':
-                        csv_filename = 'zero_zonal_stress_line_contour' + str(self.date.year) + '.csv'
-                    else:
-                        csv_filename = 'zero_zonal_stress_line_contour.csv'
-
-                    csv_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), csv_filename)
-                    with open(csv_filepath, 'w') as fp:
-                        wr = csv.writer(fp)
-                        wr.writerow(x)
-                        wr.writerow(y)
-                        logger.info('Saved zero zonal stress contour to file: {:s}'.format(csv_filepath))
-
             # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots.
             if var in ['u_Ekman', 'v_Ekman', 'dtauydx', 'dtauxdy', 'freshwater_flux', 'ice_div', 'temperature',
                        'salinity']:
@@ -746,17 +715,19 @@ class SurfaceStressDataWriter(object):
             logger.info('Creating directory: {:s}'.format(tau_dir))
             os.makedirs(tau_dir)
 
+        logger.info('Saving diagnostic figure: {:s}'.format(tau_png_filepath))
         plt.savefig(tau_png_filepath, dpi=600, format='png', transparent=False, bbox_inches='tight')
-        logger.info('Saved diagnostic figure: {:s}'.format(tau_png_filepath))
 
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
         # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
+
+        plt.close()
 
     def write_fields_to_netcdf(self, field_type='daily', season_str=None, year_start=None, year_end=None):
         from constants import var_units, var_positive, var_long_names
         from utils import get_netCDF_filepath
 
-        tau_filepath = get_netCDF_filepath(self.date, field_type=field_type, season_str=season_str,
+        tau_filepath = get_netCDF_filepath(field_type=field_type, date=self.date, season_str=season_str,
                                            year_start=year_start, year_end=year_end)
 
         tau_dir = os.path.dirname(tau_filepath)
