@@ -689,15 +689,16 @@ def look_at_neutral_density_contours(year_start, year_end):
         surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=custom_label, avg_period=avg_period)
 
 
-def analyze_zero_zonal_stress_line():
+def analyze_zero_zonal_stress_line(custom_str=None):
     import os
-    import csv
-    from constants import output_dir_path
-    surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
-
     import matplotlib.pyplot as plt
     import cartopy
     import cartopy.crs as ccrs
+
+    from utils import get_zero_zonal_stress_line, get_netCDF_filepath
+    from constants import output_dir_path
+
+    surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
 
     years = np.arange(1992, 2016, 1)
 
@@ -709,31 +710,22 @@ def analyze_zero_zonal_stress_line():
     ax = fig.add_subplot(111)
 
     NUM_COLORS = len(years)
-    cm = plt.get_cmap('gist_rainbow')
+    cm = plt.get_cmap('PiYG')
     ax.set_color_cycle([cm(1. * i / NUM_COLORS) for i in range(NUM_COLORS)])
 
     for i in range(len(years)):
         year = years[i]
 
-        csv_filename = 'zero_zonal_stress_line_contour' + str(year) + '.csv'
-        csv_filepath = os.path.join(surface_stress_dir, str(year), csv_filename)
+        tau_filepath = get_netCDF_filepath(date=datetime.date(year, 1, 1), field_type='annual')
+        # tau_filepath = get_netCDF_filepath(field_type='seasonal', date=datetime.date(year, 1, 1), season_str='JFM')
 
-        with open(csv_filepath, 'r') as f:
-            reader = csv.reader(f)
-
-            lons = np.array(reader.__next__())
-            reader.__next__()  # Not sure why csv writer skipped a line...
-            lats = np.array(reader.__next__())
-
-        lons = lons.astype(float)
-        lats = lats.astype(float)
+        lons, lats = get_zero_zonal_stress_line(tau_filepath)
 
         for j in range(len(lons)):
             lon = lons[j]
             lat = lats[j]
 
             closest_lon_idx = np.abs(lon_bins - lon).argmin()
-            closest_lon = lons[closest_lon_idx]
 
             if lat > lat_northward[closest_lon_idx][i]:
                 lat_northward[closest_lon_idx][i] = lat
@@ -744,10 +736,10 @@ def analyze_zero_zonal_stress_line():
         lat_northward[lat_northward[:, i] == -180, i] = np.nan
 
         plt.plot(lon_bins, lat_northward[:, i], label=str(year))
-        # plt.scatter(lon_bins, lat_northward, marker=',', s=2, label=str(year))
+        # ax.scatter(lons, lats, marker=',', s=2, label=str(year))
 
-    plt.legend()
-    # plt.savefig('tau_x_zero_line.png', dpi=600, format='png', transparent=False, bbox_inches='tight')
+    ax.legend()
+    plt.savefig('tau_x_zero_line' + custom_str + '.png', dpi=600, format='png', transparent=False, bbox_inches='tight')
     plt.show()
 
     from scipy import stats
@@ -760,7 +752,7 @@ def analyze_zero_zonal_stress_line():
 
     # Do linear regression for the N/S position of the line at each longitude.
     for i in range(len(lon_bins)):
-        logger.info(lon_bins[i])
+        # logger.info(lon_bins[i])
         lat_time_series = lat_northward[i, :]
 
         slope, intercept, r_value, p_value, std_err = stats.linregress(years, lat_time_series)
@@ -772,7 +764,7 @@ def analyze_zero_zonal_stress_line():
 
     plt.plot(lon_bins, slopes, label='slopes')
     # plt.plot(lon_bins, intercepts, label='intercepts')
-    # plt.plot(lon_bins, r_values, label='r_values')
+    plt.plot(lon_bins, r_values, label='r_values')
     # plt.plot(lon_bins, p_values, label='p_values')
     # plt.plot(lon_bins, std_errs, label='std_errs')
     plt.legend()
