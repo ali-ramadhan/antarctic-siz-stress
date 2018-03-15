@@ -692,22 +692,32 @@ def look_at_neutral_density_contours(year_start, year_end):
 def analyze_zero_zonal_stress_line(custom_str=None):
     import os
     import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
     import cartopy
     import cartopy.crs as ccrs
+    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 
     from utils import get_zero_zonal_stress_line, get_netCDF_filepath
     from constants import output_dir_path
 
     surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
 
-    years = np.arange(1992, 2016, 1)
+    years = np.arange(2000, 2016, 1)
 
     lon_bins = np.arange(-180, 180, 1)
     lat_northward = np.empty((len(lon_bins), len(years)))
     lat_northward[:] = -180
 
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '10m', edgecolor='face',
+                                                   facecolor='dimgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
     fig = plt.figure(figsize=(16, 9))
-    ax = fig.add_subplot(111)
+
+    # ax = fig.add_subplot(111)
+    ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
+    ax.add_feature(land_50m)
+    ax.set_extent([-110, -50, -75, -65], ccrs.PlateCarree())
+    patches = []
 
     NUM_COLORS = len(years)
     cm = plt.get_cmap('PiYG')
@@ -735,10 +745,17 @@ def analyze_zero_zonal_stress_line(custom_str=None):
         # Mask values that we don't have data for.
         lat_northward[lat_northward[:, i] == -180, i] = np.nan
 
-        plt.plot(lon_bins, lat_northward[:, i], label=str(year))
+        # plt.plot(lon_bins, lat_northward[:, i], label=str(year))
         # ax.scatter(lons, lats, marker=',', s=2, label=str(year))
 
-    ax.legend()
+        p = ax.plot(lon_bins, lat_northward, linewidth=1, label=str(year), transform=vector_crs)
+        patches = patches + [mpatches.Patch(color=p[i].get_color(), label=str(year))]
+
+    ax.gridlines()
+
+    # ax.legend()
+    plt.legend(handles=patches, loc='upper right', bbox_to_anchor=(1.03, 1, 1.08, 0.7), ncol=1, mode='expand',
+               borderaxespad=0)
     plt.savefig('tau_x_zero_line' + custom_str + '.png', dpi=600, format='png', transparent=False, bbox_inches='tight')
     plt.show()
 
@@ -765,7 +782,7 @@ def analyze_zero_zonal_stress_line(custom_str=None):
     plt.plot(lon_bins, slopes, label='slopes')
     # plt.plot(lon_bins, intercepts, label='intercepts')
     plt.plot(lon_bins, r_values, label='r_values')
-    # plt.plot(lon_bins, p_values, label='p_values')
+    plt.plot(lon_bins, p_values, label='p_values')
     # plt.plot(lon_bins, std_errs, label='std_errs')
     plt.legend()
     plt.show()
