@@ -629,7 +629,7 @@ class SurfaceStressDataWriter(object):
                 field_avg[var_name] = np.divide(field_avg[var_name], field_days[var_name])
                 self.var_fields[var_name][:] = field_avg[var_name][:]
 
-    def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period='00'):
+    def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
@@ -689,6 +689,7 @@ class SurfaceStressDataWriter(object):
                                cmap=cmaps[var], vmin=cmap_ranges[var][0], vmax=cmap_ranges[var][1])
 
             clb = fig.colorbar(im, ax=ax, extend='both')
+            # clb = fig.colorbar(im, ax=ax, extend='both', fraction=0.046, pad=0.04)
             clb.ax.set_title(colorbar_label[var])
 
             # Add vector fields to the u_ice and tau_x fields.
@@ -702,23 +703,23 @@ class SurfaceStressDataWriter(object):
             # Plot zero stress line, zero wind line, and ice edge on tau_x and w_Ekman plots (plus legends).
             if var in ['tau_x', 'tau_y', 'w_Ekman', 'neutral_density']:
                 cs = ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                           levels=[0], colors='green', linewidths=1, transform=vector_crs)
-                ax.contour(self.lons, self.lats, np.ma.array(self.u_wind_field, mask=np.isnan(self.alpha_field)),
-                           levels=[0], colors='gold', linewidths=1, transform=vector_crs)
+                                levels=[0], colors='green', linewidths=1, transform=vector_crs)
+                # ax.contour(self.lons, self.lats, np.ma.array(self.u_wind_field, mask=np.isnan(self.alpha_field)),
+                #            levels=[0], colors='gold', linewidths=1, transform=vector_crs)
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
                 zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
-                zero_wind_line_patch = mpatches.Patch(color='gold', label='zero zonal wind line')
+                # zero_wind_line_patch = mpatches.Patch(color='gold', label='zero zonal wind line')
                 ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
 
                 if var == 'neutral_density':
-                    plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch],
-                               loc='lower center', bbox_to_anchor=(0, -0.3, 1, -0.3), ncol=1, mode='expand',
+                    plt.legend(handles=[zero_stress_line_patch, ice_edge_patch],
+                               loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=2, mode='expand',
                                borderaxespad=0)
                 else:
-                    plt.legend(handles=[zero_stress_line_patch, zero_wind_line_patch, ice_edge_patch],
-                               loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand',
+                    plt.legend(handles=[zero_stress_line_patch, ice_edge_patch],
+                               loc='lower center', bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=2, mode='expand',
                                borderaxespad=0)
 
             # Plot zero stress line and ice edge on d/dx (tau_y) and d/dy (tau_x) plots.
