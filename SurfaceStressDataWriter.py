@@ -89,6 +89,12 @@ class SurfaceStressDataWriter(object):
         self.temperature_field = np.zeros((len(self.lats), len(self.lons)))
         self.neutral_density_field = np.zeros((len(self.lats), len(self.lons)))
 
+        # tmp
+        self.zonal_ice_div = np.zeros((len(self.lats), len(self.lons)))
+        self.merid_ice_div = np.zeros((len(self.lats), len(self.lons)))
+        self.melt_rate = np.zeros((len(self.lats), len(self.lons)))
+        self.psi_delta = np.zeros((len(self.lats), len(self.lons)))
+
         self.var_fields = {
             'tau_air_x': self.tau_air_x_field,
             'tau_air_y': self.tau_air_y_field,
@@ -409,6 +415,7 @@ class SurfaceStressDataWriter(object):
 
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
+            f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
             progress_percent = 100 * i / (len(self.lats) - 2)
             logger.info('(freshwater_flux) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
@@ -423,6 +430,7 @@ class SurfaceStressDataWriter(object):
                 u_Ekman_scalar = self.u_Ekman_field[i][j]
                 v_Ekman_scalar = self.v_Ekman_field[i][j]
 
+                salinity_ij = salinity_dataset.salinity(lat, lon, 0)
                 salinity_ip1_j = salinity_dataset.salinity(self.lats[i+1], lon, 0)
                 salinity_im1_j = salinity_dataset.salinity(self.lats[i-1], lon, 0)
                 salinity_i_jp1 = salinity_dataset.salinity(lat, self.lons[j+1], 0)
@@ -447,8 +455,16 @@ class SurfaceStressDataWriter(object):
                 if not np.isnan(zonal_salt_transport_field[i][j]) and not np.isnan(merid_salt_transport_field[i][j]):
                     self.freshwater_flux_field[i][j] = zonal_salt_transport_field[i][j] \
                                                        + merid_salt_transport_field[i][j]
+
+                    self.psi_delta[i][j] = -self.tau_x_field[i][j] / (1025 * f)
+
+                    self.melt_rate[i][j] = (self.psi_delta[i][j] / salinity_ij) * dSdy
+
+                    self.psi_delta[i][j] = self.psi_delta[i][j] * (2*np.pi*6371e3*np.cos(np.deg2rad(lat))) / 1e6
                 else:
                     self.freshwater_flux_field[i][j] = np.nan
+                    self.psi_delta[i][j] = np.nan
+                    self.melt_rate[i][j] = np.nan
 
     def compute_ice_divergence_field(self):
         """ Calculate ice divergence \grad \cdot (h*u_ice) ~ f - r """
@@ -456,6 +472,7 @@ class SurfaceStressDataWriter(object):
         ice_div_y_field = np.zeros((len(self.lats), len(self.lons)))
 
         h = 1  # [m]
+
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
 
@@ -474,15 +491,20 @@ class SurfaceStressDataWriter(object):
                 v_ice_ip1_j = self.v_ice_field[i+1][j]
                 v_ice_im1_j = self.v_ice_field[i-1][j]
 
+                alpha_i_jp1 = self.alpha_field[i][j+1]
+                alpha_i_jm1 = self.alpha_field[i][j-1]
+                alpha_ip1_j = self.alpha_field[i+1][j]
+                alpha_im1_j = self.alpha_field[i-1][j]
+
                 if not np.isnan(u_ice_i_jm1) and not np.isnan(u_ice_i_jp1):
-                    dudx = (u_ice_i_jp1 - u_ice_i_jm1) / dx
+                    dudx = (alpha_i_jp1 * u_ice_i_jp1 - alpha_i_jm1 * u_ice_i_jm1) / dx
                     # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
                     ice_div_x_field[i][j] = h * dudx
                 else:
                     ice_div_x_field[i][j] = np.nan
 
                 if not np.isnan(v_ice_im1_j) and not np.isnan(v_ice_ip1_j):
-                    dvdy = (v_ice_ip1_j - v_ice_im1_j) / dy
+                    dvdy = (alpha_ip1_j * v_ice_ip1_j - alpha_im1_j * v_ice_im1_j) / dy
                     # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
                     ice_div_y_field[i][j] = h * dvdy
                 else:
@@ -490,8 +512,12 @@ class SurfaceStressDataWriter(object):
 
                 if not np.isnan(ice_div_x_field[i][j]) and not np.isnan(ice_div_y_field[i][j]):
                     self.ice_div_field[i][j] = ice_div_x_field[i][j] + ice_div_y_field[i][j]
+                    self.zonal_ice_div[i][j] = ice_div_x_field[i][j]
+                    self.merid_ice_div[i][j] = ice_div_y_field[i][j]
                 else:
                     self.ice_div_field[i][j] = np.nan
+                    self.zonal_ice_div[i][j] = np.nan
+                    self.merid_ice_div[i][j] = np.nan
 
     def process_thermodynamic_fields(self, avg_period):
         logger.info('Calculating average T, S, gamma_n...')
