@@ -543,9 +543,31 @@ class SurfaceStressDataWriter(object):
                 self.temperature_field[i][j] = temperature_dataset.temperature(lat, lon, levels)
                 self.neutral_density_field[i][j] = neutral_density_dataset.gamma_n_depth_averaged(lat, lon, levels)
 
-    def compute_mean_fields(self, dates, avg_method):
+    def compute_mean_fields(self, dates, avg_method, tau_filepath=None):
+        import netCDF4
         from constants import output_dir_path
-        from utils import log_netCDF_dataset_metadata
+        from utils import log_netCDF_dataset_metadata, get_netCDF_filepath
+
+        if tau_filepath is not None:
+            try:
+                tau_dataset = netCDF4.Dataset(tau_filepath)
+                log_netCDF_dataset_metadata(tau_dataset)
+                dataset_found = True
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.error('Dataset not found, will compute mean fields: {:s}'.format(tau_filepath))
+                dataset_found = False
+
+            if dataset_found:
+                logger.info('Dataset found! Loading fields from: {:s}'.format(tau_filepath))
+                self.lats = np.array(tau_dataset.variables['lat'])
+                self.lons = np.array(tau_dataset.variables['lon'])
+
+                for var in self.var_fields.keys():
+                    loaded_field = np.array(tau_dataset.variables[var])
+                    self.var_fields[var][:] = loaded_field[:]
+
+                return
 
         n_days = len(dates)
 
