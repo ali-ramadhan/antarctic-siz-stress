@@ -729,6 +729,20 @@ class SurfaceStressDataWriter(object):
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
+        # Extra plot of \Psi_{-\delta}*1/S*dS/dy.
+        ax = plt.subplot(gs[1, 8], projection=ccrs.SouthPolarStereo())
+        ax.add_feature(land_50m)
+        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        ax.set_title('ψ(-δ)/S * dS/dy = M - F')
+        im = ax.pcolormesh(self.lons, self.lats, self.melt_rate, transform=vector_crs,
+                           cmap='seismic', vmin=-1e-5, vmax=1e-5)
+        clb = fig.colorbar(im, ax=ax, extend='both')
+        clb.ax.set_title('')
+        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
+        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
+
         # Add date label to bottom left.
         if plot_type == 'daily':
             date_str = str(self.date.year) + '/' + str(self.date.month).zfill(2) + '/' + str(self.date.day).zfill(2)
