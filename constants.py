@@ -182,7 +182,7 @@ titles = {
     'curl_tau': 'curl_tau',
     'w_Ekman': 'w_Ekman',
     'freshwater_flux': 'u_Ek · grad(S)',
-    'ice_div': 'div(h*u_ice)',
+    'ice_div': 'div(alpha*h*u_ice)',
     'temperature': 'surface temperature',
     'salinity': 'surface salinity',
     'neutral_density': 'neutral density'
@@ -328,7 +328,7 @@ cmap_ranges = {
     # 'tau_SIZ_y': (-0.5, 0.5),
     'w_Ekman': (-100, 100),
     'freshwater_flux': (-1e-7, 1e-7),
-    'ice_div': (-1, 1),
+    'ice_div': (-3, 3),
     'temperature': (-2.5, 2.5),
     'salinity': (33.75, 35),
     'neutral_density': (27, 28)
