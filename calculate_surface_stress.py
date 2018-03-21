@@ -127,11 +127,15 @@ def produce_monthly_mean(date_in_month):
 
 
 def produce_annual_mean(year):
+    from utils import get_netCDF_filepath
+
     dates = date_range(datetime.date(year, 1, 1), datetime.date(year, 12, 31))
+
+    tau_filepath = get_netCDF_filepath(field_type='annual', date=dates[0])
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = dates[0]
-    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
+    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok', tau_filepath=tau_filepath)
     surface_stress_dataset.plot_diagnostic_fields(plot_type='annual')
     surface_stress_dataset.write_fields_to_netcdf(field_type='annual')
 
@@ -198,9 +202,9 @@ def produce_seasonal_climatology(seasons, year_start, year_end):
         'JJA': 'Winter_JJA_' + year_range + '_average',
         'SON': 'Spring_SON_' + year_range + '_average',
         'JFM': 'Summer_JFM_' + year_range + '_average',
-        'AMJ': 'Fall_JFM_' + year_range + '_average',
-        'JAS': 'Winter_JFM_' + year_range + '_average',
-        'OND': 'Spring_JFM_' + year_range + '_average'
+        'AMJ': 'Fall_AMJ_' + year_range + '_average',
+        'JAS': 'Winter_JAS_' + year_range + '_average',
+        'OND': 'Spring_OND_' + year_range + '_average'
     }
 
     season_start_month = {
@@ -236,9 +240,12 @@ def produce_seasonal_climatology(seasons, year_start, year_end):
 
             season_days = season_days + date_range(start_date, end_date)
 
+        from utils import get_netCDF_filepath
+        tau_fp = get_netCDF_filepath(field_type='seasonal_climo', season_str=season, year_start=year_start, year_end=year_end)
+
         surface_stress_dataset = SurfaceStressDataWriter(None)
         surface_stress_dataset.date = season_days[-1]
-        surface_stress_dataset.compute_mean_fields(season_days, avg_method='partial_data_ok')
+        surface_stress_dataset.compute_mean_fields(season_days, avg_method='partial_data_ok', tau_filepath=tau_fp)
         surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=labels[season])
         surface_stress_dataset.write_fields_to_netcdf(field_type='seasonal_climo', season_str=season,
                                                       year_start=year_start, year_end=year_end)
@@ -257,23 +264,28 @@ def produce_monthly_climatology(months, year_start, year_end):
             n_days = calendar.monthrange(year, month)[1]
             month_days = month_days + date_range(datetime.date(year, month, 1), datetime.date(year, month, n_days))
 
+        avg_period = str(month).zfill(2)
+
         surface_stress_dataset = SurfaceStressDataWriter(None)
         surface_stress_dataset.date = month_days[-1]
         surface_stress_dataset.compute_mean_fields(month_days, avg_method='partial_data_ok')
-        surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=label)
+        surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=label, avg_period=avg_period)
         surface_stress_dataset.write_fields_to_netcdf(field_type='monthly_climo', year_start=year_start,
                                                       year_end=year_end)
 
 
 def produce_climatology(year_start, year_end):
+    from utils import get_netCDF_filepath
+
     climo_label = str(year_start) + '-' + str(year_end) + '_average'
+    tau_filepath = get_netCDF_filepath(field_type='climo', year_start=year_start, year_end=year_end)
 
     dates = date_range(datetime.date(year_start, 1, 1), datetime.date(year_end, 12, 31))
 
     surface_stress_dataset = SurfaceStressDataWriter(None)
     surface_stress_dataset.date = dates[0]
-    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
-    surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=climo_label)
+    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok', tau_filepath=tau_filepath)
+    surface_stress_dataset.plot_diagnostic_fields(plot_type='custom', custom_label=climo_label, avg_period='00')
     surface_stress_dataset.write_fields_to_netcdf(field_type='climo', year_start=year_start, year_end=year_end)
 
 
@@ -798,14 +810,15 @@ if __name__ == '__main__':
     # process_day(datetime.date(2015, 1, 1))
 
     # produce_monthly_mean(datetime.date(2015, 7, 1))
-    # produce_monthly_climatology([6, 10], 1998, 2003)
+    # produce_monthly_climatology([2, 3, 7, 8, 9], 1992, 2015)
 
-    # produce_seasonal_climatology(['JFM', 'AMJ', 'JAS', 'OND'], 1992, 2015)
+    # produce_seasonal_climatology(['JAS'], 1992, 2015)
     # for year in range(1992, 2016):
     #     produce_seasonal_mean(['JFM'], year)
 
     # process_multiple_years(1995, 1995)
 
+    # produce_annual_mean(2000)
     # for year in range(1992, 2016):
     #     produce_annual_mean(year)
 
