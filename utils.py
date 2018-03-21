@@ -453,3 +453,70 @@ def get_contour_from_netcdf(tau_filepath, var, contour_level):
     plt.close()
 
     return contour_lons, contour_lats
+
+
+def get_northward_zero_zonal_stress_line(tau_filepath):
+    from constants import lon_min, lon_max, n_lon
+    lon_bins = np.linspace(lon_min, lon_max, n_lon)
+
+    lat_northward = np.empty(len(lon_bins))
+    lat_northward[:] = -180
+
+    lons, lats = get_contour_from_netcdf(tau_filepath, 'tau_x', 0)
+
+    for j in range(len(lons)):
+        lon = lons[j]
+        lat = lats[j]
+
+        closest_lon_idx = np.abs(lon_bins - lon).argmin()
+
+        if lat > lat_northward[closest_lon_idx]:
+            lat_northward[closest_lon_idx] = lat
+
+    lat_northward[lat_northward == -180] = np.nan
+
+    return lon_bins, lat_northward
+
+
+def get_northward_ice_edge(tau_filepath):
+    from constants import lon_min, lon_max, n_lon
+    lon_bins = np.linspace(lon_min, lon_max, n_lon)
+
+    lat_northward = np.empty(len(lon_bins))
+    lat_northward[:] = -180
+
+    lons, lats = get_contour_from_netcdf(tau_filepath, 'alpha', 0.15)
+
+    for j in range(len(lons)):
+        lon = lons[j]
+        lat = lats[j]
+
+        closest_lon_idx = np.abs(lon_bins - lon).argmin()
+
+        if lat > lat_northward[closest_lon_idx]:
+            lat_northward[closest_lon_idx] = lat
+
+    lat_northward[lat_northward == -180] = np.nan
+
+    return lon_bins, lat_northward
+
+
+def get_coast_coordinates(tau_filepath):
+    lons, lats, alpha_field = get_field_from_netcdf(tau_filepath, 'alpha')
+
+    lat_northward = np.zeros(len(lons))
+
+    for i in range(len(lons)):
+        lon = lons[i]
+
+        # Bit of a weird range to get around the fact that lats[-0] = lats[0].
+        for j in range(1, len(lats)+1):
+            lat = lats[-j]
+
+            if np.isnan(alpha_field[-j][i]) and lat < -60:
+                lat_northward[i] = lat
+                break
+
+    lat_northward[lat_northward == 0] = np.nan
+
+    return lons, lat_northward
