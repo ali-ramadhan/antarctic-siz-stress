@@ -438,9 +438,15 @@ def get_contour_from_netcdf(tau_filepath, var, contour_level):
     # Contour the zonal stress field so we can then just extract the zero contour.
     vector_crs = ccrs.PlateCarree()
     fig = plt.figure()
-    ax = plt.subplot(111, projection=ccrs.SouthPolarStereo())
-    cs = ax.contour(lons, lats, np.ma.array(var_field, mask=np.isnan(alpha_field)), levels=[contour_level],
-                    transform=vector_crs)
+    # ax = plt.subplot(111, projection=ccrs.SouthPolarStereo())
+    # cs = ax.contour(lons, lats, np.ma.array(var_field, mask=np.isnan(alpha_field)), levels=[contour_level],
+    #                 transform=vector_crs)
+
+    ax = plt.subplot(111)
+    n = len(lons)
+    lons = lons + 180
+    var_field = np.append(var_field[:int(n/2), :], var_field[int(n/2):, :], axis=0)
+    cs = ax.contour(lons, lats, np.ma.array(var_field, mask=np.isnan(alpha_field)), levels=[contour_level])
 
     # Extract the contour piece by piece.
     contour_lons = np.array([])
@@ -452,7 +458,7 @@ def get_contour_from_netcdf(tau_filepath, var, contour_level):
 
     plt.close()
 
-    return contour_lons, contour_lats
+    return contour_lons-180, contour_lats
 
 
 def get_northward_zero_zonal_stress_line(tau_filepath):
