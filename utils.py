@@ -436,15 +436,15 @@ def get_contour_from_netcdf(tau_filepath, var, contour_level):
     alpha_field = np.array(tau_dataset.variables['alpha'])
 
     # Contour the zonal stress field so we can then just extract the zero contour.
-    vector_crs = ccrs.PlateCarree()
-    fig = plt.figure()
+    # vector_crs = ccrs.PlateCarree()
+    # fig = plt.figure()
     # ax = plt.subplot(111, projection=ccrs.SouthPolarStereo())
     # cs = ax.contour(lons, lats, np.ma.array(var_field, mask=np.isnan(alpha_field)), levels=[contour_level],
     #                 transform=vector_crs)
 
     ax = plt.subplot(111)
     n = len(lons)
-    lons = lons + 180
+    # lons = lons + 180
     var_field = np.append(var_field[:int(n/2), :], var_field[int(n/2):, :], axis=0)
     cs = ax.contour(lons, lats, np.ma.array(var_field, mask=np.isnan(alpha_field)), levels=[contour_level])
 
@@ -458,7 +458,8 @@ def get_contour_from_netcdf(tau_filepath, var, contour_level):
 
     plt.close()
 
-    return contour_lons-180, contour_lats
+    # return contour_lons-180, contour_lats
+    return contour_lons, contour_lats
 
 
 def get_northward_zero_zonal_stress_line(tau_filepath):
@@ -469,6 +470,29 @@ def get_northward_zero_zonal_stress_line(tau_filepath):
     lat_northward[:] = -180
 
     lons, lats = get_contour_from_netcdf(tau_filepath, 'tau_x', 0)
+
+    for j in range(len(lons)):
+        lon = lons[j]
+        lat = lats[j]
+
+        closest_lon_idx = np.abs(lon_bins - lon).argmin()
+
+        if lat > lat_northward[closest_lon_idx]:
+            lat_northward[closest_lon_idx] = lat
+
+    lat_northward[lat_northward == -180] = np.nan
+
+    return lon_bins, lat_northward
+
+
+def get_northward_zero_zonal_wind_line(tau_filepath):
+    from constants import lon_min, lon_max, n_lon
+    lon_bins = np.linspace(lon_min, lon_max, n_lon)
+
+    lat_northward = np.empty(len(lon_bins))
+    lat_northward[:] = -180
+
+    lons, lats = get_contour_from_netcdf(tau_filepath, 'wind_', 0)
 
     for j in range(len(lons)):
         lon = lons[j]
@@ -526,3 +550,6 @@ def get_coast_coordinates(tau_filepath):
     lat_northward[lat_northward == 0] = np.nan
 
     return lons, lat_northward
+
+def date_to_WOA_parameters():
+    pass
