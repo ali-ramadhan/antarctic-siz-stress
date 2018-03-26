@@ -239,7 +239,7 @@ scale_factor = {
     # 'tau_SIZ_x': 1,
     # 'tau_SIZ_y': 1,
     'w_Ekman': 3600 * 365 * 24,  # [m/s] -> [m/year]
-    'freshwater_flux': 1,
+    'freshwater_flux': 3600 * 365 * 24,  # [m/s] -> [m/year]
     'ice_div': 3600 * 365 * 24,  # [m/s] -> [m/year]
     'temperature': 1,
     'salinity': 1,
@@ -268,7 +268,7 @@ colorbar_label = {
     # 'tau_SIZ_x': r'N/m$^2$',
     # 'tau_SIZ_y': r'N/m$^2$',
     'w_Ekman': r'm/year',
-    'freshwater_flux': 'm*g/(s*kg)',
+    'freshwater_flux': 'm/year',
     'ice_div': 'm/year',
     'temperature': '°C',
     'salinity': 'g/kg',
@@ -306,11 +306,11 @@ cmaps = {
 }
 
 cmap_ranges = {
-    'u_geo': (-1, 1),
+    'u_geo': (-0.1, 0.1),
     'v_geo': (-1, 1),
     'u_wind': (-20, 20),
     'v_wind': (-20, 20),
-    'u_ice': (-0.2, 0.2),
+    'u_ice': (-0.1, 0.1),
     'v_ice': (-0.2, 0.2),
     'alpha': (0, 1),
     'tau_air_x': (-0.15, 0.15),
@@ -327,7 +327,7 @@ cmap_ranges = {
     # 'tau_SIZ_x': (-0.5, 0.5),
     # 'tau_SIZ_y': (-0.5, 0.5),
     'w_Ekman': (-100, 100),
-    'freshwater_flux': (-1e-7, 1e-7),
+    'freshwater_flux': (-5, 5),
     'ice_div': (-3, 3),
     'temperature': (-2.5, 2.5),
     'salinity': (33.75, 35),
