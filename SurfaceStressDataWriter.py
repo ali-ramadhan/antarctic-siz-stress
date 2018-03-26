@@ -95,6 +95,22 @@ class SurfaceStressDataWriter(object):
         self.melt_rate = np.zeros((len(self.lats), len(self.lons)))
         self.psi_delta = np.zeros((len(self.lats), len(self.lons)))
 
+        # logger.info('Loading in u_geo field...')
+        # from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
+        # geo = MeanDynamicTopographyDataReader()
+        # for i in range(len(self.lats)):
+        #     lat = self.lats[i]
+        #     for j in range(len(self.lons)):
+        #         lon = self.lons[j]
+        #         u_geo_mean = geo.u_geo_mean(lat, lon, 'interp')
+        #         self.u_geo_field[i][j] = u_geo_mean[0]
+        #         self.v_geo_field[i][j] = u_geo_mean[1]
+        #
+        # logger.info('Smoothing u_geo field using Gaussian filter...')
+        # from scipy.ndimage import gaussian_filter
+        # self.u_geo_field = gaussian_filter(self.u_geo_field, sigma=3)
+        # self.v_geo_field = gaussian_filter(self.v_geo_field, sigma=3)
+
         self.var_fields = {
             'tau_air_x': self.tau_air_x_field,
             'tau_air_y': self.tau_air_y_field,
@@ -429,6 +445,8 @@ class SurfaceStressDataWriter(object):
 
                 u_Ekman_scalar = self.u_Ekman_field[i][j]
                 v_Ekman_scalar = self.v_Ekman_field[i][j]
+                u_geo_scalar = self.u_geo_field[i][j]
+                v_geo_scalar = self.v_geo_field[i][j]
 
                 salinity_ij = salinity_dataset.salinity(lat, lon, 0)
                 salinity_ip1_j = salinity_dataset.salinity(self.lats[i+1], lon, 0)
@@ -440,7 +458,7 @@ class SurfaceStressDataWriter(object):
                         and not np.isnan(salinity_i_jp1):
                     dSdx = (salinity_i_jp1 - salinity_i_jm1) / dx
                     # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
-                    zonal_salt_transport_field[i][j] = u_Ekman_scalar * dSdx
+                    zonal_salt_transport_field[i][j] = (u_Ekman_scalar + u_geo_scalar) * dSdx
                 else:
                     zonal_salt_transport_field[i][j] = np.nan
 
@@ -448,7 +466,7 @@ class SurfaceStressDataWriter(object):
                         and not np.isnan(salinity_ip1_j):
                     dSdy = (salinity_ip1_j - salinity_im1_j) / dy
                     # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
-                    merid_salt_transport_field[i][j] = v_Ekman_scalar * dSdy
+                    merid_salt_transport_field[i][j] = (v_Ekman_scalar + v_geo_scalar) * dSdy
                 else:
                     merid_salt_transport_field[i][j] = np.nan
 
@@ -458,7 +476,11 @@ class SurfaceStressDataWriter(object):
 
                     self.psi_delta[i][j] = -self.tau_x_field[i][j] / (1025 * f)
 
-                    self.melt_rate[i][j] = (self.psi_delta[i][j] / salinity_ij) * dSdy
+                    zonal = -(self.tau_x_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdy
+                    merid =  (self.tau_y_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdx
+                    # logger.info('tau_x={:.2f}, tau_y={:.2f}, S={:.2f}, dSdx={:.1e}, dSdy={:.1e}'.format(
+                    #     self.tau_x_field[i][j], self.tau_y_field[i][j], salinity_ij, dSdx, dSdy))
+                    self.melt_rate[i][j] = zonal + merid
 
                     self.psi_delta[i][j] = self.psi_delta[i][j] * (2*np.pi*6371e3*np.cos(np.deg2rad(lat))) / 1e6
                 else:
