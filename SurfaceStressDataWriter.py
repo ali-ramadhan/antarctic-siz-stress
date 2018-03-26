@@ -832,3 +832,63 @@ class SurfaceStressDataWriter(object):
             field_var[:] = self.var_fields[var_name]
 
         tau_dataset.close()
+
+        # tmp: plot zonally averaged div(alpha*u_ice*h_ice) and \Psi_{-\delta}*1/S*dS/dy.
+        import matplotlib.pyplot as plt
+
+        from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
+        from constants import D_e
+
+        contour_coordinate = np.empty((len(self.lats), len(self.lons)))
+        contour_coordinate[:] = np.nan
+
+        tau_x_lons, tau_x_lats = get_northward_zero_zonal_stress_line(tau_filepath)
+        alpha_lons, alpha_lats = get_northward_ice_edge(tau_filepath)
+        coast_lons, coast_lats = get_coast_coordinates(tau_filepath)
+
+        for i in range(len(self.lons)):
+            lon = self.lons[i]
+
+            if alpha_lats[i] > tau_x_lats[i] > coast_lats[i]:
+                lat_0 = coast_lats[i]
+                lat_h = tau_x_lats[i]  # lat_h ~ lat_half ~ lat_1/2
+                lat_1 = alpha_lats[i]
+
+                for j in range(len(self.lats)):
+                    lat = self.lats[j]
+
+                    if lat < lat_0 or lat > lat_1:
+                        contour_coordinate[j][i] = np.nan
+                    elif lat_0 <= lat <= lat_h:
+                        contour_coordinate[j][i] = (lat - lat_0) / (2 * (lat_h - lat_0))
+                    elif lat_h <= lat <= lat_1:
+                        contour_coordinate[j][i] = 0.5 + ((lat - lat_h) / (2 * (lat_1 - lat_h)))
+
+        import matplotlib.pyplot as plt
+        import cartopy
+        import cartopy.crs as ccrs
+
+        # fig = plt.figure()
+        #
+        # ax = plt.axes(projection=ccrs.SouthPolarStereo())
+        # land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+        #                                                facecolor='dimgray', linewidth=0)
+        # ax.add_feature(land_50m)
+        # ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        # vector_crs = ccrs.PlateCarree()
+        #
+        # im = ax.pcolormesh(self.lons, self.lats, contour_coordinate, transform=vector_crs, cmap='PuOr')
+        # fig.colorbar(im, ax=ax)
+        # plt.title('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)')
+        # plt.show()
+        # plt.close()
+
+        # import matplotlib.pyplot as plt
+        #
+        # fig = plt.figure(figsize=(16, 9))
+        # ax = fig.add_subplot(111)
+        # ax.plot(tau_x_lons, tau_x_lats, linewidth=1, label='tau_x')
+        # ax.plot(alpha_lons, alpha_lats, linewidth=1, label='alpha')
+        # ax.plot(coast_lons, coast_lats, linewidth=1, label='coast')
+        # ax.legend()
+        # plt.show()
