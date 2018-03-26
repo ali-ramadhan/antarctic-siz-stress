@@ -892,3 +892,96 @@ class SurfaceStressDataWriter(object):
         # ax.plot(coast_lons, coast_lats, linewidth=1, label='coast')
         # ax.legend()
         # plt.show()
+
+        c_bins = np.linspace(0, 1, 41)[:-1]
+        delta_c = c_bins[1] - c_bins[0]
+        c_bins = c_bins + (delta_c/2)
+
+        ice_div_cavg = np.zeros(c_bins.shape)
+        melt_rate_cavg = np.zeros(c_bins.shape)
+        psi_delta_cavg = np.zeros(c_bins.shape)
+
+        for i in range(len(c_bins)):
+            c = c_bins[i]
+            c_low = c - (delta_c/2)
+            c_high = c + (delta_c/2)
+
+            c_in_range = np.logical_and(contour_coordinate > c_low, contour_coordinate < c_high)
+
+            ice_div_cavg[i] = np.nanmean(self.ice_div_field[c_in_range])
+            melt_rate_cavg[i] = np.nanmean(self.melt_rate[c_in_range])
+            psi_delta_cavg[i] = np.nanmean(self.psi_delta[c_in_range])
+
+        fig = plt.figure(figsize=(16, 9))
+
+        ax = fig.add_subplot(131)
+        # ax.title('div(α*h*u_ice) ~ M - F [m/year]')
+        ax.plot(self.lats, np.nanmean(self.ice_div_field, axis=1)*24*3600*365, label='div(α*h*u_ice) [m/year]')
+        # ax.plot(self.lats, np.nanmean(self.zonal_ice_div, axis=1)*24*3600*365, label='d/dx(α*h*u_ice) [m/year]')
+        # ax.plot(self.lats, np.nanmean(self.merid_ice_div, axis=1)*24*3600*365, label='d/dy(α*h*u_ice) [m/year]')
+
+        ax.plot(self.lats, np.nanmean(self.melt_rate, axis=1) * 24 * 3600 * 365,
+                label='ψ(-δ) * 1/S * dS/dy ~ M-F [m/year]')
+        # ax.plot(self.lats, np.nanmean(np.multiply(self.melt_rate, self.alpha_field), axis=1) * 24 * 3600 * 365 * D_e,
+        #         label='α*(M-F) [m/year]')
+
+        ax.plot(self.lats, np.nanmean(self.salinity_field, axis=1), label='salinity')
+
+        ax.set_xlim(-80, -50)
+        ax.set_ylim(-5, 15)
+        ax.set_xlabel('latitude', fontsize='xx-large')
+        ax.set_ylabel('m/year', fontsize='xx-large')
+
+        ax.tick_params(axis='both', which='major', labelsize=10)
+
+        # ax.plot(c_bins, ice_div_cavg * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
+        # ax.plot(c_bins, melt_rate_cavg * 24 * 3600 * 365, label='(M-F) [m/year]')
+        #
+        # ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+        # ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
+        # ax.set_ylabel('m/year', fontsize='xx-large')
+
+        ax.grid(linestyle='--')
+        ax.legend(fontsize='xx-large')
+
+        ax1 = fig.add_subplot(132)
+        # ax.title('M - F = ψ(-δ) * 1/S * dS/dy [m/year]')
+        ax1.plot(self.lats, np.nanmean(self.salinity_field, axis=1), label='salinity [g/kg]', color='b')
+        ax1.set_ylabel('salinity [g/kg]', color='b', fontsize='xx-large')
+        ax1.tick_params('y', colors='b')
+        ax1.tick_params(axis='both', which='major', labelsize=10)
+
+        ax2 = ax1.twinx()
+        ax2.plot(self.lats, np.nanmean(self.temperature_field, axis=1), label='temperature [°C]', color='r')
+        ax2.set_ylabel('temperature [°C]', color='r', fontsize='xx-large')
+        ax2.tick_params('y', colors='r')
+        ax2.tick_params(axis='both', which='major', labelsize=10)
+
+        ax1.set_xlim(-80, -50)
+        ax1.set_xlabel('latitude', fontsize='xx-large')
+
+        ax1.grid(linestyle='--')
+        # ax.legend()
+
+        ax = fig.add_subplot(133)
+        # ax.title('Streamfunction ψ(-δ) [Sv]')
+        ax.plot(self.lats, np.nanmean(self.psi_delta, axis=1), label='Ekman transport streamfunction ψ(-δ) [Sv]')
+        ax.set_xlim(-80, -50)
+        ax.set_xlabel('latitude', fontsize='xx-large')
+        ax.set_ylabel('Sverdrups', fontsize='xx-large')
+        ax.tick_params(axis='both', which='major', labelsize=10)
+
+        # ax.plot(c_bins, psi_delta_cavg, label='Ekman transport streamfunction ψ(-δ) [Sv]')
+        # ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
+        #
+        # ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+        # ax.set_ylabel('Sverdrups', fontsize='xx-large')
+
+        ax.grid(linestyle='--')
+        ax.legend(fontsize='xx-large')
+
+        # plt.show()
+
+        tau_png_filepath = os.path.join(tau_dir, str(self.date.month).zfill(2) + '_zonal_avg.png')
+        plt.savefig(tau_png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+        plt.close()
