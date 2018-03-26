@@ -118,3 +118,6 @@ tmp/
 # Ignoring eos80_legacy_gamma_n MATLAB files.
 *.m
 *.mat
+
+# Ignoring png figures that get thrown in.
+*.png
