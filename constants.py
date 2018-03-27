@@ -18,7 +18,7 @@ data_dir_path = 'D:\\data\\'
 # output_dir_path = '/d1/alir/output/'
 output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 
-figure_dir_path = 'C:\\Users\\Ali\\Downloads\\surface_stress\\figures\\'
+figure_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\figures\\'
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
@@ -218,12 +218,12 @@ gs_coords = {
 }
 
 scale_factor = {
-    'u_geo': 1,
-    'v_geo': 1,
+    'u_geo': 100,
+    'v_geo': 100,
     'u_wind': 1,
     'v_wind': 1,
-    'u_ice': 1,
-    'v_ice': 1,
+    'u_ice': 100,
+    'v_ice': 100,
     'alpha': 1,
     'tau_air_x': 1,
     'tau_air_y': 1,
@@ -231,7 +231,7 @@ scale_factor = {
     'tau_ice_y': 1,
     'tau_x': 1,
     'tau_y': 1,
-    'u_Ekman': 1,
+    'u_Ekman': 100,
     'v_Ekman': 100,
     'dtauydx': 1e7,
     'dtauxdy': -1e7,
@@ -247,12 +247,12 @@ scale_factor = {
 }
 
 colorbar_label = {
-    'u_geo': 'm/s',
-    'v_geo': 'm/s',
+    'u_geo': 'cm/s',
+    'v_geo': 'cm/s',
     'u_wind': 'm/s',
     'v_wind': 'm/s',
-    'u_ice': 'm/s',
-    'v_ice': 'm/s',
+    'u_ice': 'cm/s',
+    'v_ice': 'cm/s',
     'alpha': '',
     'tau_air_x': r'N/m$^2$',
     'tau_air_y': r'N/m$^2$',
@@ -260,7 +260,7 @@ colorbar_label = {
     'tau_ice_y': r'N/m$^2$',
     'tau_x': r'N/m$^2$',
     'tau_y': r'N/m$^2$',
-    'u_Ekman': 'm/s',
+    'u_Ekman': 'cm/s',
     'v_Ekman': 'cm/s',
     'dtauydx': r'10$^{-7}$ N/m$^3$',
     'dtauxdy': r'10$^{-7}$ N/m$^3$',
@@ -306,12 +306,12 @@ cmaps = {
 }
 
 cmap_ranges = {
-    'u_geo': (-0.1, 0.1),
-    'v_geo': (-1, 1),
+    'u_geo': (-10, 10),
+    'v_geo': (-10, 10),
     'u_wind': (-20, 20),
     'v_wind': (-20, 20),
-    'u_ice': (-0.1, 0.1),
-    'v_ice': (-0.2, 0.2),
+    'u_ice': (-10, 10),
+    'v_ice': (-10, 10),
     'alpha': (0, 1),
     'tau_air_x': (-0.15, 0.15),
     'tau_air_y': (-0.15, 0.15),
@@ -319,8 +319,8 @@ cmap_ranges = {
     'tau_ice_y': (-0.15, 0.15),
     'tau_x': (-0.15, 0.15),
     'tau_y': (-0.15, 0.15),
-    'u_Ekman': (-0.05, 0.05),
-    'v_Ekman': (-2, 2),
+    'u_Ekman': (-3, 3),
+    'v_Ekman': (-3, 3),
     'dtauydx': (-5, 5),
     'dtauxdy': (-5, 5),
     'curl_tau': (-5, 5),
