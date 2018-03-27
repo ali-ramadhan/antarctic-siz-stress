@@ -555,7 +555,7 @@ class SurfaceStressDataWriter(object):
                 self.temperature_field[i][j] = temperature_dataset.temperature(lat, lon, levels)
                 self.neutral_density_field[i][j] = neutral_density_dataset.gamma_n_depth_averaged(lat, lon, levels)
 
-    def compute_mean_fields(self, dates, avg_method, tau_filepath=None):
+    def compute_mean_fields(self, dates, avg_method, sum_monthly_climo=False, tau_filepath=None):
         import netCDF4
         from constants import output_dir_path
         from utils import log_netCDF_dataset_metadata, get_netCDF_filepath
@@ -595,39 +595,69 @@ class SurfaceStressDataWriter(object):
             field_avg[var_name] = np.zeros((len(self.lats), len(self.lons)))
             field_days[var_name] = np.zeros((len(self.lats), len(self.lons)))
 
-        for date in dates:
-            tau_nc_filename = 'surface_stress_' + str(date.year) + str(date.month).zfill(2) \
-                              + str(date.day).zfill(2) + '.nc'
-            tau_filepath = os.path.join(output_dir_path, 'surface_stress', str(date.year), tau_nc_filename)
+        if sum_monthly_climo:
+            for month in range(1,13):
+                month_str = str(month).zfill(2)
 
-            logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
+                tau_nc_filename = 'surface_stress_' + month_str + '_2005-2012_monthly_climo.nc'
+                tau_filepath = os.path.join(output_dir_path, 'surface_stress', 'monthly_climo', tau_nc_filename)
 
-            try:
+                logger.info('Averaging month {:s} ({:s})...'.format(month_str, tau_filepath))
+
                 current_tau_dataset = netCDF4.Dataset(tau_filepath)
                 log_netCDF_dataset_metadata(current_tau_dataset)
-            except OSError as e:
-                logger.error('{}'.format(e))
-                logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
-                n_days = n_days - 1  # Must account for lost day if using avg_method='full_data_only'.
-                continue
 
-            self.lats = np.array(current_tau_dataset.variables['lat'])
-            self.lons = np.array(current_tau_dataset.variables['lon'])
+                self.lats = np.array(current_tau_dataset.variables['lat'])
+                self.lons = np.array(current_tau_dataset.variables['lon'])
 
-            daily_fields = {}
-            for var_name in self.var_fields.keys():
-                daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
-
-            if avg_method == 'full_data_only':
+                daily_fields = {}
                 for var_name in self.var_fields.keys():
-                    field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
+                    daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
 
-            elif avg_method == 'partial_data_ok':
+                if avg_method == 'full_data_only':
+                    for var_name in self.var_fields.keys():
+                        field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
+
+                elif avg_method == 'partial_data_ok':
+                    for var_name in self.var_fields.keys():
+                        field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
+                        daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
+                        daily_fields[var_name][np.isnan(daily_fields[var_name])] = 0
+                        field_days[var_name] = field_days[var_name] + daily_fields[var_name]
+        else:
+            for date in dates:
+                tau_nc_filename = 'surface_stress_' + str(date.year) + str(date.month).zfill(2) \
+                                  + str(date.day).zfill(2) + '.nc'
+                tau_filepath = os.path.join(output_dir_path, 'surface_stress', str(date.year), tau_nc_filename)
+
+                logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
+
+                try:
+                    current_tau_dataset = netCDF4.Dataset(tau_filepath)
+                    log_netCDF_dataset_metadata(current_tau_dataset)
+                except OSError as e:
+                    logger.error('{}'.format(e))
+                    logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
+                    n_days = n_days - 1  # Must account for lost day if using avg_method='full_data_only'.
+                    continue
+
+                self.lats = np.array(current_tau_dataset.variables['lat'])
+                self.lons = np.array(current_tau_dataset.variables['lon'])
+
+                daily_fields = {}
                 for var_name in self.var_fields.keys():
-                    field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
-                    daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
-                    daily_fields[var_name][np.isnan(daily_fields[var_name])] = 0
-                    field_days[var_name] = field_days[var_name] + daily_fields[var_name]
+                    daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
+
+                if avg_method == 'full_data_only':
+                    for var_name in self.var_fields.keys():
+                        field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
+
+                elif avg_method == 'partial_data_ok':
+                    for var_name in self.var_fields.keys():
+                        field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
+                        daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
+                        daily_fields[var_name][np.isnan(daily_fields[var_name])] = 0
+                        field_days[var_name] = field_days[var_name] + daily_fields[var_name]
 
         # Remember that the [:] syntax is used is so that we perform deep copies. Otherwise, e.g.
         # self.var_fields['ice_u'] will point to a different array than the original self.u_ice_field, and will NOT be
