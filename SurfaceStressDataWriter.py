@@ -697,6 +697,13 @@ class SurfaceStressDataWriter(object):
         # self.compute_daily_surface_stress_field()
         # logger.info('Recalculating Ekman pumping field...')
         # self.compute_daily_ekman_pumping_field()
+
+        logger.info('Smoothing salinity field using Gaussian filter...')
+        from scipy.ndimage import gaussian_filter
+        salinity_smoothed = gaussian_filter(self.salinity_field, sigma=1)
+
+        self.salinity_field[:] = salinity_smoothed[:]
+
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
