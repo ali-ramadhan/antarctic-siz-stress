@@ -95,22 +95,6 @@ class SurfaceStressDataWriter(object):
         self.melt_rate = np.zeros((len(self.lats), len(self.lons)))
         self.psi_delta = np.zeros((len(self.lats), len(self.lons)))
 
-        # logger.info('Loading in u_geo field...')
-        # from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
-        # geo = MeanDynamicTopographyDataReader()
-        # for i in range(len(self.lats)):
-        #     lat = self.lats[i]
-        #     for j in range(len(self.lons)):
-        #         lon = self.lons[j]
-        #         u_geo_mean = geo.u_geo_mean(lat, lon, 'interp')
-        #         self.u_geo_field[i][j] = u_geo_mean[0]
-        #         self.v_geo_field[i][j] = u_geo_mean[1]
-        #
-        # logger.info('Smoothing u_geo field using Gaussian filter...')
-        # from scipy.ndimage import gaussian_filter
-        # self.u_geo_field = gaussian_filter(self.u_geo_field, sigma=3)
-        # self.v_geo_field = gaussian_filter(self.v_geo_field, sigma=3)
-
         self.var_fields = {
             'tau_air_x': self.tau_air_x_field,
             'tau_air_y': self.tau_air_y_field,
@@ -652,6 +636,26 @@ class SurfaceStressDataWriter(object):
                 self.var_fields[var_name][:] = field_avg[var_name][:]
 
     def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
+        logger.info('Injecting u_geo field...')
+        from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
+        geo = MeanDynamicTopographyDataReader()
+        for i in range(len(self.lats)):
+            lat = self.lats[i]
+            for j in range(len(self.lons)):
+                lon = self.lons[j]
+                u_geo_mean = geo.u_geo_mean(lat, lon, 'interp')
+                # self.u_geo_field[i][j] = u_geo_mean[0]
+                # self.v_geo_field[i][j] = u_geo_mean[1]
+                self.u_geo_field[i][j] = 0
+                self.v_geo_field[i][j] = 0
+
+        # logger.info('Smoothing u_geo field using Gaussian filter...')
+        # from scipy.ndimage import gaussian_filter
+        # u_geo_smoothed = gaussian_filter(self.u_geo_field, sigma=1)
+        # v_geo_smoothed = gaussian_filter(self.v_geo_field, sigma=1)
+        #
+        # self.u_geo_field[:] = u_geo_smoothed[:]
+        # self.v_geo_field[:] = v_geo_smoothed[:]
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
