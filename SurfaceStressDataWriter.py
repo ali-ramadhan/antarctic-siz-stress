@@ -234,10 +234,16 @@ class SurfaceStressDataWriter(object):
             for j in range(len(self.lons)):
                 lon = self.lons[j]
 
-                u_geo_vec = self.u_geo_data.absolute_geostrophic_velocity(lat, lon, 'interp')
-                u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, 'interp')
-                alpha = self.sea_ice_conc_data.sea_ice_concentration(lat, lon, 'interp')
-                u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, 'interp')
+                # u_geo_vec = self.u_geo_data.absolute_geostrophic_velocity(lat, lon, 'interp')
+                # u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, 'interp')
+                # alpha = self.sea_ice_conc_data.sea_ice_concentration(lat, lon, 'interp')
+                # u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, 'interp')
+
+                # TODO: Don't forget to remove and go back to normal!
+                u_geo_vec = np.array([self.u_geo_field[i][j], self.v_geo_field[i][j]])
+                u_wind_vec = np.array([self.u_wind_field[i][j], self.v_wind_field[i][j]])
+                alpha = self.alpha_field[i][j]
+                u_ice_vec = np.array([self.u_ice_field[i][j], self.v_ice_field[i][j]])
 
                 self.u_geo_field[i][j] = u_geo_vec[0]
                 self.v_geo_field[i][j] = u_geo_vec[1]
@@ -656,6 +662,11 @@ class SurfaceStressDataWriter(object):
         #
         # self.u_geo_field[:] = u_geo_smoothed[:]
         # self.v_geo_field[:] = v_geo_smoothed[:]
+
+        # logger.info('Recalculating stresses...')
+        # self.compute_daily_surface_stress_field()
+        # logger.info('Recalculating Ekman pumping field...')
+        # self.compute_daily_ekman_pumping_field()
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
