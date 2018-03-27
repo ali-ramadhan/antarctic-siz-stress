@@ -771,9 +771,9 @@ class SurfaceStressDataWriter(object):
         ax = plt.subplot(gs[1, 8], projection=ccrs.SouthPolarStereo())
         ax.add_feature(land_50m)
         ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('ψ(-δ)/S * dS/dy = M - F')
-        im = ax.pcolormesh(self.lons, self.lats, self.melt_rate, transform=vector_crs,
-                           cmap='seismic', vmin=-1e-5, vmax=1e-5)
+        ax.set_title('M-F = ψ(-δ)/S*dS/dy')
+        im = ax.pcolormesh(self.lons, self.lats, self.melt_rate*24*3600*365,
+                           transform=vector_crs, cmap='seismic', vmin=-1, vmax=1)
         clb = fig.colorbar(im, ax=ax, extend='both')
         clb.ax.set_title('')
         ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
@@ -953,31 +953,30 @@ class SurfaceStressDataWriter(object):
 
         ax = fig.add_subplot(131)
         # ax.title('div(α*h*u_ice) ~ M - F [m/year]')
-        ax.plot(self.lats, np.nanmean(self.ice_div_field, axis=1)*24*3600*365, label='div(α*h*u_ice) [m/year]')
+        # ax.plot(self.lats, np.nanmean(self.ice_div_field, axis=1)*24*3600*365, label='div(α*h*u_ice) [m/year]')
         # ax.plot(self.lats, np.nanmean(self.zonal_ice_div, axis=1)*24*3600*365, label='d/dx(α*h*u_ice) [m/year]')
         # ax.plot(self.lats, np.nanmean(self.merid_ice_div, axis=1)*24*3600*365, label='d/dy(α*h*u_ice) [m/year]')
 
-        ax.plot(self.lats, np.nanmean(self.melt_rate, axis=1) * 24 * 3600 * 365,
-                label='ψ(-δ) * 1/S * dS/dy ~ M-F [m/year]')
+        # ax.plot(self.lats, np.nanmean(self.melt_rate, axis=1) * 24 * 3600 * 365,
+        #         label='ψ(-δ) * 1/S * dS/dy ~ M-F [m/year]')
         # ax.plot(self.lats, np.nanmean(np.multiply(self.melt_rate, self.alpha_field), axis=1) * 24 * 3600 * 365 * D_e,
         #         label='α*(M-F) [m/year]')
 
-        ax.plot(self.lats, np.nanmean(self.salinity_field, axis=1), label='salinity')
+        # ax.plot(self.lats, np.nanmean(self.salinity_field, axis=1), label='salinity')
 
-        ax.set_xlim(-80, -50)
-        ax.set_ylim(-5, 15)
-        ax.set_xlabel('latitude', fontsize='xx-large')
+        # ax.set_xlim(-80, -50)
+        # ax.set_ylim(-5, 15)
+        # ax.set_xlabel('latitude', fontsize='xx-large')
+        # ax.set_ylabel('m/year', fontsize='xx-large')
+
+        ax.plot(c_bins, ice_div_cavg * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
+        ax.plot(c_bins, melt_rate_cavg * 24 * 3600 * 365, label='(M-F) [m/year]')
+
+        ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+        ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
         ax.set_ylabel('m/year', fontsize='xx-large')
 
         ax.tick_params(axis='both', which='major', labelsize=10)
-
-        # ax.plot(c_bins, ice_div_cavg * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
-        # ax.plot(c_bins, melt_rate_cavg * 24 * 3600 * 365, label='(M-F) [m/year]')
-        #
-        # ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
-        # ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
-        # ax.set_ylabel('m/year', fontsize='xx-large')
-
         ax.grid(linestyle='--')
         ax.legend(fontsize='xx-large')
 
@@ -1002,18 +1001,18 @@ class SurfaceStressDataWriter(object):
 
         ax = fig.add_subplot(133)
         # ax.title('Streamfunction ψ(-δ) [Sv]')
-        ax.plot(self.lats, np.nanmean(self.psi_delta, axis=1), label='Ekman transport streamfunction ψ(-δ) [Sv]')
-        ax.set_xlim(-80, -50)
-        ax.set_xlabel('latitude', fontsize='xx-large')
-        ax.set_ylabel('Sverdrups', fontsize='xx-large')
-        ax.tick_params(axis='both', which='major', labelsize=10)
-
-        # ax.plot(c_bins, psi_delta_cavg, label='Ekman transport streamfunction ψ(-δ) [Sv]')
-        # ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
-        #
-        # ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+        # ax.plot(self.lats, np.nanmean(self.psi_delta, axis=1), label='Ekman transport streamfunction ψ(-δ) [Sv]')
+        # ax.set_xlim(-80, -50)
+        # ax.set_xlabel('latitude', fontsize='xx-large')
         # ax.set_ylabel('Sverdrups', fontsize='xx-large')
 
+        ax.plot(c_bins, psi_delta_cavg, label='Ekman transport streamfunction ψ(-δ) [Sv]')
+        ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
+
+        ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+        ax.set_ylabel('Sverdrups', fontsize='xx-large')
+
+        ax.tick_params(axis='both', which='major', labelsize=10)
         ax.grid(linestyle='--')
         ax.legend(fontsize='xx-large')
 
