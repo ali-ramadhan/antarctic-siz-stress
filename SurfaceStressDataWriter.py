@@ -667,18 +667,18 @@ class SurfaceStressDataWriter(object):
                 self.var_fields[var_name][:] = field_avg[var_name][:]
 
     def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
-        logger.info('Injecting u_geo field...')
-        from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
-        geo = MeanDynamicTopographyDataReader()
-        for i in range(len(self.lats)):
-            lat = self.lats[i]
-            for j in range(len(self.lons)):
-                lon = self.lons[j]
-                u_geo_mean = geo.u_geo_mean(lat, lon, 'interp')
-                # self.u_geo_field[i][j] = u_geo_mean[0]
-                # self.v_geo_field[i][j] = u_geo_mean[1]
-                self.u_geo_field[i][j] = 0
-                self.v_geo_field[i][j] = 0
+        # logger.info('Injecting u_geo field...')
+        # from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
+        # geo = MeanDynamicTopographyDataReader()
+        # for i in range(len(self.lats)):
+        #     lat = self.lats[i]
+        #     for j in range(len(self.lons)):
+        #         lon = self.lons[j]
+        #         u_geo_mean = geo.u_geo_mean(lat, lon, 'interp')
+        #         # self.u_geo_field[i][j] = u_geo_mean[0]
+        #         # self.v_geo_field[i][j] = u_geo_mean[1]
+        #         self.u_geo_field[i][j] = 0
+        #         self.v_geo_field[i][j] = 0
 
         # logger.info('Smoothing u_geo field using Gaussian filter...')
         # from scipy.ndimage import gaussian_filter
@@ -693,11 +693,11 @@ class SurfaceStressDataWriter(object):
         # logger.info('Recalculating Ekman pumping field...')
         # self.compute_daily_ekman_pumping_field()
 
-        logger.info('Smoothing salinity field using Gaussian filter...')
-        from scipy.ndimage import gaussian_filter
-        salinity_smoothed = gaussian_filter(self.salinity_field, sigma=1)
-
-        self.salinity_field[:] = salinity_smoothed[:]
+        # logger.info('Smoothing salinity field using Gaussian filter...')
+        # from scipy.ndimage import gaussian_filter
+        # salinity_smoothed = gaussian_filter(self.salinity_field, sigma=1)
+        #
+        # self.salinity_field[:] = salinity_smoothed[:]
 
         import matplotlib
         import matplotlib.pyplot as plt
@@ -719,9 +719,9 @@ class SurfaceStressDataWriter(object):
         self.tau_ice_x_field = np.multiply(self.alpha_field, self.tau_ice_x_field)
         self.tau_ice_y_field = np.multiply(self.alpha_field, self.tau_ice_y_field)
 
-        self.compute_freshwater_flux_field(avg_period)
-        self.compute_ice_divergence_field()
-        self.process_thermodynamic_fields(avg_period)
+        # self.compute_freshwater_flux_field(avg_period)
+        # self.compute_ice_flux_divergence_field()
+        # self.process_thermodynamic_fields(avg_period)
 
         logger.info('Creating diagnostic figure...')
 
