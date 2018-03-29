@@ -4,7 +4,7 @@ import numpy as np
 import netCDF4
 import matplotlib.colors as colors
 
-from GeostrophicVelocityDataset import GeostrophicVelocityDataset
+from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
 from SurfaceWindDataset import SurfaceWindDataset
 from SeaIceConcentrationDataset import SeaIceConcentrationDataset
 from SeaIceMotionDataset import SeaIceMotionDataset
@@ -151,9 +151,7 @@ class SurfaceStressDataWriter(object):
         }
 
         if date is not None:
-            self.date = date
-
-            self.u_geo_data = GeostrophicVelocityDataset(self.date)
+            self.u_geo_data = MeanDynamicTopographyDataReader()
             self.sea_ice_conc_data = SeaIceConcentrationDataset(self.date)
             self.sea_ice_motion_data = SeaIceMotionDataset(self.date)
             self.u_wind_data = SurfaceWindDataset(self.date)
@@ -219,7 +217,7 @@ class SurfaceStressDataWriter(object):
 
         return tau_vec, tau_air_vec, tau_ice_vec
 
-    def compute_daily_surface_stress_field(self, u_Ekman_vec_type='vertical_avg'):
+    def compute_daily_surface_stress_field(self, u_geo_source='zero', u_Ekman_vec_type='vertical_avg'):
         logger.info('Calculating surface stress field (tau_x, tau_y) for:')
         logger.info('lat_min = {}, lat_max = {}, lat_step = {}, n_lat = {}'.format(lat_min, lat_max, lat_step, n_lat))
         logger.info('lon_min = {}, lon_max = {}, lon_step = {}, n_lon = {}'.format(lon_min, lon_max, lon_step, n_lon))
@@ -234,16 +232,14 @@ class SurfaceStressDataWriter(object):
             for j in range(len(self.lons)):
                 lon = self.lons[j]
 
-                # u_geo_vec = self.u_geo_data.absolute_geostrophic_velocity(lat, lon, 'interp')
-                # u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, 'interp')
-                # alpha = self.sea_ice_conc_data.sea_ice_concentration(lat, lon, 'interp')
-                # u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, 'interp')
+                u_wind_vec = self.u_wind_data.ocean_surface_wind_vector(lat, lon, 'interp')
+                alpha = self.sea_ice_conc_data.sea_ice_concentration(lat, lon, 'interp')
+                u_ice_vec = self.sea_ice_motion_data.seaice_motion_vector(lat, lon, 'interp')
 
-                # TODO: Don't forget to remove and go back to normal!
-                u_geo_vec = np.array([self.u_geo_field[i][j], self.v_geo_field[i][j]])
-                u_wind_vec = np.array([self.u_wind_field[i][j], self.v_wind_field[i][j]])
-                alpha = self.alpha_field[i][j]
-                u_ice_vec = np.array([self.u_ice_field[i][j], self.v_ice_field[i][j]])
+                if u_geo_source == 'zero':
+                    u_geo_vec = np.array([0, 0])
+                elif u_geo_source == 'climo':
+                    u_geo_vec = self.u_geo_data.u_geo_mean(lat, lon, 'interp')
 
                 self.u_geo_field[i][j] = u_geo_vec[0]
                 self.v_geo_field[i][j] = u_geo_vec[1]
@@ -271,7 +267,6 @@ class SurfaceStressDataWriter(object):
                     self.tau_SIZ_x_field[i][j] = np.nan
                     self.tau_SIZ_y_field[i][j] = np.nan
 
-                    # Not sure why I have to recalculate u_Ekman_vec, otherwise I just the zero vector.
                     if u_Ekman_vec_type == 'surface':
                         u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
                     elif u_Ekman_vec_type == 'vertical_avg':
@@ -301,6 +296,7 @@ class SurfaceStressDataWriter(object):
                     self.v_Ekman_field[i][j] = np.nan
                     continue
 
+                # If we have data for everything, and we're in the SIZ then use the Richardson method to compute tau.
                 tau_vec, tau_air_vec, tau_ice_vec = self.surface_stress(f, u_geo_vec, u_wind_vec, alpha, u_ice_vec)
 
                 self.tau_air_x_field[i][j] = tau_air_vec[0]
@@ -312,7 +308,7 @@ class SurfaceStressDataWriter(object):
                 self.tau_SIZ_x_field[i][j] = tau_vec[0]
                 self.tau_SIZ_y_field[i][j] = tau_vec[1]
 
-                # Not sure why I have to recalculate u_Ekman_vec, otherwise I just the zero vector.
+                # Recalculate u_Ekman_vec. Not sure why I have to do this, but otherwise I just get the zero vector...
                 if u_Ekman_vec_type == 'surface':
                     u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
                 elif u_Ekman_vec_type == 'vertical_avg':
