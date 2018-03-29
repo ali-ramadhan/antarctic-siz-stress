@@ -324,11 +324,24 @@ class SurfaceStressDataWriter(object):
                 self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
 
     def compute_daily_ekman_pumping_field(self):
+        """ Compute daily Ekman pumping field w_Ekman = curl(tau / rho * f). """
+
         from constants import Omega, rho_0
         logger.info('Calculating wind stress curl and Ekman pumping fields...')
 
+        i_max = len(self.lats) - 1
         j_max = len(self.lons) - 1
-        logger.info('j_max = {}'.format(j_max))
+
+        # Setting NaN field values for i=0 (lat=lat_min) and i=i_max (lat=lat_max) where w_Ekman cannot be calculated
+        # as there is no northern or southern value to use to calculate d/dy (tau_x) or d/dx (tau_y).
+        self.ddx_tau_y_field[0, :] = np.nan
+        self.ddx_tau_y_field[i_max, :] = np.nan
+        self.ddy_tau_x_field[0, :] = np.nan
+        self.ddy_tau_x_field[i_max, :] = np.nan
+        self.stress_curl_field[0, :] = np.nan
+        self.stress_curl_field[i_max, :] = np.nan
+        self.w_Ekman_field[0, :] = np.nan
+        self.w_Ekman_field[i_max, :] = np.nan
 
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
@@ -341,70 +354,34 @@ class SurfaceStressDataWriter(object):
             dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
 
             for j in range(len(self.lons)):
-                # TODO: Can we lump all three test cases together by using the mod function to calculate indices?
-                # Special case for when we're at j=0 (180 W) and need to use the value from j=j_max (180 E)
-                if j == 0:
-                    if not np.isnan(self.tau_x_field[i][j_max]) and not np.isnan(self.tau_x_field[i][1]) \
-                            and not np.isnan(self.tau_y_field[i-1][j]) and not np.isnan(self.tau_y_field[i+1][j]):
-                        # dtauxdy = (self.tau_x_field[i][1] - self.tau_x_field[i][j_max]) / dy
-                        # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
 
-                        dtauydx = (self.tau_y_field[i][j+1] - self.tau_y_field[i][j_max]) / dx
-                        dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
+                # Taking modulus of j-1 and j+1 to get the correct index in the special cases of
+                #  * j=0 (180 W) and need to use the value from j=j_max (180 E)
+                #  * j=j_max (180 E) and need to use the value from j=0 (180 W)
+                jm1 = (j-1) % j_max
+                jp1 = (j+1) % j_max
 
-                        self.dtauydx_field[i][j] = dtauydx
-                        self.dtauxdy_field[i][j] = dtauxdy
-                        self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
-                        self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
-                    else:
-                        self.dtauydx_field[i][j] = np.nan
-                        self.dtauxdy_field[i][j] = np.nan
-                        self.wind_stress_curl_field[i][j] = np.nan
-                        self.w_Ekman_field[i][j] = np.nan
-
-                    continue
-
-                # Special case for when we're at j=j_max (180 E) and need to use the value from j=0 (180 W)
-                if j == j_max:
-                    if not np.isnan(self.tau_x_field[i][j-1]) and not np.isnan(self.tau_x_field[i][0]) \
-                            and not np.isnan(self.tau_y_field[i-1][j]) and not np.isnan(self.tau_y_field[i+1][j]):
-                        # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
-                        # dtauxdy = (self.tau_x_field[i][0] - self.tau_x_field[i][j-1]) / dy
-
-                        dtauydx = (self.tau_y_field[i][0] - self.tau_y_field[i][j-1]) / dx
-                        dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
-
-                        self.dtauydx_field[i][j] = dtauydx
-                        self.dtauxdy_field[i][j] = dtauxdy
-                        self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
-                        self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
-                    else:
-                        self.dtauydx_field[i][j] = np.nan
-                        self.dtauxdy_field[i][j] = np.nan
-                        self.wind_stress_curl_field[i][j] = np.nan
-                        self.w_Ekman_field[i][j] = np.nan
-
-                    continue
-
-                if not np.isnan(self.tau_x_field[i][j-1]) and not np.isnan(self.tau_x_field[i][j+1]) \
+                if not np.isnan(self.tau_x_field[i][jp1]) and not np.isnan(self.tau_x_field[i][jp1]) \
                         and not np.isnan(self.tau_y_field[i-1][j]) and not np.isnan(self.tau_y_field[i+1][j]):
+
                     # Second-order centered difference scheme where we divide by the distance between the i+1 and i-1
                     # cells, which is just dx as defined in the above line. Textbook formulas will usually have a 2*dx
                     # in the denominator because dx is the width of just one cell.
+
                     # TODO: Why does it look like accessing the wrong axis gives the right derivative!?
                     # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
                     # dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
-                    dtauydx = (self.tau_y_field[i][j+1] - self.tau_y_field[i][j-1]) / dx
+                    dtauydx = (self.tau_y_field[i][jp1] - self.tau_y_field[i][jm1]) / dx
                     dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
 
-                    self.dtauydx_field[i][j] = dtauydx
-                    self.dtauxdy_field[i][j] = dtauxdy
-                    self.wind_stress_curl_field[i][j] = dtauydx - dtauxdy
+                    self.ddx_tau_y_field[i][j] = dtauydx
+                    self.ddy_tau_x_field[i][j] = dtauxdy
+                    self.stress_curl_field[i][j] = dtauydx - dtauxdy
                     self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
                 else:
-                    self.dtauydx_field[i][j] = np.nan
-                    self.dtauxdy_field[i][j] = np.nan
-                    self.wind_stress_curl_field[i][j] = np.nan
+                    self.ddx_tau_y_field[i][j] = np.nan
+                    self.ddy_tau_x_field[i][j] = np.nan
+                    self.stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
     def compute_freshwater_flux_field(self, avg_period):
