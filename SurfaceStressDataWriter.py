@@ -384,72 +384,94 @@ class SurfaceStressDataWriter(object):
                     self.stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
-    def compute_freshwater_flux_field(self, avg_period):
-        """ Calculate freshwater flux div(u_Ek*S) ~ S(m - f)  """
         from SalinityDataset import SalinityDataset
         salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
 
-        zonal_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
-        merid_salt_transport_field = np.zeros((len(self.lats), len(self.lons)))
+    def compute_daily_freshwater_ekman_advection_field(self):
+        """ Calculate freshwater flux div(u_Ek*S).  """
+
+        i_max = len(self.lats) - 1
+        j_max = len(self.lons) - 1
+
+        # TODO: Do all this in a loop in __init__?
+        self.dSdx_field[0, :] = np.nan
+        self.dSdx_field[i_max, :] = np.nan
+        self.dSdy_field[0, :] = np.nan
+        self.dSdy_field[i_max, :] = np.nan
+        self.ddx_uEk_S_field[0, :] = np.nan
+        self.ddx_uEk_S_field[i_max, :] = np.nan
+        self.ddy_vEk_S_field[0, :] = np.nan
+        self.ddy_vEk_S_field[i_max, :] = np.nan
+        self.freshwater_ekman_advection_field[0, :] = np.nan
+        self.freshwater_ekman_advection_field[i_max, :] = np.nan
 
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
             f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
             progress_percent = 100 * i / (len(self.lats) - 2)
-            logger.info('(freshwater_flux) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+            logger.info('({} freshwater_flux) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max,
+                                                                                    progress_percent))
 
             dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
             dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
 
-            # TODO: Consider the j=0 (180 W) and j=j_max (180 E) edge cases.
             for j in range(1, len(self.lons) - 1):
                 lon = self.lons[j]
 
+                # Taking modulus of j-1 and j+1 to get the correct index in the special cases of
+                #  * j=0 (180 W) and need to use the value from j=j_max (180 E)
+                #  * j=j_max (180 E) and need to use the value from j=0 (180 W)
+                jm1 = (j-1) % j_max
+                jp1 = (j+1) % j_max
+
                 u_Ekman_scalar = self.u_Ekman_field[i][j]
                 v_Ekman_scalar = self.v_Ekman_field[i][j]
-                u_geo_scalar = self.u_geo_field[i][j]
-                v_geo_scalar = self.v_geo_field[i][j]
 
-                salinity_ij = salinity_dataset.salinity(lat, lon, 0)
-                salinity_ip1_j = salinity_dataset.salinity(self.lats[i+1], lon, 0)
-                salinity_im1_j = salinity_dataset.salinity(self.lats[i-1], lon, 0)
-                salinity_i_jp1 = salinity_dataset.salinity(lat, self.lons[j+1], 0)
-                salinity_i_jm1 = salinity_dataset.salinity(lat, self.lons[j-1], 0)
+                salinity_ij = self.salinity_field[i][j]
+                salinity_ip1_j = self.salinity_field[i+1][j]
+                salinity_im1_j = self.salinity_field[i-1][j]
+                salinity_i_jp1 = self.salinity_field[i][jp1]
+                salinity_i_jm1 = self.salinity_field[i][jm1]
 
                 if not np.isnan(u_Ekman_scalar) and not np.isnan(salinity_i_jm1) \
                         and not np.isnan(salinity_i_jp1):
-                    dSdx = (salinity_i_jp1 - salinity_i_jm1) / dx
                     # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
-                    zonal_salt_transport_field[i][j] = (u_Ekman_scalar + u_geo_scalar) * dSdx
+                    dSdx = (salinity_i_jp1 - salinity_i_jm1) / dx
+
+                    self.dSdx_field[i][j] = dSdx
+                    self.ddx_uEk_S_field[i][j] = u_Ekman_scalar * dSdx
                 else:
-                    zonal_salt_transport_field[i][j] = np.nan
+                    self.dSdx_field = np.nan
+                    self.ddx_uEk_S_field[i][j] = np.nan
 
                 if not np.isnan(v_Ekman_scalar) and not np.isnan(salinity_im1_j) \
                         and not np.isnan(salinity_ip1_j):
-                    dSdy = (salinity_ip1_j - salinity_im1_j) / dy
                     # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
-                    merid_salt_transport_field[i][j] = (v_Ekman_scalar + v_geo_scalar) * dSdy
+                    dSdy = (salinity_ip1_j - salinity_im1_j) / dy
+
+                    self.dSdy_field[i][j] = dSdy
+                    self.ddy_vEk_S_field[i][j] = v_Ekman_scalar * dSdy
                 else:
-                    merid_salt_transport_field[i][j] = np.nan
+                    self.dSdy_field[i][j] = np.nan
+                    self.ddy_vEk_S_field[i][j] = np.nan
 
-                if not np.isnan(zonal_salt_transport_field[i][j]) and not np.isnan(merid_salt_transport_field[i][j]):
-                    self.freshwater_flux_field[i][j] = zonal_salt_transport_field[i][j] \
-                                                       + merid_salt_transport_field[i][j]
+                if not np.isnan(self.ddx_uEk_S_field[i][j]) and not np.isnan(self.ddy_vEk_S_field[i][j]):
+                    self.freshwater_ekman_advection_field[i][j] \
+                        = self.ddx_uEk_S_field[i][j] + self.ddy_vEk_S_field[i][j]
 
-                    self.psi_delta[i][j] = -self.tau_x_field[i][j] / (1025 * f)
+                    # self.psi_delta[i][j] = -self.tau_x_field[i][j] / (1025 * f)
 
-                    zonal = -(self.tau_x_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdy
-                    merid =  (self.tau_y_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdx
-                    # logger.info('tau_x={:.2f}, tau_y={:.2f}, S={:.2f}, dSdx={:.1e}, dSdy={:.1e}'.format(
-                    #     self.tau_x_field[i][j], self.tau_y_field[i][j], salinity_ij, dSdx, dSdy))
-                    self.melt_rate[i][j] = zonal + merid
+                    # zonal = -(self.tau_x_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdy
+                    # merid = (self.tau_y_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdx
 
-                    self.psi_delta[i][j] = self.psi_delta[i][j] * (2*np.pi*6371e3*np.cos(np.deg2rad(lat))) / 1e6
+                    # self.melt_rate[i][j] = zonal + merid
+
+                    # self.psi_delta[i][j] = self.psi_delta[i][j] * (2*np.pi*6371e3*np.cos(np.deg2rad(lat))) / 1e6
                 else:
                     self.freshwater_flux_field[i][j] = np.nan
-                    self.psi_delta[i][j] = np.nan
-                    self.melt_rate[i][j] = np.nan
+                    # self.psi_delta[i][j] = np.nan
+                    # self.melt_rate[i][j] = np.nan
 
     def compute_ice_divergence_field(self):
         """ Calculate ice divergence \grad \cdot (h*u_ice) ~ f - r """
