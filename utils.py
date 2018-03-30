@@ -551,5 +551,77 @@ def get_coast_coordinates(tau_filepath):
 
     return lons, lat_northward
 
-def date_to_WOA_parameters():
-    pass
+
+def date_to_WOA_time_span(date):
+    year = date.year
+
+    if 2005 <= year:
+        return 'A5B2'
+    elif 1995 <= year <= 2004:
+        return '95A4'
+    elif 1985 <= year <= 1994:
+        return '8594'
+    elif 1975 <= year <= 1984:
+        return '7584'
+    elif 1965 <= year <= 1974:
+        return '6574'
+    elif 1955 <= year <= 1964:
+        return '5564'
+    else:
+        logger.error('Pre-1955 data not available from WOA. Input date: {}'.format(date))
+
+
+def year_range_to_WOA_time_span(year_start, year_end):
+    import datetime
+
+    # TODO: Actually implement this function rather than just cheap out.
+    return date_to_WOA_time_span(datetime.date(year_end, 1, 1))
+
+
+def season_str_to_WOA_avg_period(season):
+    if season == 'JFM':
+        return '13'
+    elif season == 'AMJ':
+        return '14'
+    elif season == 'JAS':
+        return '15'
+    elif season == 'OND':
+        return '16'
+    else:
+        logger.error('Input season ({}) not available from WOA.'.format(season))
+
+
+def get_WOA_parameters(field_type, date, season_str, year_start, year_end):
+    if field_type == 'daily':
+        time_span = date_to_WOA_time_span(date)
+        avg_period = str(date.month).zfill(2)
+    elif field_type == 'monthly':
+        time_span = date_to_WOA_time_span(date)
+        avg_period = str(date.month).zfill(2)
+    elif field_type == 'annual':
+        time_span = date_to_WOA_time_span(date)
+        avg_period = '00'
+    elif field_type == 'seasonal':
+        time_span = date_to_WOA_time_span(date)
+        avg_period = season_str_to_WOA_avg_period(season_str)
+    elif field_type == 'monthly_climo':
+        time_span = year_range_to_WOA_time_span(year_start, year_end)
+        avg_period = str(date.month).zfill(2)
+    elif field_type == 'seasonal_climo':
+        time_span = year_range_to_WOA_time_span(year_start, year_end)
+        avg_period = season_str_to_WOA_avg_period(season_str)
+    elif field_type == 'climo':
+        time_span = year_range_to_WOA_time_span(year_start, year_end)
+        avg_period = '00'
+    else:
+        logger.error('Invalid field_type: {:s}'.format(field_type))
+        return {}
+
+    WOA_parameters = {
+        'time_span': time_span,
+        'avg_period': avg_period,
+        'grid_size': '04',
+        'field_type': 'an'
+    }
+
+    return WOA_parameters
