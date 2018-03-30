@@ -384,8 +384,39 @@ class SurfaceStressDataWriter(object):
                     self.stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
 
-        from SalinityDataset import SalinityDataset
-        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
+    def process_thermodynamic_fields(self, levels=None, process_neutral_density=False):
+        logger.info('Calculating average T, S, gamma_n...')
+
+        levels = [0, 1, 2, 3, 4, 5, 6, 7]
+
+        salinity_dataset = SalinityDataset(time_span=self.WOA_time_span, avg_period=self.WOA_avg_period,
+                                           grid_size=self.WOA_grid_size, field_type=self.WOA_field_type)
+        temperature_dataset = TemperatureDataset(time_span=self.WOA_time_span, avg_period=self.WOA_avg_period,
+                                                 grid_size=self.WOA_grid_size, field_type=self.WOA_field_type)
+
+        if process_neutral_density:
+            gamma_dataset = NeutralDensityDataset(time_span=self.WOA_time_span, avg_period=self.WOA_avg_period,
+                                                  grid_size=self.WOA_grid_size, field_type=self.WOA_field_type)
+        else:
+            self.neutral_density_field[:] = np.nan
+
+        for i in range(len(self.lats)):
+            lat = self.lats[i]
+
+            progress_percent = 100 * i / (len(self.lats) - 1)
+
+            if process_neutral_density:
+                logger.info('(T, S, gamma) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+            else:
+                logger.info('(T, S) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+
+            for j in range(len(self.lons)):
+                lon = self.lons[j]
+                self.salinity_field[i][j] = salinity_dataset.salinity(lat, lon, levels)
+                self.temperature_field[i][j] = temperature_dataset.temperature(lat, lon, levels)
+
+                if process_neutral_density:
+                    self.neutral_density_field[i][j] = gamma_dataset.gamma_n_depth_averaged(lat, lon, levels)
 
     def compute_daily_freshwater_ekman_advection_field(self):
         """ Calculate freshwater flux div(u_Ek*S).  """
