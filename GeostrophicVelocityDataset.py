@@ -92,8 +92,6 @@ class GeostrophicVelocityDataset(object):
         self.lons_interp = np.array(lons_interp)
 
     def absolute_geostrophic_velocity(self, lat, lon, data_source):
-        return np.array([0, 0])
-
         if lon < 0:
             lon = lon + 360  # Change from our convention lon = [-180, 180] to [0, 360]
 
