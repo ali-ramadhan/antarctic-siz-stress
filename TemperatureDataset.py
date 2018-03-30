@@ -117,3 +117,5 @@ class TemperatureDataset(object):
                     temperature_avg = temperature_avg + (temperature_scalar/len(depth_levels))
 
             return temperature_avg
+        else:
+            logger.error('depth_levels not an int or list instance! depth_level={}'.format(depth_levels))

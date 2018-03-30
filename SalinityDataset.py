@@ -101,7 +101,6 @@ class SalinityDataset(object):
 
         if isinstance(depth_levels, int):
             salinity_scalar = self.salinity_data[0][depth_levels][idx_lat][idx_lon]
-
             if salinity_scalar > 1e3:
                 return np.nan
             else:
@@ -117,3 +116,5 @@ class SalinityDataset(object):
                     salinity_avg = salinity_avg + (salinity_scalar/len(depth_levels))
 
             return salinity_avg
+        else:
+            logger.error('depth_levels not an int or list instance! depth_level={}'.format(depth_levels))
