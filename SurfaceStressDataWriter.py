@@ -2,7 +2,10 @@ import os
 import numpy as np
 
 import netCDF4
+import matplotlib
 import matplotlib.colors as colors
+
+# matplotlib.use('AGG')
 
 from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
 from SurfaceWindDataset import SurfaceWindDataset
