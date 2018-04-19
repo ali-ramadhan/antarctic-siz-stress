@@ -154,6 +154,20 @@ class SurfaceStressDataWriter(object):
         }
 
         if date is not None:
+        # Setting NaN field values for i=0 (lat=lat_min) and i=i_max (lat=lat_max) where derivative fields, (e.g.
+        # w_Ekman, ice_flux_div) cannot be calculated as there is no northern or southern value to use to calculate
+        # meridional (y) derivatives.
+        derivative_fields = [self.ddx_tau_y_field, self.ddy_tau_x_field, self.stress_curl_field, self.w_Ekman_field,
+                             self.dSdx_field, self.dSdy_field, self.ddx_uEk_S_field, self.ddy_vEk_S_field,
+                             self.freshwater_ekman_advection_field,
+                             self.zonal_ice_flux_div_field, self.merid_ice_flux_div_field, self.ice_flux_div_field,
+                             self.psi_delta_field,
+                             self.zonal_melt_rate_field, self.merid_melt_rate_field, self.melt_rate_field]
+
+        i_max = len(self.lats) - 1
+        for field in derivative_fields:
+            field[0, :] = np.nan
+            field[i_max, :] = np.nan
             self.u_geo_data = MeanDynamicTopographyDataReader()
             self.sea_ice_conc_data = SeaIceConcentrationDataset(self.date)
             self.sea_ice_motion_data = SeaIceMotionDataset(self.date)
