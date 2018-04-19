@@ -648,7 +648,6 @@ class SurfaceStressDataWriter(object):
                     # Convert [m^2/s] -> [Sv] and account for the latitudinal dependence of the circumpolar distance.
                     self.psi_delta_field[i][j] = self.psi_delta_field[i][j] * (2 * np.pi * 6371e3 * np.cos(np.deg2rad(lat))) / 1e6
 
-    def compute_mean_fields(self, dates, avg_method, sum_monthly_climo=False, tau_filepath=None):
     def compute_daily_auxillary_fields(self):
         self.compute_daily_ekman_pumping_field()
         self.process_thermodynamic_fields()
@@ -656,30 +655,30 @@ class SurfaceStressDataWriter(object):
         self.compute_daily_freshwater_ekman_advection_field()
         self.compute_daily_ice_flux_divergence_field()
         self.compute_meridional_streamfunction_and_melt_rate()
+
+    def compute_mean_fields(self, dates, avg_method):
         import netCDF4
         from constants import output_dir_path
-        from utils import log_netCDF_dataset_metadata, get_netCDF_filepath
+        from utils import log_netCDF_dataset_metadata
 
-        if tau_filepath is not None:
-            try:
-                tau_dataset = netCDF4.Dataset(tau_filepath)
-                log_netCDF_dataset_metadata(tau_dataset)
-                dataset_found = True
-            except OSError as e:
-                logger.error('{}'.format(e))
-                logger.error('Dataset not found, will compute mean fields: {:s}'.format(tau_filepath))
-                dataset_found = False
+        try:
+            tau_dataset = netCDF4.Dataset(self.nc_filepath)
+            log_netCDF_dataset_metadata(tau_dataset)
+            dataset_found = True
+        except OSError as e:
+            logger.info('Dataset not found, will compute mean fields: {:s}'.format(self.nc_filepath))
+            dataset_found = False
 
-            if dataset_found:
-                logger.info('Dataset found! Loading fields from: {:s}'.format(tau_filepath))
-                self.lats = np.array(tau_dataset.variables['lat'])
-                self.lons = np.array(tau_dataset.variables['lon'])
+        if dataset_found:
+            logger.info('Dataset found! Loading fields from: {:s}'.format(self.nc_filepath))
+            self.lats = np.array(tau_dataset.variables['lat'])
+            self.lons = np.array(tau_dataset.variables['lon'])
 
-                for var in self.var_fields.keys():
-                    loaded_field = np.array(tau_dataset.variables[var])
-                    self.var_fields[var][:] = loaded_field[:]
+            for var in self.var_fields.keys():
+                loaded_field = np.array(tau_dataset.variables[var])
+                self.var_fields[var][:] = loaded_field[:]
 
-                return
+            return
 
         n_days = len(dates)
 
@@ -762,6 +761,7 @@ class SurfaceStressDataWriter(object):
         # Remember that the [:] syntax is used is so that we perform deep copies. Otherwise, e.g.
         # self.var_fields['ice_u'] will point to a different array than the original self.u_ice_field, and will NOT be
         # the same object as self.figure_fields['u_ice']!.
+        # the same object as self.figure_fields['u_ice']!. The figure plots will come out all empty.
         if avg_method == 'full_data_only':
             for var_name in self.var_fields.keys():
                 self.var_fields[var_name][:] = field_avg[var_name][:]
