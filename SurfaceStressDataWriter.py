@@ -46,7 +46,13 @@ class SurfaceStressDataWriter(object):
     R_45deg = np.array([[np.cos(np.pi/4), -np.sin(np.pi/4)], [np.sin(np.pi/4), np.cos(np.pi/4)]])
     R_m45deg = np.array([[np.cos(-np.pi/4), -np.sin(-np.pi/4)], [np.sin(-np.pi/4), np.cos(-np.pi/4)]])
 
-    def __init__(self, date):
+    def __init__(self, field_type, date=None, season_str=None, year_start=None, year_end=None):
+        self.field_type = field_type
+        self.date = date
+        self.season_str = season_str
+        self.year_start = year_start
+        self.year_end = year_end
+
         self.lats = np.linspace(lat_min, lat_max, n_lat)
         self.lons = np.linspace(lon_min, lon_max, n_lon)
 
@@ -55,7 +61,35 @@ class SurfaceStressDataWriter(object):
         # be plotted as well.
         # self.lons = self.lons[:-1]
 
+        # Filepath to the netCDF file that will be used to store all the fields. Other functions that save figures to
+        # disk will use the netCDF filename to assign filenames their figures in other directories.
+        self.nc_filepath = get_netCDF_filepath(field_type=field_type, date=date, season_str=season_str,
+                                               year_start=year_start, year_end=year_end)
+
+        # Figure out which data fields to load from the World Ocean Atlas (WOA) based on the type of surface stress
+        # field we're going to calculate.
+        WOA_parameters = get_WOA_parameters(field_type=field_type, date=date, season_str=season_str,
+                                            year_start=year_start, year_end=year_end)
+
+        self.WOA_time_span = WOA_parameters['time_span']
+        self.WOA_avg_period = WOA_parameters['avg_period']
+        self.WOA_grid_size = WOA_parameters['grid_size']
+        self.WOA_field_type = WOA_parameters['field_type']
+
+        logger.info('Assigned WOA parameters: time_span={:s}, avg_period={:s}, grid_size={:s}, field_type={:s}'
+                    .format(self.WOA_time_span, self.WOA_avg_period, self.WOA_grid_size, self.WOA_field_type))
+
         # Initializing all the fields we want to write to the netCDF file.
+        # Data (from gridded products) fields.
+        self.u_geo_field = np.zeros((len(self.lats), len(self.lons)))
+        self.v_geo_field = np.zeros((len(self.lats), len(self.lons)))
+        self.u_wind_field = np.zeros((len(self.lats), len(self.lons)))
+        self.v_wind_field = np.zeros((len(self.lats), len(self.lons)))
+        self.alpha_field = np.zeros((len(self.lats), len(self.lons)))
+        self.u_ice_field = np.zeros((len(self.lats), len(self.lons)))
+        self.v_ice_field = np.zeros((len(self.lats), len(self.lons)))
+
+        # Surface stress fields.
         self.tau_air_x_field = np.zeros((len(self.lats), len(self.lons)))
         self.tau_air_y_field = np.zeros((len(self.lats), len(self.lons)))
         self.tau_ice_x_field = np.zeros((len(self.lats), len(self.lons)))
@@ -65,54 +99,45 @@ class SurfaceStressDataWriter(object):
         self.tau_x_field = np.zeros((len(self.lats), len(self.lons)))
         self.tau_y_field = np.zeros((len(self.lats), len(self.lons)))
 
+        # Ekman velocity fields.
         self.u_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
         self.v_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
         self.u_Ekman_SIZ_field = np.zeros((len(self.lats), len(self.lons)))
         self.v_Ekman_SIZ_field = np.zeros((len(self.lats), len(self.lons)))
 
-        self.u_geo_field = np.zeros((len(self.lats), len(self.lons)))
-        self.v_geo_field = np.zeros((len(self.lats), len(self.lons)))
-        self.u_wind_field = np.zeros((len(self.lats), len(self.lons)))
-        self.v_wind_field = np.zeros((len(self.lats), len(self.lons)))
-        self.alpha_field = np.zeros((len(self.lats), len(self.lons)))
-        self.u_ice_field = np.zeros((len(self.lats), len(self.lons)))
-        self.v_ice_field = np.zeros((len(self.lats), len(self.lons)))
-
-        self.wind_stress_curl_field = np.zeros((len(self.lats), len(self.lons)))
+        # Ekman pumping fields.
+        self.ddy_tau_x_field = np.zeros((len(self.lats), len(self.lons)))
+        self.ddx_tau_y_field = np.zeros((len(self.lats), len(self.lons)))
+        self.stress_curl_field = np.zeros((len(self.lats), len(self.lons)))
         self.w_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
 
-        self.dtauxdy_field = np.zeros((len(self.lats), len(self.lons)))
-        self.dtauydx_field = np.zeros((len(self.lats), len(self.lons)))
-
-        # The fields below are really only used for mean fields, not daily fields.
-        self.freshwater_flux_field =np.zeros((len(self.lats), len(self.lons)))
-        self.ice_div_field = np.zeros((len(self.lats), len(self.lons)))
-
+        # Thermodynamic fields.
         self.salinity_field = np.zeros((len(self.lats), len(self.lons)))
         self.temperature_field = np.zeros((len(self.lats), len(self.lons)))
         self.neutral_density_field = np.zeros((len(self.lats), len(self.lons)))
 
-        # tmp
-        self.zonal_ice_div = np.zeros((len(self.lats), len(self.lons)))
-        self.merid_ice_div = np.zeros((len(self.lats), len(self.lons)))
-        self.melt_rate = np.zeros((len(self.lats), len(self.lons)))
-        self.psi_delta = np.zeros((len(self.lats), len(self.lons)))
+        # Freshwater Ekman advection fields.
+        self.dSdx_field = np.zeros((len(self.lats), len(self.lons)))
+        self.dSdy_field = np.zeros((len(self.lats), len(self.lons)))
+        self.ddx_uEk_S_field = np.zeros((len(self.lats), len(self.lons)))
+        self.ddy_vEk_S_field = np.zeros((len(self.lats), len(self.lons)))
+        self.freshwater_ekman_advection_field = np.zeros((len(self.lats), len(self.lons)))
 
+        # Ice-flux divergence fields.
+        self.zonal_ice_flux_div_field = np.zeros((len(self.lats), len(self.lons)))
+        self.merid_ice_flux_div_field = np.zeros((len(self.lats), len(self.lons)))
+        self.ice_flux_div_field = np.zeros((len(self.lats), len(self.lons)))
+
+        # Meridional streamfunction and melting/freezing rate.
+        self.psi_delta_field = np.zeros((len(self.lats), len(self.lons)))
+        self.zonal_melt_rate_field = np.zeros((len(self.lats), len(self.lons)))
+        self.merid_melt_rate_field = np.zeros((len(self.lats), len(self.lons)))
+        self.melt_rate_field = np.zeros((len(self.lats), len(self.lons)))
+
+        self.h_ice_field = np.zeros((len(self.lats), len(self.lons)))
+
+        # Dictionary of all fields that will be saved into netCDF.
         self.var_fields = {
-            'tau_air_x': self.tau_air_x_field,
-            'tau_air_y': self.tau_air_y_field,
-            'tau_ice_x': self.tau_ice_x_field,
-            'tau_ice_y': self.tau_ice_y_field,
-            'tau_x': self.tau_x_field,
-            'tau_y': self.tau_y_field,
-            'tau_SIZ_x': self.tau_SIZ_x_field,
-            'tau_SIZ_y': self.tau_SIZ_y_field,
-            'wind_stress_curl': self.wind_stress_curl_field,
-            'Ekman_w': self.w_Ekman_field,
-            'Ekman_u': self.u_Ekman_field,
-            'Ekman_v': self.v_Ekman_field,
-            'Ekman_SIZ_u': self.u_Ekman_SIZ_field,
-            'Ekman_SIZ_v': self.v_Ekman_SIZ_field,
             'geo_u': self.u_geo_field,
             'geo_v': self.v_geo_field,
             'wind_u': self.u_wind_field,
@@ -120,10 +145,40 @@ class SurfaceStressDataWriter(object):
             'alpha': self.alpha_field,
             'ice_u': self.u_ice_field,
             'ice_v': self.v_ice_field,
-            'dtauydx': self.dtauydx_field,
-            'dtauxdy': self.dtauxdy_field
+            'tau_air_x': self.tau_air_x_field,
+            'tau_air_y': self.tau_air_y_field,
+            'tau_ice_x': self.tau_ice_x_field,
+            'tau_ice_y': self.tau_ice_y_field,
+            'tau_SIZ_x': self.tau_SIZ_x_field,
+            'tau_SIZ_y': self.tau_SIZ_y_field,
+            'tau_x': self.tau_x_field,
+            'tau_y': self.tau_y_field,
+            'Ekman_u': self.u_Ekman_field,
+            'Ekman_v': self.v_Ekman_field,
+            'Ekman_SIZ_u': self.u_Ekman_SIZ_field,
+            'Ekman_SIZ_v': self.v_Ekman_SIZ_field,
+            'dtau_x_dy': self.ddy_tau_x_field,
+            'dtau_y_dx': self.ddx_tau_y_field,
+            'curl_stress': self.stress_curl_field,
+            'Ekman_w': self.w_Ekman_field,
+            'salinity': self.salinity_field,
+            'temperature': self.temperature_field,
+            'neutral_density': self.neutral_density_field,
+            'dSdx': self.dSdx_field,
+            'dSdy': self.dSdy_field,
+            'uEk_S_ddx': self.ddx_uEk_S_field,
+            'uEk_S_ddy': self.ddy_vEk_S_field,
+            'fwf_uEk_S': self.freshwater_ekman_advection_field,
+            'ice_flux_div_x': self.zonal_ice_flux_div_field,
+            'ice_flux_div_y': self.merid_ice_flux_div_field,
+            'ice_flux_div': self.ice_flux_div_field,
+            'psi_delta': self.psi_delta_field,
+            'melt_rate_x': self.zonal_melt_rate_field,
+            'melt_rate_y': self.merid_melt_rate_field,
+            'melt_rate': self.melt_rate_field
         }
 
+        # Dictionary of all fields to be plotted.
         self.figure_fields = {
             'u_geo': self.u_geo_field,
             'v_geo': self.v_geo_field,
@@ -140,20 +195,17 @@ class SurfaceStressDataWriter(object):
             'tau_y': self.tau_y_field,
             'u_Ekman': self.u_Ekman_field,
             'v_Ekman': self.v_Ekman_field,
-            'dtauydx': self.dtauydx_field,
-            'dtauxdy': self.dtauxdy_field,
-            'curl_tau': self.wind_stress_curl_field,
-            # 'tau_SIZ_x': self.tau_SIZ_x_field,
-            # 'tau_SIZ_y': self.tau_SIZ_y_field,
+            'dtauydx': self.ddx_tau_y_field,
+            'dtauxdy': self.ddy_tau_x_field,
+            'curl_tau': self.stress_curl_field,
             'w_Ekman': self.w_Ekman_field,
-            'freshwater_flux': self.freshwater_flux_field,
-            'ice_div': self.ice_div_field,
+            'freshwater_flux': self.freshwater_ekman_advection_field,
+            'ice_div': self.ice_flux_div_field,
             'temperature': self.temperature_field,
             'salinity': self.salinity_field,
             'neutral_density': self.neutral_density_field
         }
 
-        if date is not None:
         # Setting NaN field values for i=0 (lat=lat_min) and i=i_max (lat=lat_max) where derivative fields, (e.g.
         # w_Ekman, ice_flux_div) cannot be calculated as there is no northern or southern value to use to calculate
         # meridional (y) derivatives.
@@ -168,6 +220,8 @@ class SurfaceStressDataWriter(object):
         for field in derivative_fields:
             field[0, :] = np.nan
             field[i_max, :] = np.nan
+
+        if date is not None and field_type == 'daily':
             self.u_geo_data = MeanDynamicTopographyDataReader()
             self.sea_ice_conc_data = SeaIceConcentrationDataset(self.date)
             self.sea_ice_motion_data = SeaIceMotionDataset(self.date)
