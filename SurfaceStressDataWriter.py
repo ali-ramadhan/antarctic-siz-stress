@@ -694,73 +694,40 @@ class SurfaceStressDataWriter(object):
             field_avg[var_name] = np.zeros((len(self.lats), len(self.lons)))
             field_days[var_name] = np.zeros((len(self.lats), len(self.lons)))
 
-        if sum_monthly_climo:
-            for month in range(1,13):
-                month_str = str(month).zfill(2)
+        for date in dates:
+            tau_filepath = get_netCDF_filepath(field_type='daily', date=date)
 
-                tau_nc_filename = 'surface_stress_' + month_str + '_2005-2012_monthly_climo.nc'
-                tau_filepath = os.path.join(output_dir_path, 'surface_stress', 'monthly_climo', tau_nc_filename)
+            logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
 
-                logger.info('Averaging month {:s} ({:s})...'.format(month_str, tau_filepath))
-
+            try:
                 current_tau_dataset = netCDF4.Dataset(tau_filepath)
                 log_netCDF_dataset_metadata(current_tau_dataset)
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
+                n_days = n_days - 1  # Must account for lost day if using avg_method='full_data_only'.
+                continue
 
-                self.lats = np.array(current_tau_dataset.variables['lat'])
-                self.lons = np.array(current_tau_dataset.variables['lon'])
+            self.lats = np.array(current_tau_dataset.variables['lat'])
+            self.lons = np.array(current_tau_dataset.variables['lon'])
 
-                daily_fields = {}
+            daily_fields = {}
+            for var_name in self.var_fields.keys():
+                daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
+
+            if avg_method == 'full_data_only':
                 for var_name in self.var_fields.keys():
-                    daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
+                    field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
 
-                if avg_method == 'full_data_only':
-                    for var_name in self.var_fields.keys():
-                        field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
-
-                elif avg_method == 'partial_data_ok':
-                    for var_name in self.var_fields.keys():
-                        field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
-                        daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
-                        daily_fields[var_name][np.isnan(daily_fields[var_name])] = 0
-                        field_days[var_name] = field_days[var_name] + daily_fields[var_name]
-        else:
-            for date in dates:
-                tau_nc_filename = 'surface_stress_' + str(date.year) + str(date.month).zfill(2) \
-                                  + str(date.day).zfill(2) + '.nc'
-                tau_filepath = os.path.join(output_dir_path, 'surface_stress', str(date.year), tau_nc_filename)
-
-                logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
-
-                try:
-                    current_tau_dataset = netCDF4.Dataset(tau_filepath)
-                    log_netCDF_dataset_metadata(current_tau_dataset)
-                except OSError as e:
-                    logger.error('{}'.format(e))
-                    logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
-                    n_days = n_days - 1  # Must account for lost day if using avg_method='full_data_only'.
-                    continue
-
-                self.lats = np.array(current_tau_dataset.variables['lat'])
-                self.lons = np.array(current_tau_dataset.variables['lon'])
-
-                daily_fields = {}
+            elif avg_method == 'partial_data_ok':
                 for var_name in self.var_fields.keys():
-                    daily_fields[var_name] = np.array(current_tau_dataset.variables[var_name])
-
-                if avg_method == 'full_data_only':
-                    for var_name in self.var_fields.keys():
-                        field_avg[var_name] = field_avg[var_name] + daily_fields[var_name]/n_days
-
-                elif avg_method == 'partial_data_ok':
-                    for var_name in self.var_fields.keys():
-                        field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
-                        daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
-                        daily_fields[var_name][np.isnan(daily_fields[var_name])] = 0
-                        field_days[var_name] = field_days[var_name] + daily_fields[var_name]
+                    field_avg[var_name] = field_avg[var_name] + np.nan_to_num(daily_fields[var_name])
+                    daily_fields[var_name][~np.isnan(daily_fields[var_name])] = 1
+                    daily_fields[var_name][np.isnan(daily_fields[var_name])] = 0
+                    field_days[var_name] = field_days[var_name] + daily_fields[var_name]
 
         # Remember that the [:] syntax is used is so that we perform deep copies. Otherwise, e.g.
         # self.var_fields['ice_u'] will point to a different array than the original self.u_ice_field, and will NOT be
-        # the same object as self.figure_fields['u_ice']!.
         # the same object as self.figure_fields['u_ice']!. The figure plots will come out all empty.
         if avg_method == 'full_data_only':
             for var_name in self.var_fields.keys():
@@ -772,38 +739,6 @@ class SurfaceStressDataWriter(object):
                 self.var_fields[var_name][:] = field_avg[var_name][:]
 
     def plot_diagnostic_fields(self, plot_type, custom_label=None, avg_period=None):
-        # logger.info('Injecting u_geo field...')
-        # from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
-        # geo = MeanDynamicTopographyDataReader()
-        # for i in range(len(self.lats)):
-        #     lat = self.lats[i]
-        #     for j in range(len(self.lons)):
-        #         lon = self.lons[j]
-        #         u_geo_mean = geo.u_geo_mean(lat, lon, 'interp')
-        #         # self.u_geo_field[i][j] = u_geo_mean[0]
-        #         # self.v_geo_field[i][j] = u_geo_mean[1]
-        #         self.u_geo_field[i][j] = 0
-        #         self.v_geo_field[i][j] = 0
-
-        # logger.info('Smoothing u_geo field using Gaussian filter...')
-        # from scipy.ndimage import gaussian_filter
-        # u_geo_smoothed = gaussian_filter(self.u_geo_field, sigma=1)
-        # v_geo_smoothed = gaussian_filter(self.v_geo_field, sigma=1)
-        #
-        # self.u_geo_field[:] = u_geo_smoothed[:]
-        # self.v_geo_field[:] = v_geo_smoothed[:]
-
-        # logger.info('Recalculating stresses...')
-        # self.compute_daily_surface_stress_field()
-        # logger.info('Recalculating Ekman pumping field...')
-        # self.compute_daily_ekman_pumping_field()
-
-        # logger.info('Smoothing salinity field using Gaussian filter...')
-        # from scipy.ndimage import gaussian_filter
-        # salinity_smoothed = gaussian_filter(self.salinity_field, sigma=1)
-        #
-        # self.salinity_field[:] = salinity_smoothed[:]
-
         import matplotlib
         import matplotlib.pyplot as plt
         import matplotlib.patches as mpatches
@@ -819,14 +754,10 @@ class SurfaceStressDataWriter(object):
         logger.info('Converting and recalculating tau_air and tau_ice fields...')
 
         # Convert tau_air fields into (1-alpha)*tau_air, and tau_ice fields into alpha*tau_ice.
-        self.tau_air_x_field = np.multiply(1 - self.alpha_field, self.tau_air_x_field)
-        self.tau_air_y_field = np.multiply(1 - self.alpha_field, self.tau_air_y_field)
-        self.tau_ice_x_field = np.multiply(self.alpha_field, self.tau_ice_x_field)
-        self.tau_ice_y_field = np.multiply(self.alpha_field, self.tau_ice_y_field)
-
-        # self.compute_freshwater_flux_field(avg_period)
-        # self.compute_ice_flux_divergence_field()
-        # self.process_thermodynamic_fields(avg_period)
+        self.tau_air_x_field[:] = np.multiply(1 - self.alpha_field, self.tau_air_x_field)[:]
+        self.tau_air_y_field[:] = np.multiply(1 - self.alpha_field, self.tau_air_y_field)[:]
+        self.tau_ice_x_field[:] = np.multiply(self.alpha_field, self.tau_ice_x_field)[:]
+        self.tau_ice_y_field[:] = np.multiply(self.alpha_field, self.tau_ice_y_field)[:]
 
         logger.info('Creating diagnostic figure...')
 
@@ -904,19 +835,19 @@ class SurfaceStressDataWriter(object):
                 ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
                            levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
-        # Extra plot of \Psi_{-\delta}*1/S*dS/dy.
-        ax = plt.subplot(gs[1, 8], projection=ccrs.SouthPolarStereo())
-        ax.add_feature(land_50m)
-        ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
-        ax.set_title('M-F = ψ(-δ)/S*dS/dy')
-        im = ax.pcolormesh(self.lons, self.lats, self.melt_rate*24*3600*365,
-                           transform=vector_crs, cmap='seismic', vmin=-1, vmax=1)
-        clb = fig.colorbar(im, ax=ax, extend='both')
-        clb.ax.set_title('')
-        ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
-        ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
-                   levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
+        # # Extra plot of \Psi_{-\delta}*1/S*dS/dy.
+        # ax = plt.subplot(gs[1, 8], projection=ccrs.SouthPolarStereo())
+        # ax.add_feature(land_50m)
+        # ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+        # ax.set_title('M-F = ψ(-δ)/S*dS/dy')
+        # im = ax.pcolormesh(self.lons, self.lats, self.melt_rate_field * 24 * 3600 * 365,
+        #                    transform=vector_crs, cmap='seismic', vmin=-1, vmax=1)
+        # clb = fig.colorbar(im, ax=ax, extend='both')
+        # clb.ax.set_title('')
+        # ax.contour(self.lons, self.lats, np.ma.array(self.tau_x_field, mask=np.isnan(self.alpha_field)),
+        #            levels=[0], colors='green', linewidths=0.5, transform=vector_crs)
+        # ax.contour(self.lons, self.lats, np.ma.array(self.alpha_field, mask=np.isnan(self.alpha_field)),
+        #            levels=[0.15], colors='black', linewidths=0.5, transform=vector_crs)
 
         # Add date label to bottom left.
         if plot_type == 'daily':
@@ -943,9 +874,8 @@ class SurfaceStressDataWriter(object):
         elif plot_type == 'custom':
             tau_filename = 'surface_stress_' + custom_label
 
-        # Saving diagnostic figure to disk. Only in .png as .pdf takes forever to write and is MASSIVE.
+        # Saving diagnostic figure to disk.
         tau_png_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.png')
-        # tau_pdf_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.pdf')
 
         tau_dir = os.path.dirname(tau_png_filepath)
         if not os.path.exists(tau_dir):
@@ -955,26 +885,24 @@ class SurfaceStressDataWriter(object):
         logger.info('Saving diagnostic figure: {:s}'.format(tau_png_filepath))
         plt.savefig(tau_png_filepath, dpi=600, format='png', transparent=False, bbox_inches='tight')
 
+        # Only going to save in .png as .pdf takes forever to write and is MASSIVE.
+        # tau_pdf_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.pdf')
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
         # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
 
         plt.close()
 
-    def write_fields_to_netcdf(self, field_type='daily', season_str=None, year_start=None, year_end=None):
+    def write_fields_to_netcdf(self):
         from constants import var_units, var_positive, var_long_names
-        from utils import get_netCDF_filepath
 
-        tau_filepath = get_netCDF_filepath(field_type=field_type, date=self.date, season_str=season_str,
-                                           year_start=year_start, year_end=year_end)
+        nc_dir = os.path.dirname(self.nc_filepath)
+        if not os.path.exists(nc_dir):
+            logger.info('Creating directory: {:s}'.format(nc_dir))
+            os.makedirs(nc_dir)
 
-        tau_dir = os.path.dirname(tau_filepath)
-        if not os.path.exists(tau_dir):
-            logger.info('Creating directory: {:s}'.format(tau_dir))
-            os.makedirs(tau_dir)
+        logger.info('Saving fields (field_type={:s}) to netCDF file: {:s}'.format(self.field_type, self.nc_filepath))
 
-        logger.info('Saving fields (field_type={:s}) to netCDF file: {:s}'.format(field_type, tau_filepath))
-
-        tau_dataset = netCDF4.Dataset(tau_filepath, 'w')
+        tau_dataset = netCDF4.Dataset(self.nc_filepath, 'w')
 
         tau_dataset.title = 'Antarctic sea ice zone surface stress'
         tau_dataset.institution = 'Department of Earth, Atmospheric, and Planetary Science, ' \
