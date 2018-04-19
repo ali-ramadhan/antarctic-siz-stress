@@ -574,57 +574,52 @@ class SurfaceStressDataWriter(object):
             dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
             dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
 
-            # TODO: Consider the j=0 (180 W) and j=j_max (180 E) edge cases.
             for j in range(1, len(self.lons) - 1):
                 lon = self.lons[j]
 
-                u_ice_i_jp1 = self.u_ice_field[i][j+1]
-                u_ice_i_jm1 = self.u_ice_field[i][j-1]
+                # Taking modulus of j-1 and j+1 to get the correct index in the special cases of
+                #  * j=0 (180 W) and need to use the value from j=j_max (180 E)
+                #  * j=j_max (180 E) and need to use the value from j=0 (180 W)
+                jm1 = (j - 1) % j_max
+                jp1 = (j + 1) % j_max
+
+                u_ice_i_jp1 = self.u_ice_field[i][jp1]
+                u_ice_i_jm1 = self.u_ice_field[i][jm1]
                 v_ice_ip1_j = self.v_ice_field[i+1][j]
                 v_ice_im1_j = self.v_ice_field[i-1][j]
 
-                alpha_i_jp1 = self.alpha_field[i][j+1]
-                alpha_i_jm1 = self.alpha_field[i][j-1]
+                alpha_i_jp1 = self.alpha_field[i][jp1]
+                alpha_i_jm1 = self.alpha_field[i][jm1]
                 alpha_ip1_j = self.alpha_field[i+1][j]
                 alpha_im1_j = self.alpha_field[i-1][j]
 
+                h_ice_i_jp1 = self.h_ice_field[i][jp1]
+                h_ice_i_jm1 = self.h_ice_field[i][jm1]
+                h_ice_ip1_j = self.h_ice_field[i+1][j]
+                h_ice_im1_j = self.h_ice_field[i-1][j]
+
                 if not np.isnan(u_ice_i_jm1) and not np.isnan(u_ice_i_jp1):
-                    dudx = (alpha_i_jp1 * u_ice_i_jp1 - alpha_i_jm1 * u_ice_i_jm1) / dx
+                    div_x = (alpha_i_jp1 * h_ice_i_jp1 * u_ice_i_jp1 - alpha_i_jm1 * h_ice_i_jm1 * u_ice_i_jm1) / dx
                     # dSdx = (salinity_ip1_j - salinity_im1_j) / dx
-                    ice_div_x_field[i][j] = h * dudx
+
+                    self.zonal_ice_flux_div_field[i][j] = div_x
                 else:
-                    ice_div_x_field[i][j] = np.nan
+                    self.zonal_ice_flux_div_field[i][j] = np.nan
 
                 if not np.isnan(v_ice_im1_j) and not np.isnan(v_ice_ip1_j):
-                    dvdy = (alpha_ip1_j * v_ice_ip1_j - alpha_im1_j * v_ice_im1_j) / dy
+                    div_y = (alpha_ip1_j * h_ice_ip1_j * v_ice_ip1_j - alpha_im1_j * h_ice_im1_j * v_ice_im1_j) / dy
                     # dSdy = (salinity_i_jp1 - salinity_i_jm1) / dy
-                    ice_div_y_field[i][j] = h * dvdy
+
+                    self.merid_ice_flux_div_field[i][j] = div_y
                 else:
-                    ice_div_y_field[i][j] = np.nan
+                    self.merid_ice_flux_div_field[i][j] = np.nan
 
-                if not np.isnan(ice_div_x_field[i][j]) and not np.isnan(ice_div_y_field[i][j]):
-                    self.ice_div_field[i][j] = ice_div_x_field[i][j] + ice_div_y_field[i][j]
-                    self.zonal_ice_div[i][j] = ice_div_x_field[i][j]
-                    self.merid_ice_div[i][j] = ice_div_y_field[i][j]
+                if not np.isnan(self.zonal_ice_flux_div_field[i][j]) \
+                        and not np.isnan(self.merid_ice_flux_div_field[i][j]):
+                    self.ice_flux_div_field[i][j] = div_x + div_y
                 else:
-                    self.ice_div_field[i][j] = np.nan
-                    self.zonal_ice_div[i][j] = np.nan
-                    self.merid_ice_div[i][j] = np.nan
+                    self.ice_flux_div_field[i][j] = np.nan
 
-    def process_thermodynamic_fields(self, avg_period):
-        logger.info('Calculating average T, S, gamma_n...')
-        from SalinityDataset import SalinityDataset
-        from TemperatureDataset import TemperatureDataset
-        from NeutralDensityDataset import NeutralDensityDataset
-
-        levels = [0, 1, 2, 3, 4, 5, 6, 7]
-        salinity_dataset = SalinityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04', field_type='an')
-        temperature_dataset = TemperatureDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
-                                                 field_type='an')
-        neutral_density_dataset = NeutralDensityDataset(time_span='A5B2', avg_period=avg_period, grid_size='04',
-                                                        field_type='an', depth_levels=levels)
-
-        for i in range(len(self.lats)):
     def compute_meridional_streamfunction_and_melt_rate(self):
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
