@@ -12,7 +12,11 @@ from SurfaceWindDataset import SurfaceWindDataset
 from SeaIceConcentrationDataset import SeaIceConcentrationDataset
 from SeaIceMotionDataset import SeaIceMotionDataset
 
-from utils import distance
+from SalinityDataset import SalinityDataset
+from TemperatureDataset import TemperatureDataset
+from NeutralDensityDataset import NeutralDensityDataset
+
+from utils import distance, get_netCDF_filepath, get_WOA_parameters
 from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
 from constants import rho_air, rho_seawater, C_air, C_seawater
 from constants import Omega, rho_0, D_e
@@ -403,17 +407,6 @@ class SurfaceStressDataWriter(object):
         i_max = len(self.lats) - 1
         j_max = len(self.lons) - 1
 
-        # Setting NaN field values for i=0 (lat=lat_min) and i=i_max (lat=lat_max) where w_Ekman cannot be calculated
-        # as there is no northern or southern value to use to calculate d/dy (tau_x) or d/dx (tau_y).
-        self.ddx_tau_y_field[0, :] = np.nan
-        self.ddx_tau_y_field[i_max, :] = np.nan
-        self.ddy_tau_x_field[0, :] = np.nan
-        self.ddy_tau_x_field[i_max, :] = np.nan
-        self.stress_curl_field[0, :] = np.nan
-        self.stress_curl_field[i_max, :] = np.nan
-        self.w_Ekman_field[0, :] = np.nan
-        self.w_Ekman_field[i_max, :] = np.nan
-
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
             f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
@@ -505,20 +498,7 @@ class SurfaceStressDataWriter(object):
     def compute_daily_freshwater_ekman_advection_field(self):
         """ Calculate freshwater flux div(u_Ek*S).  """
 
-        i_max = len(self.lats) - 1
         j_max = len(self.lons) - 1
-
-        # TODO: Do all this in a loop in __init__?
-        self.dSdx_field[0, :] = np.nan
-        self.dSdx_field[i_max, :] = np.nan
-        self.dSdy_field[0, :] = np.nan
-        self.dSdy_field[i_max, :] = np.nan
-        self.ddx_uEk_S_field[0, :] = np.nan
-        self.ddx_uEk_S_field[i_max, :] = np.nan
-        self.ddy_vEk_S_field[0, :] = np.nan
-        self.ddy_vEk_S_field[i_max, :] = np.nan
-        self.freshwater_ekman_advection_field[0, :] = np.nan
-        self.freshwater_ekman_advection_field[i_max, :] = np.nan
 
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
@@ -531,7 +511,7 @@ class SurfaceStressDataWriter(object):
             dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
             dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
 
-            for j in range(1, len(self.lons) - 1):
+            for j in range(len(self.lons)):
                 lon = self.lons[j]
 
                 # Taking modulus of j-1 and j+1 to get the correct index in the special cases of
@@ -557,7 +537,7 @@ class SurfaceStressDataWriter(object):
                     self.dSdx_field[i][j] = dSdx
                     self.ddx_uEk_S_field[i][j] = u_Ekman_scalar * dSdx
                 else:
-                    self.dSdx_field = np.nan
+                    self.dSdx_field[i][j] = np.nan
                     self.ddx_uEk_S_field[i][j] = np.nan
 
                 if not np.isnan(v_Ekman_scalar) and not np.isnan(salinity_im1_j) \
@@ -574,26 +554,16 @@ class SurfaceStressDataWriter(object):
                 if not np.isnan(self.ddx_uEk_S_field[i][j]) and not np.isnan(self.ddy_vEk_S_field[i][j]):
                     self.freshwater_ekman_advection_field[i][j] \
                         = self.ddx_uEk_S_field[i][j] + self.ddy_vEk_S_field[i][j]
-
-                    # self.psi_delta[i][j] = -self.tau_x_field[i][j] / (1025 * f)
-
-                    # zonal = -(self.tau_x_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdy
-                    # merid = (self.tau_y_field[i][j] / (1025 * f)) * (1 / salinity_ij) * dSdx
-
-                    # self.melt_rate[i][j] = zonal + merid
-
-                    # self.psi_delta[i][j] = self.psi_delta[i][j] * (2*np.pi*6371e3*np.cos(np.deg2rad(lat))) / 1e6
                 else:
-                    self.freshwater_flux_field[i][j] = np.nan
-                    # self.psi_delta[i][j] = np.nan
-                    # self.melt_rate[i][j] = np.nan
+                    self.freshwater_ekman_advection_field[i][j] = np.nan
+                    # self.psi_delta_field[i][j] = np.nan
+                    # self.melt_rate_field[i][j] = np.nan
 
-    def compute_ice_divergence_field(self):
+    def compute_daily_ice_flux_divergence_field(self):
         """ Calculate ice divergence \grad \cdot (h*u_ice) ~ f - r """
-        ice_div_x_field = np.zeros((len(self.lats), len(self.lons)))
-        ice_div_y_field = np.zeros((len(self.lats), len(self.lons)))
 
-        h = 1  # [m]
+        i_max = len(self.lats) - 1
+        j_max = len(self.lons) - 1
 
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
@@ -655,15 +625,15 @@ class SurfaceStressDataWriter(object):
                                                         field_type='an', depth_levels=levels)
 
         for i in range(len(self.lats)):
+    def compute_meridional_streamfunction_and_melt_rate(self):
+        for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
+            f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
-            progress_percent = 100 * i / (len(self.lats))
-            logger.info('(T, S, gamma) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+            progress_percent = 100 * i / (len(self.lats) - 2)
+            logger.info('({} Psi_delta, M-F) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max,
+                                                                                    progress_percent))
             for j in range(len(self.lons)):
-                lon = self.lons[j]
-                self.salinity_field[i][j] = salinity_dataset.salinity(lat, lon, levels)
-                self.temperature_field[i][j] = temperature_dataset.temperature(lat, lon, levels)
-                self.neutral_density_field[i][j] = neutral_density_dataset.gamma_n_depth_averaged(lat, lon, levels)
 
     def compute_mean_fields(self, dates, avg_method, sum_monthly_climo=False, tau_filepath=None):
         import netCDF4
