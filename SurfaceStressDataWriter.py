@@ -631,6 +631,13 @@ class SurfaceStressDataWriter(object):
             for j in range(len(self.lons)):
 
     def compute_mean_fields(self, dates, avg_method, sum_monthly_climo=False, tau_filepath=None):
+    def compute_daily_auxillary_fields(self):
+        self.compute_daily_ekman_pumping_field()
+        self.process_thermodynamic_fields()
+        self.load_sea_ice_thickness_field()
+        self.compute_daily_freshwater_ekman_advection_field()
+        self.compute_daily_ice_flux_divergence_field()
+        self.compute_meridional_streamfunction_and_melt_rate()
         import netCDF4
         from constants import output_dir_path
         from utils import log_netCDF_dataset_metadata, get_netCDF_filepath
