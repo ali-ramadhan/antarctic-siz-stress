@@ -100,7 +100,7 @@ def process_months_multiple_years(months, year_start, year_end):
 
 
 def process_year(date_in_year):
-    """ Process an entire year and produce an annual mean. """
+    """ Process an entire year, month by month. """
 
     year = date_in_year.year
 
@@ -120,24 +120,6 @@ def process_multiple_years(year_start, year_end):
             # except Exception as e:
             #     logger.error('{}'.format(e), exc_info=True)
             #     continue
-
-
-def process_neutral_density_field(time_span, avg_period, grid_size, field_type, depth_level):
-    from NeutralDensityDataset import NeutralDensityDataset
-
-    try:
-        NeutralDensityDataset(time_span, avg_period, grid_size, field_type, depth_level)
-    except Exception as e:
-        logger.error('Failed to process neutral density ({}, {}, {}, {}, {}). Returning.'
-                     .format(time_span, avg_period, grid_size, field_type, depth_level))
-        logger.error('{}'.format(e), exc_info=True)
-        return
-
-
-def process_neutral_density_fields_multiple_depths(time_span, avg_period, grid_size, field_type, depth_levels):
-    n_jobs = len(depth_levels)
-    Parallel(n_jobs=n_jobs)(delayed(process_neutral_density_field)(time_span, avg_period, grid_size, field_type, lvl)
-                            for lvl in depth_levels)
 
 
 def plot_meridional_salinity_profiles(time_span, grid_size, field_type, lon, split_depth):
@@ -546,19 +528,6 @@ if __name__ == '__main__':
     # process_day(datetime.date(2015, 1, 1))
 
     # process_multiple_years(1995, 1995)
-
-    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='00', grid_size='04', field_type='an',
-    #                                                depth_levels=range(8))
-    # process_neutral_density_fields_multiple_depths(time_span='95A4', avg_period='00', grid_size='04', field_type='an',
-    #                                                depth_levels=range(8))
-    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='13', grid_size='04', field_type='an',
-    #                                                depth_levels=range(8))
-    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='14', grid_size='04', field_type='an',
-    #                                                depth_levels=range(8))
-    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='15', grid_size='04', field_type='an',
-    #                                                depth_levels=range(8))
-    # process_neutral_density_fields_multiple_depths(time_span='A5B2', avg_period='16', grid_size='04', field_type='an',
-    #                                                depth_levels=range(8))
 
     # plot_meridional_salinity_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-135, split_depth=250)
     # plot_meridional_salinity_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=-30, split_depth=250)
