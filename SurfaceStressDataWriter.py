@@ -629,6 +629,24 @@ class SurfaceStressDataWriter(object):
             logger.info('({} Psi_delta, M-F) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max,
                                                                                     progress_percent))
             for j in range(len(self.lons)):
+                tau_x = self.tau_x_field[i][j]
+                tau_y = self.tau_y_field[i][j]
+                S = self.salinity_field[i][j]
+                dSdx = self.dSdx_field[i][j]
+                dSdy = self.dSdy_field[i][j]
+
+                if not np.isnan(tau_x):
+                    Psi_delta = -self.tau_x_field[i][j] / (rho_0 * f)
+                    self.psi_delta_field[i][j] = Psi_delta
+
+                if not np.isnan(tau_y) and not np.isnan(Psi_delta) and not np.isnan(S) and not np.isnan(dSdy):
+                    self.zonal_melt_rate_field[i][j] = Psi_delta * (1 / S) * dSdy
+                    self.merid_melt_rate_field[i][j] = (tau_y / (rho_0 * f)) * (1 / S) * dSdx
+                    self.melt_rate_field[i][j] = self.zonal_melt_rate_field[i][j] + self.merid_melt_rate_field[i][j]
+
+                if not np.isnan(Psi_delta):
+                    # Convert [m^2/s] -> [Sv] and account for the latitudinal dependence of the circumpolar distance.
+                    self.psi_delta_field[i][j] = self.psi_delta_field[i][j] * (2 * np.pi * 6371e3 * np.cos(np.deg2rad(lat))) / 1e6
 
     def compute_mean_fields(self, dates, avg_method, sum_monthly_climo=False, tau_filepath=None):
     def compute_daily_auxillary_fields(self):
