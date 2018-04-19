@@ -310,29 +310,41 @@ def make_melt_rate_diagnostic_fig():
 
 
 def make_zonal_and_contour_averaged_plots():
-    # tmp: plot zonally averaged div(alpha*u_ice*h_ice) and \Psi_{-\delta}*1/S*dS/dy.
-    import matplotlib.pyplot as plt
+    """ plot zonally averaged div(alpha*u_ice*h_ice) and \Psi_{-\delta}*1/S*dS/dy. """
+    import datetime
 
+    import matplotlib.pyplot as plt
+    import cartopy
+    import cartopy.crs as ccrs
+
+    from utils import get_netCDF_filepath, get_field_from_netcdf
     from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
     from constants import D_e
 
-    contour_coordinate = np.empty((len(self.lats), len(self.lons)))
+    tau_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2000, 11, 1), year_start=2005, year_end=2015)
+    lons, lats, ice_div_field = get_field_from_netcdf(tau_filepath, 'ice_flux_div')
+    melt_rate_field = get_field_from_netcdf(tau_filepath, 'melt_rate')[2]
+    psi_delta_field = get_field_from_netcdf(tau_filepath, 'psi_delta')[2]
+    salinity_field = get_field_from_netcdf(tau_filepath, 'salinity')[2]
+    temperature_field = get_field_from_netcdf(tau_filepath, 'temperature')[2]
+
+    contour_coordinate = np.empty((len(lats), len(lons)))
     contour_coordinate[:] = np.nan
 
     tau_x_lons, tau_x_lats = get_northward_zero_zonal_stress_line(tau_filepath)
     alpha_lons, alpha_lats = get_northward_ice_edge(tau_filepath)
     coast_lons, coast_lats = get_coast_coordinates(tau_filepath)
 
-    for i in range(len(self.lons)):
-        lon = self.lons[i]
+    for i in range(len(lons)):
+        lon = lons[i]
 
         if alpha_lats[i] > tau_x_lats[i] > coast_lats[i]:
             lat_0 = coast_lats[i]
             lat_h = tau_x_lats[i]  # lat_h ~ lat_half ~ lat_1/2
             lat_1 = alpha_lats[i]
 
-            for j in range(len(self.lats)):
-                lat = self.lats[j]
+            for j in range(len(lats)):
+                lat = lats[j]
 
                 if lat < lat_0 or lat > lat_1:
                     contour_coordinate[j][i] = np.nan
@@ -340,10 +352,6 @@ def make_zonal_and_contour_averaged_plots():
                     contour_coordinate[j][i] = (lat - lat_0) / (2 * (lat_h - lat_0))
                 elif lat_h <= lat <= lat_1:
                     contour_coordinate[j][i] = 0.5 + ((lat - lat_h) / (2 * (lat_1 - lat_h)))
-
-    import matplotlib.pyplot as plt
-    import cartopy
-    import cartopy.crs as ccrs
 
     # fig = plt.figure()
     #
@@ -354,7 +362,7 @@ def make_zonal_and_contour_averaged_plots():
     # ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
     # vector_crs = ccrs.PlateCarree()
     #
-    # im = ax.pcolormesh(self.lons, self.lats, contour_coordinate, transform=vector_crs, cmap='PuOr')
+    # im = ax.pcolormesh(lons, lats, contour_coordinate, transform=vector_crs, cmap='PuOr')
     # fig.colorbar(im, ax=ax)
     # plt.title('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)')
     # plt.show()
@@ -385,84 +393,100 @@ def make_zonal_and_contour_averaged_plots():
 
         c_in_range = np.logical_and(contour_coordinate > c_low, contour_coordinate < c_high)
 
-        ice_div_cavg[i] = np.nanmean(self.ice_div_field[c_in_range])
-        melt_rate_cavg[i] = np.nanmean(self.melt_rate[c_in_range])
-        psi_delta_cavg[i] = np.nanmean(self.psi_delta[c_in_range])
+        ice_div_cavg[i] = np.nanmean(ice_div_field[c_in_range])
+        melt_rate_cavg[i] = np.nanmean(melt_rate_field[c_in_range])
+        psi_delta_cavg[i] = np.nanmean(psi_delta_field[c_in_range])
 
-    fig = plt.figure(figsize=(16, 9))
+    fig = plt.figure(figsize=(20, 6))
 
     ax = fig.add_subplot(131)
-    # ax.title('div(α*h*u_ice) ~ M - F [m/year]')
-    ax.plot(self.lats, np.nanmean(self.ice_div_field, axis=1) * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
-    # ax.plot(self.lats, np.nanmean(self.zonal_ice_div, axis=1)*24*3600*365, label='d/dx(α*h*u_ice) [m/year]')
-    # ax.plot(self.lats, np.nanmean(self.merid_ice_div, axis=1)*24*3600*365, label='d/dy(α*h*u_ice) [m/year]')
 
-    ax.plot(self.lats, np.nanmean(self.melt_rate, axis=1) * 24 * 3600 * 365,
-            label='ψ(-δ) * 1/S * dS/dy ~ M-F [m/year]')
-    # ax.plot(self.lats, np.nanmean(np.multiply(self.melt_rate_field, self.alpha_field), axis=1) * 24 * 3600 * 365 * D_e,
-    #         label='α*(M-F) [m/year]')
-
-    # ax.plot(self.lats, np.nanmean(self.salinity_field, axis=1), label='salinity')
-
+    ax.plot(lats, np.nanmean(ice_div_field, axis=1) * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
+    ax.plot(lats, np.nanmean(melt_rate_field, axis=1) * 24 * 3600 * 365, label='ψ(-δ) * 1/S * dS/dy ~ M-F [m/year]')
     ax.set_xlim(-80, -50)
     ax.set_ylim(-5, 15)
-    ax.set_xlabel('latitude', fontsize='xx-large')
-    ax.set_ylabel('m/year', fontsize='xx-large')
-
-    # ax.plot(c_bins, ice_div_cavg * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
-    # ax.plot(c_bins, melt_rate_cavg * 24 * 3600 * 365, label='(M-F) [m/year]')
-    #
-    # ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
-    # ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
-    # ax.set_ylabel('m/year', fontsize='xx-large')
-
+    ax.set_xlabel('latitude', fontsize='large')
+    ax.set_ylabel('m/year', fontsize='large')
     ax.tick_params(axis='both', which='major', labelsize=10)
     ax.grid(linestyle='--')
-    ax.legend(fontsize='xx-large')
+    ax.legend(fontsize='large')
 
     ax1 = fig.add_subplot(132)
-    # ax.title('M - F = ψ(-δ) * 1/S * dS/dy [m/year]')
-    ax1.plot(self.lats, np.nanmean(self.salinity_field, axis=1), label='salinity [g/kg]', color='b')
-    ax1.set_ylabel('salinity [g/kg]', color='b', fontsize='xx-large')
+    ax1.plot(lats, np.nanmean(salinity_field, axis=1), label='salinity [g/kg]', color='b')
+    ax1.set_ylabel('salinity [g/kg]', color='b', fontsize='large')
     ax1.tick_params('y', colors='b')
     ax1.tick_params(axis='both', which='major', labelsize=10)
-
     ax2 = ax1.twinx()
-    ax2.plot(self.lats, np.nanmean(self.temperature_field, axis=1), label='temperature [°C]', color='r')
-    ax2.set_ylabel('temperature [°C]', color='r', fontsize='xx-large')
+    ax2.plot(lats, np.nanmean(temperature_field, axis=1), label='temperature [°C]', color='r')
+    ax2.set_ylabel('temperature [°C]', color='r', fontsize='large')
     ax2.tick_params('y', colors='r')
     ax2.tick_params(axis='both', which='major', labelsize=10)
-
     ax1.set_xlim(-80, -50)
-    ax1.set_xlabel('latitude', fontsize='xx-large')
-
+    ax1.set_xlabel('latitude', fontsize='large')
     ax1.grid(linestyle='--')
 
     ax = fig.add_subplot(133)
-    # ax.title('Streamfunction ψ(-δ) [Sv]')
-    ax.plot(self.lats, np.nanmean(self.psi_delta, axis=1), label='Ekman transport streamfunction ψ(-δ) [Sv]')
+
+    ax.plot(lats, np.nanmean(psi_delta_field, axis=1), label='Ekman transport streamfunction ψ(-δ) [Sv]')
     ax.set_xlim(-80, -50)
-    ax.set_xlabel('latitude', fontsize='xx-large')
-    ax.set_ylabel('Sverdrups', fontsize='xx-large')
-
-    # ax.plot(c_bins, psi_delta_cavg, label='Ekman transport streamfunction ψ(-δ) [Sv]')
-    # ax.set_xlabel('\"green line coordinates\" (0=coast, 0.5=zero stress line, 1=ice edge)', fontsize='large')
-    #
-    # ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
-    # ax.set_ylabel('Sverdrups', fontsize='xx-large')
-
+    ax.set_xlabel('latitude', fontsize='large')
+    ax.set_ylabel('Sverdrups', fontsize='large')
     ax.tick_params(axis='both', which='major', labelsize=10)
     ax.grid(linestyle='--')
-    ax.legend(fontsize='xx-large')
+    ax.legend()
+    # ax.legend(fontsize='large')
 
-    plt.show()
+    # plt.show()
 
-    tau_png_filepath = os.path.join(tau_dir, str(self.date.month).zfill(2) + '_zonal_avg.png')
+    plt.savefig('zonal_avg.png', dpi=300, format='png', transparent=False, bbox_inches='tight')
+    plt.close()
 
-    plt.savefig(tau_png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+    fig = plt.figure(figsize=(20, 6))
+
+    ax = fig.add_subplot(131)
+    ax.plot(c_bins, ice_div_cavg * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
+    ax.plot(c_bins, melt_rate_cavg * 24 * 3600 * 365, label='(M-F) [m/year]')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_xlabel('\"green line coordinates\"', fontsize='large')
+    ax.set_ylabel('m/year', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    ax1 = fig.add_subplot(132)
+    ax1.plot(lats, np.nanmean(salinity_field, axis=1), label='salinity [g/kg]', color='b')
+    ax1.set_ylabel('salinity [g/kg]', color='b', fontsize='large')
+    ax1.tick_params('y', colors='b')
+    ax1.tick_params(axis='both', which='major', labelsize=10)
+    ax2 = ax1.twinx()
+    ax2.plot(lats, np.nanmean(temperature_field, axis=1), label='temperature [°C]', color='r')
+    ax2.set_ylabel('temperature [°C]', color='r', fontsize='large')
+    ax2.tick_params('y', colors='r')
+    ax2.tick_params(axis='both', which='major', labelsize=10)
+    ax1.set_xlim(-80, -50)
+    ax1.set_xlabel('latitude', fontsize='large')
+    ax1.grid(linestyle='--')
+
+    ax = fig.add_subplot(133)
+    ax.plot(c_bins, psi_delta_cavg, label='Ekman transport streamfunction ψ(-δ) [Sv]')
+    ax.set_xlabel('\"green line coordinates\"', fontsize='large')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_ylabel('Sverdrups', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    plt.savefig('contour_avg.png', dpi=300, format='png', transparent=False, bbox_inches='tight')
     plt.close()
 
 
 if __name__ == '__main__':
-    # make_five_box_climo_fig()
-    make_melt_rate_diagnostic_fig()
+    # make_five_box_climo_fig('tau_x')
+    # make_five_box_climo_fig('tau_y')
+    make_five_box_climo_fig('Ekman_u')
+    make_five_box_climo_fig('Ekman_v')
+
+    # for var in ['wind_u', 'wind_v', 'ice_u', 'ice_v', 'alpha']
+    #     make_five_box_climo_fig(var)
+    # make_melt_rate_diagnostic_fig()
+    # make_zonal_and_contour_averaged_plots()
