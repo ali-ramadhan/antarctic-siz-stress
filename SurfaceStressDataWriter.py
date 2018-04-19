@@ -435,6 +435,19 @@ class SurfaceStressDataWriter(object):
                 if process_neutral_density:
                     self.neutral_density_field[i][j] = gamma_dataset.gamma_n_depth_averaged(lat, lon, levels)
 
+    def load_sea_ice_thickness_field(self):
+        from SeaIceThicknessDataset import SeaIceThicknessDataset
+        h_ice_dataset = SeaIceThicknessDataset(self.date)
+
+        for i in range(len(self.lats)):
+            lat = self.lats[i]
+
+            progress_percent = 100 * i / (len(self.lats) - 1)
+            logger.info('({} h_ice) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max,
+                                                                                    progress_percent))
+            for j in range(len(self.lons)):
+                self.h_ice_field[i][j] = h_ice_dataset.sea_ice_thickness(lat, self.lons[j])
+
     def compute_daily_freshwater_ekman_advection_field(self):
         """ Calculate freshwater flux div(u_Ek*S).  """
 
