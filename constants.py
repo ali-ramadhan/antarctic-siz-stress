@@ -15,8 +15,8 @@ data_dir_path = 'D:\\data\\'
 # Output data directory
 # output_dir_path = path.join(cwd, 'output')
 # output_dir_path = 'D:\\output\\'
-# output_dir_path = '/d1/alir/output/'
 output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+# output_dir_path = '/d1/alir/output/'
 
 figure_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\figures\\'
 
@@ -32,7 +32,7 @@ Omega = 7.292115e-5  # rotation rate of the Earth [rad/s]
 # a TINY correction that's dwarfed by satellite measurement errors.
 R = 6371.228e3  # average radius of the earth [m]
 
-rho_air = 1.225  # [kg/m^3]
+rho_air = 1.25  # [kg/m^3]
 rho_seawater = 1025  # [kg/m^3]
 C_air = 0.00125  # Drag coefficient
 C_seawater = 0.0055  # Drag coefficient
@@ -67,35 +67,8 @@ alpha_interp_method = 'linear'
 u_ice_interp_method = 'cubic'
 u_wind_interp_method = 'cubic'
 
-""" Constants for diagnostic field plots """
-# Don't think I need these lists as I can just use SurfaceStressDataWriter.var_fields.keys() and figure_fields.keys().
-# The name of each field stored in the netCDF files.
-# netcdf_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y', 'tau_SIZ_x', 'tau_SIZ_y',
-#                     'wind_stress_curl', 'Ekman_w', 'Ekman_u', 'Ekman_v', 'Ekman_SIZ_u', 'Ekman_SIZ_v',
-#                     'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
-#                     'dtauydx', 'dtauxdy']
-
-# The name of each field that will be plotted.
-# plot_var_names = ['tau_air_x', 'tau_air_y', 'tau_ice_x', 'tau_ice_y', 'tau_x', 'tau_y',
-#                   'Ekman_u', 'Ekman_v', 'wind_stress_curl', 'Ekman_w',
-#                   'geo_u', 'geo_v', 'wind_u', 'wind_v', 'alpha', 'ice_u', 'ice_v',
-#                   'dtauydx', 'dtauxdy']
-
+""" Constants for saving fields to netCDF file. """
 var_units = {
-    'tau_air_x': 'N/m^2',
-    'tau_air_y': 'N/m^2',
-    'tau_ice_x': 'N/m^2',
-    'tau_ice_y': 'N/m^2',
-    'tau_x': 'N/m^2',
-    'tau_y': 'N/m^2',
-    'tau_SIZ_x': 'N/m^2',
-    'tau_SIZ_y': 'N/m^2',
-    'wind_stress_curl': 'N/m^3',
-    'Ekman_w': 'm/s',  # TODO: Save as [m/year].
-    'Ekman_u': 'm/s',
-    'Ekman_v': 'm/s',
-    'Ekman_SIZ_u': 'm/s',
-    'Ekman_SIZ_v': 'm/s',
     'geo_u': 'm/s',
     'geo_v': 'm/s',
     'wind_u': 'm/s',
@@ -103,34 +76,78 @@ var_units = {
     'alpha': 'fractional',
     'ice_u': 'm/s',
     'ice_v': 'm/s',
-    'dtauydx': 'N/m^3',
-    'dtauxdy': 'N/m^3'
+    'tau_air_x': 'N/m^2',
+    'tau_air_y': 'N/m^2',
+    'tau_ice_x': 'N/m^2',
+    'tau_ice_y': 'N/m^2',
+    'tau_SIZ_x': 'N/m^2',
+    'tau_SIZ_y': 'N/m^2',
+    'tau_x': 'N/m^2',
+    'tau_y': 'N/m^2',
+    'Ekman_u': 'm/s',
+    'Ekman_v': 'm/s',
+    'Ekman_SIZ_u': 'm/s',
+    'Ekman_SIZ_v': 'm/s',
+    'dtau_x_dy': 'N/m^3',
+    'dtau_y_dx': 'N/m^3',
+    'curl_stress': 'N/m^3',
+    'Ekman_w': 'm/s',
+    'salinity': 'g/kg',
+    'temperature': 'degC',
+    'neutral_density': 'kg/m^3',
+    'dSdx': '1/m',
+    'dSdy': '1/m',
+    'uEk_S_ddx': 'm/s',
+    'uEk_S_ddy': 'm/s',
+    'fwf_uEk_S': 'm/s',
+    'ice_flux_div_x': 'm/s',
+    'ice_flux_div_y': 'm/s',
+    'ice_flux_div': 'm/s',
+    'psi_delta': 'Sv',
+    'melt_rate_x': 'm/s',
+    'melt_rate_y': 'm/s',
+    'melt_rate': 'm/s'
 }
 
 var_positive = {
-    'tau_air_x': 'up',
-    'tau_air_y': 'up',
-    'tau_ice_x': 'up',
-    'tau_ice_y': 'up',
-    'tau_x': 'up',
-    'tau_y': 'up',
-    'tau_SIZ_x': 'up',
-    'tau_SIZ_y': 'up',
-    'wind_stress_curl': 'up',
+    'geo_u': 'east',
+    'geo_v': 'north',
+    'wind_u': 'east',
+    'wind_v': 'north',
+    'alpha': '',
+    'ice_u': 'east',
+    'ice_v': 'north',
+    'tau_air_x': 'east',
+    'tau_air_y': 'north',
+    'tau_ice_x': 'east',
+    'tau_ice_y': 'north',
+    'tau_SIZ_x': 'east',
+    'tau_SIZ_y': 'north',
+    'tau_x': 'east',
+    'tau_y': 'north',
+    'Ekman_u': 'east',
+    'Ekman_v': 'north',
+    'Ekman_SIZ_u': 'east',
+    'Ekman_SIZ_v': 'north',
+    'dtau_x_dy': 'east',
+    'dtau_y_dx': 'north',
+    'curl_stress': 'up',
     'Ekman_w': 'up',
-    'Ekman_u': 'up',
-    'Ekman_v': 'up',
-    'Ekman_SIZ_u': 'up',
-    'Ekman_SIZ_v': 'up',
-    'geo_u': 'up',
-    'geo_v': 'up',
-    'wind_u': 'up',
-    'wind_v': 'up',
-    'alpha': 'up',
-    'ice_u': 'up',
-    'ice_v': 'up',
-    'dtauydx': 'up',
-    'dtauxdy': 'up'
+    'salinity': '',
+    'temperature': '',
+    'neutral_density': '',
+    'dSdx': 'east',
+    'dSdy': 'north',
+    'uEk_S_ddx': 'east',
+    'uEk_S_ddy': 'north',
+    'fwf_uEk_S': 'up',
+    'ice_flux_div_x': 'east',
+    'ice_flux_div_y': 'north',
+    'ice_flux_div': 'up',
+    'psi_delta': '',
+    'melt_rate_x': 'east',
+    'melt_rate_y': 'north',
+    'melt_rate': 'up'
 }
 
 var_long_names = {
@@ -153,12 +170,28 @@ var_long_names = {
     'Ekman_v': 'Meridional Ekman velocity',
     'Ekman_SIZ_u': 'Zonal Ekman velocity in the SIZ',
     'Ekman_SIZ_v': 'Meridional Ekman velocity in the SIZ',
-    'dtauxdy': 'd/dy (tau_x)',
-    'dtauydx': 'd/dx (tau_y)',
-    'wind_stress_curl': 'Vertical wind stress curl',
-    'Ekman_w': 'Ekman pumping'
+    'dtau_x_dy': 'd/dy (tau_x)',
+    'dtau_y_dx': 'd/dx (tau_y)',
+    'curl_stress': 'Wind stress curl',
+    'Ekman_w': 'Ekman pumping',
+    'salinity': 'Salinity (may be surface or depth-averaged)',
+    'temperature': 'Temperature (may be surface or depth-averaged)',
+    'neutral_density': 'Neutral density (may be surface or depth-averaged)',
+    'dSdx': 'dS/dx',
+    'dSdy': 'dS/dy',
+    'uEk_S_ddx': 'd/dx (u_Ek * S)',
+    'uEk_S_ddy': 'd/dy (v_Ek * S)',
+    'fwf_uEk_S': 'Freshwater Ekman advection flux',
+    'ice_flux_div_x': 'Zonal ice flux divergence',
+    'ice_flux_div_y': 'Meridional ice flux divergence',
+    'ice_flux_div': 'Ice flux divergence',
+    'psi_delta': 'Meridional streamfunction ',
+    'melt_rate_x': 'Zonal melting/freezing rate?',
+    'melt_rate_y': 'Meridional melting/freezing rate?',
+    'melt_rate': 'Melting/freezing rate'
 }
 
+""" Constants for diagnostic field plots """
 titles = {
     'u_geo': 'u_geo',
     'v_geo': 'v_geo',
