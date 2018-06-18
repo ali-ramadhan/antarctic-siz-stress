@@ -3,14 +3,14 @@ import calendar
 
 import numpy as np
 
-from SurfaceStressDataWriter import SurfaceStressDataWriter
-from utils import date_range, get_netCDF_filepath
-
 # Configure logger first before importing any sub-module that depend on the logger being already configured.
 import logging.config
 
 logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
+
+from SurfaceStressDataWriter import SurfaceStressDataWriter
+from utils import date_range, get_netCDF_filepath
 
 np.set_printoptions(precision=4)
 
@@ -34,13 +34,10 @@ def produce_monthly_mean(date_in_month):
 def produce_annual_mean(year):
     dates = date_range(datetime.date(year, 1, 1), datetime.date(year, 12, 31))
 
-    tau_filepath = get_netCDF_filepath(field_type='annual', date=dates[0])
-
-    surface_stress_dataset = SurfaceStressDataWriter(None)
-    surface_stress_dataset.date = dates[0]
-    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok', tau_filepath=tau_filepath)
+    surface_stress_dataset = SurfaceStressDataWriter(field_type='annual', date=dates[0])
+    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='annual')
-    surface_stress_dataset.write_fields_to_netcdf(field_type='annual')
+    surface_stress_dataset.write_fields_to_netcdf()
 
 
 def produce_seasonal_mean(seasons_to_compute, year):
@@ -145,14 +142,13 @@ def produce_monthly_climatology(months, year_start, year_end):
 
     year_range = str(year_start) + '-' + str(year_end)
 
-    # for month in months:
-    for month in [10]:
+    for month in months:
         label = calendar.month_abbr[month] + '_' + year_range + '_average'
 
         month_days = []
         for year in range(year_start, year_end + 1):
-            n_days = calendar.monthrange(year, 11)[1]
-            month_days = month_days + date_range(datetime.date(year, 10, 1), datetime.date(year, 11, n_days))
+            n_days = calendar.monthrange(year, month)[1]
+            month_days = month_days + date_range(datetime.date(year, month, 1), datetime.date(year, month, n_days))
 
         avg_period = str(month).zfill(2)
         tau_fp = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(year, month, 1),
@@ -186,7 +182,7 @@ def produce_climatology(year_start, year_end):
 
 if __name__ == '__main__':
     # produce_monthly_mean(datetime.date(2015, 7, 1))
-    # produce_monthly_climatology([10, 11], 2005, 2015)
+    # produce_monthly_climatology([2, 9], 2005, 2015)
     # produce_monthly_climatology([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 2005, 2012)
 
     # produce_seasonal_climatology(['JFM', 'AMJ', 'JAS', 'OND'], 2005, 2015)
@@ -194,7 +190,7 @@ if __name__ == '__main__':
     #     produce_seasonal_mean(['JFM'], year)
 
     # produce_annual_mean(2000)
-    # for year in range(1992, 2016):
-    #     produce_annual_mean(year)
+    for year in range(2005, 2014):
+        produce_annual_mean(year)
 
-    produce_climatology(2005, 2015)
+    # produce_climatology(2005, 2015)
