@@ -179,7 +179,8 @@ class SurfaceStressDataWriter(object):
             'psi_delta': self.psi_delta_field,
             'melt_rate_x': self.zonal_melt_rate_field,
             'melt_rate_y': self.merid_melt_rate_field,
-            'melt_rate': self.melt_rate_field
+            'melt_rate': self.melt_rate_field  # ,
+            # 'h_ice': self.h_ice_field
         }
 
         # Dictionary of all fields to be plotted.

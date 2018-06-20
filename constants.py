@@ -106,7 +106,8 @@ var_units = {
     'psi_delta': 'Sv',
     'melt_rate_x': 'm/s',
     'melt_rate_y': 'm/s',
-    'melt_rate': 'm/s'
+    'melt_rate': 'm/s',
+    'h_ice': 'm'
 }
 
 var_positive = {
@@ -147,7 +148,8 @@ var_positive = {
     'psi_delta': '',
     'melt_rate_x': 'east',
     'melt_rate_y': 'north',
-    'melt_rate': 'up'
+    'melt_rate': 'up',
+    'h_ice': 'up'
 }
 
 var_long_names = {
@@ -188,7 +190,8 @@ var_long_names = {
     'psi_delta': 'Meridional streamfunction ',
     'melt_rate_x': 'Zonal melting/freezing rate?',
     'melt_rate_y': 'Meridional melting/freezing rate?',
-    'melt_rate': 'Melting/freezing rate'
+    'melt_rate': 'Melting/freezing rate',
+    'h_ice': 'Sea ice thickness'
 }
 
 """ Constants for diagnostic field plots """
