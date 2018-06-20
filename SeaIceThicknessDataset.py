@@ -48,6 +48,48 @@ class SeaIceThicknessDataset(object):
         logger.info('SeaIceThicknessDataset object initializing for {:s} season...'.format(self.season))
         self.load_h_ice_dataset()
 
+        for season in ['summer', 'fall', 'spring']:
+            logger.info('Loading season {:s}...'.format(season))
+            dataset_filename = season + '_ICESat_gridded_mean_thickness_sorted.txt'
+            dataset_filepath = path.join(self.h_ice_data_dir_path, dataset_filename)
+
+            with open(dataset_filepath, 'rt') as f:
+                reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
+                for i, line in enumerate(reader):
+                    sea_ice_freeboard = line[2]
+                    sea_ice_thickness = line[3]
+
+                    if sea_ice_thickness == '-999':
+                        self.h_ice_seasonal[season][i] = np.nan
+                    else:
+                        self.h_ice_seasonal[season][i] = float(sea_ice_thickness)
+
+        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+        lats_array = np.linspace(lat_min, lat_max, n_lat)
+        lons_array = np.linspace(lon_min, lon_max, n_lon)
+
+        self.closest_point_idx = np.zeros((len(lats_array), len(lons_array)))
+
+        logger.info('Computing (lat, lon) -> closest_point_idx(lat, lon) map...')
+        for i in range(len(lats_array)):
+            lat = lats_array[i]
+            for j in range(len(lons_array)):
+                lon = lons_array[j]
+
+                if lon < 0:
+                    lon = lon + 360
+
+                lat_start_idx = np.searchsorted(self.lats, lat)
+
+                delta_idx = 250
+                idx1 = max(0, lat_start_idx - delta_idx)
+                idx2 = min(lat_start_idx + delta_idx, len(self.lats))
+
+                point = np.array([lat, lon])
+                points = np.column_stack((self.lats[idx1:idx2], self.lons[idx1:idx2]))
+
+                self.closest_point_idx[i][j] = idx1 + cdist([point], points).argmin()
+
     def load_h_ice_dataset(self):
         logger.info('Loading sea ice concentration dataset: {}'.format(self.dataset_filepath))
 
@@ -67,7 +109,18 @@ class SeaIceThicknessDataset(object):
 
         logger.info('Successfully loaded sea ice thickness dataset: {}'.format(self.dataset_filepath))
 
-    def sea_ice_thickness(self, lat, lon):
+    def sea_ice_thickness(self, lat, lon, date=None):
+        if date is not None:
+            if 1 <= date.month <= 3:
+                season = 'summer'
+            elif 4 <= date.month <= 6:
+                season = 'fall'
+            elif 7 <= date.month <= 12:
+                season = 'spring'
+
+            closest_idx = int(self.closest_point_idx[lat][lon])
+            return self.h_ice_seasonal[season][closest_idx]
+
         if lon < 0:
             lon = lon + 360
 
