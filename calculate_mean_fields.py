@@ -24,11 +24,10 @@ def produce_monthly_mean(date_in_month):
     date2 = datetime.date(year, month, n_days)
     dates = date_range(date1, date2)
 
-    surface_stress_dataset = SurfaceStressDataWriter(None)
-    surface_stress_dataset.date = date1
+    surface_stress_dataset = SurfaceStressDataWriter(field_type='monthly', date=dates[0])
     surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
     surface_stress_dataset.plot_diagnostic_fields(plot_type='monthly')
-    surface_stress_dataset.write_fields_to_netcdf(field_type='monthly')
+    surface_stress_dataset.write_fields_to_netcdf()
 
 
 def produce_annual_mean(year):
@@ -181,7 +180,7 @@ def produce_climatology(year_start, year_end):
 
 
 if __name__ == '__main__':
-    # produce_monthly_mean(datetime.date(2015, 7, 1))
+    produce_monthly_mean(datetime.date(2015, 10, 1))
     # produce_monthly_climatology([2, 9], 2005, 2015)
     # produce_monthly_climatology([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 2005, 2012)
 
@@ -190,7 +189,7 @@ if __name__ == '__main__':
     #     produce_seasonal_mean(['JFM'], year)
 
     # produce_annual_mean(2000)
-    for year in range(2005, 2014):
-        produce_annual_mean(year)
+    # for year in range(2005, 2014):
+    #     produce_annual_mean(year)
 
     # produce_climatology(2005, 2015)
