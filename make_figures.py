@@ -698,6 +698,7 @@ def make_zonal_and_contour_averaged_plots():
 
     ice_div_cavg = np.zeros(c_bins.shape)
     melt_rate_cavg = np.zeros(c_bins.shape)
+    melt_rate_v2_cavg = np.zeros(c_bins.shape)
     psi_delta_cavg = np.zeros(c_bins.shape)
 
     for i in range(len(c_bins)):
@@ -709,14 +710,15 @@ def make_zonal_and_contour_averaged_plots():
 
         ice_div_cavg[i] = np.nanmean(ice_div_field[c_in_range])
         melt_rate_cavg[i] = np.nanmean(melt_rate_field[c_in_range])
+        melt_rate_v2_cavg[i] = np.nanmean(melt_rate_field_v2[c_in_range])
         psi_delta_cavg[i] = np.nanmean(psi_delta_field[c_in_range])
 
     fig = plt.figure(figsize=(20, 6))
 
     ax = fig.add_subplot(131)
 
-    ax.plot(lats, np.nanmean(ice_div_field, axis=1) * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
-    ax.plot(lats, np.nanmean(melt_rate_field, axis=1) * 24 * 3600 * 365, label='ψ(-δ) * 1/S * dS/dy ~ M-F [m/year]')
+    ax.plot(lats, np.nanmean(ice_div_field, axis=1) * 24 * 3600 * 365, label='div(α*h*u_ice)')
+    ax.plot(lats, np.nanmean(-melt_rate_field_v2, axis=1) * 24 * 3600 * 365, label=r'M-F = ($\mathcal{U}_{Ek} \cdot \nabla S)/S$')
     ax.set_xlim(-80, -50)
     ax.set_ylim(-5, 15)
     ax.set_xlabel('latitude', fontsize='large')
@@ -748,18 +750,24 @@ def make_zonal_and_contour_averaged_plots():
     ax.tick_params(axis='both', which='major', labelsize=10)
     ax.grid(linestyle='--')
     ax.legend()
-    # ax.legend(fontsize='large')
+    ax.legend(fontsize='large')
 
-    # plt.show()
+    png_filepath = os.path.join(figure_dir_path, 'zonal_average_M-F.png')
 
-    plt.savefig('zonal_avg.png', dpi=300, format='png', transparent=False, bbox_inches='tight')
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
     plt.close()
 
     fig = plt.figure(figsize=(20, 6))
 
     ax = fig.add_subplot(131)
-    ax.plot(c_bins, ice_div_cavg * 24 * 3600 * 365, label='div(α*h*u_ice) [m/year]')
-    ax.plot(c_bins, melt_rate_cavg * 24 * 3600 * 365, label='(M-F) [m/year]')
+    ax.plot(c_bins, ice_div_cavg * 24 * 3600 * 365, label='div(α*h*u_ice)')
+    ax.plot(c_bins, -melt_rate_v2_cavg * 24 * 3600 * 365, label=r'M-F = ($\mathcal{U}_{Ek} \cdot \nabla S)/S$')
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
     ax.set_xlabel('\"green line coordinates\"', fontsize='large')
     ax.set_ylabel('m/year', fontsize='large')
@@ -790,8 +798,15 @@ def make_zonal_and_contour_averaged_plots():
     ax.grid(linestyle='--')
     ax.legend(fontsize='large')
 
-    plt.savefig('contour_avg.png', dpi=300, format='png', transparent=False, bbox_inches='tight')
-    plt.close()
+    png_filepath = os.path.join(figure_dir_path, 'streamwise_average_M-F.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
 def plot_meridional_salinity_profiles(time_span, grid_size, field_type, lon, split_depth):
