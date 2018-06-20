@@ -23,11 +23,21 @@ class SeaIceThicknessDataset(object):
         self.h_ice = np.zeros(104913)
         self.latlon = np.zeros((104913, 2))
 
-        if date.month == 2 or date.month == 3:
+        self.h_ice_seasonal = {
+            'summer': np.zeros(104913),
+            'fall': np.zeros(104913),
+            'spring': np.zeros(104913)
+        }
+
+        # Lots of "interpolation" happening here. I am using the Feb/Mar field for JFM, the May/Jun field for AMJ, and
+        # the Nov/Dec field for OND. Also, since no JAS data exists, I am using the OND field for JAS, my argument
+        # being that the JAS h_ice field looks similar to the OND h_ice field in model data published by Holland
+        # et al., "Modeled Trends in Antarctic Sea Ice Thickness", Journal of Climate (2014).
+        if 1 <= date.month <= 3:
             self.season = 'summer'
-        elif date.month == 5 or date.month == 6:
+        elif 4 <= date.month <= 6:
             self.season = 'fall'
-        elif date.month == 10 or date.month == 11:
+        elif 7 <= date.month <= 12:
             self.season = 'spring'
         else:
             logger.error('No sea ice thickness data for month {:d}!'.format(date.month))
