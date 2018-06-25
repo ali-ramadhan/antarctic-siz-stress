@@ -2367,6 +2367,117 @@ def make_zonal_average_plots():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
+def compare_zzsl_with_gamma_contour():
+    import netCDF4
+    from os import path
+    from constants import data_dir_path, figure_dir_path
+    from utils import log_netCDF_dataset_metadata, get_netCDF_filepath, get_field_from_netcdf
+
+    year = 2005
+    depth_levels = 0
+
+    for year in range(2005, 2014):
+        """ Load neutral density map. """
+        gamma_filepath = path.join(data_dir_path, 'mapped_gamma_all_sources',
+                                   'mapped_gamma_all_sources_' + str(year) + '.nc')
+        logger.info('Loading gamma dataset: {}'.format(gamma_filepath))
+        gamma_dataset = netCDF4.Dataset(gamma_filepath)
+        # log_netCDF_dataset_metadata(gamma_dataset)
+
+        lats_gamma = np.array(gamma_dataset.variables['lat'])
+        lons_gamma = np.array(gamma_dataset.variables['lon'])
+        depths_gamma = np.array(gamma_dataset.variables['depth'])
+
+        gamma_data = np.array(gamma_dataset.variables['gamma'])
+
+        if year == 2005:
+            gamma_avg = np.nan_to_num(gamma_data)
+            gamma_data[~np.isnan(gamma_data)] = 1
+            gamma_data[np.isnan(gamma_data)] = 0
+            gamma_days = gamma_data
+        else:
+            gamma_avg = gamma_avg + np.nan_to_num(gamma_data)
+            gamma_data[~np.isnan(gamma_data)] = 1
+            gamma_data[np.isnan(gamma_data)] = 0
+            gamma_days = gamma_days + gamma_data
+
+    gamma_avg = np.divide(gamma_avg, gamma_days)
+
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    lons, lats, tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+
+    for year in range(2013, 2014):
+        """ Load surface stress map. """
+        # annual_avg_filepath = get_netCDF_filepath(field_type='annual', date=datetime.date(year, 1, 1))
+        #
+        # lons, lats, tau_x_field = get_field_from_netcdf(annual_avg_filepath, 'tau_x')
+        # alpha_field = get_field_from_netcdf(annual_avg_filepath, 'alpha')[2]
+
+        # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+        # the smaller plots.
+        land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                       linewidth=0)
+        ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m',
+                                                      edgecolor='face', facecolor='darkgray', linewidth=0)
+        vector_crs = ccrs.PlateCarree()
+
+        # Compute a circle in axes coordinates, which we can use as a boundary
+        # for the map. We can pan/zoom as much as we like - the boundary will be
+        # permanently circular.
+        import matplotlib.path as mpath
+        theta = np.linspace(0, 2 * np.pi, 100)
+        center, radius = [0.5, 0.5], 0.5
+        verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+        circle = mpath.Path(verts * radius + center)
+
+        for depth_levels in range(0, 3):
+            fig = plt.figure(figsize=(16, 9))
+            matplotlib.rcParams.update({'font.size': 10})
+
+            ax = plt.subplot(111, projection=ccrs.SouthPolarStereo())
+            ax.set_boundary(circle, transform=ax.transAxes)
+
+            ax.add_feature(land_50m)
+            ax.add_feature(ice_50m)
+            ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+            # im = ax.pcolormesh(lons_gamma, lats_gamma, gamma_data[depth_levels], transform=vector_crs,
+            #                    cmap=cmocean.cm.haline, vmin=27.4, vmax=27.8)
+            # ax.contour(lons_gamma, lats_gamma, gamma_data[depth_levels], levels=[27.6], colors='black', linewidths=2,
+            #            transform=vector_crs)
+
+            im = ax.pcolormesh(lons_gamma, lats_gamma, gamma_avg[depth_levels], transform=vector_crs,
+                               cmap=cmocean.cm.haline, vmin=27.4, vmax=27.8)
+            ax.contour(lons_gamma, lats_gamma, gamma_avg[depth_levels], levels=[27.6], colors='black', linewidths=2,
+                       transform=vector_crs)
+            ax.contour(lons, lats, np.ma.array(tau_x_field, mask=np.isnan(alpha_field)), levels=[0],
+                       colors='green', linewidths=2, transform=vector_crs)
+
+            clb = fig.colorbar(im, ax=ax, extend='both', fraction=0.046, pad=0.1)
+            clb.ax.set_title(r'$\gamma$ (kg/m$^3$)')
+
+            ax.set_title('annual mean, depth_level={:} m'.format(depths_gamma[depth_levels]))
+
+            zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+            gamma_contour_patch = mpatches.Patch(color='black', label=r'$\gamma$ = 27.6 kg/m$^3$ contour')
+            plt.legend(handles=[zero_stress_line_patch, gamma_contour_patch], loc='lower center',
+                       bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0, framealpha=0)
+
+            # png_filepath = os.path.join(figure_dir_path, 'compare_zzsl_gamma',
+            #                             'compare_zzsl_gamma_' + str(year) + '_' + str(depths_gamma[depth_levels]) + '.png')
+            png_filepath = os.path.join(figure_dir_path, 'compare_zzsl_gamma',
+                                        'compare_zzsl_gamma_' + str(depths_gamma[depth_levels]) + '.png')
+
+            tau_dir = os.path.dirname(png_filepath)
+            if not os.path.exists(tau_dir):
+                logger.info('Creating directory: {:s}'.format(tau_dir))
+                os.makedirs(tau_dir)
+
+            logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+            plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
