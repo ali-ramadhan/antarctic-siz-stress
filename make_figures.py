@@ -2584,6 +2584,138 @@ def compare_zzsl_with_pellichero_gamma():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
+def make_melt_rate_plots():
+    from os import path
+    import netCDF4
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import figure_dir_path, data_dir_path
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='OND',
+                                         year_start=2005, year_end=2015)
+
+    lons, lats, ice_flux_div_field = get_field_from_netcdf(climo_filepath, 'ice_flux_div')
+    melt_rate_field = get_field_from_netcdf(climo_filepath, 'melt_rate')[2]
+    climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')[2]
+    climo_alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+
+    # climo_tau_x_field, lons_tau = cartopy.util.add_cyclic_point(climo_tau_x_field, coord=lons)
+    # climo_tau_y_field, lons_tau = cartopy.util.add_cyclic_point(climo_tau_y_field, coord=lons)
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    # Compute a circle in axes coordinates, which we can use as a boundary for the map. We can pan/zoom as much as we
+    # like - the boundary will be permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+
+    fig = plt.figure(figsize=(16, 9))
+    gs = GridSpec(1, 2)
+    matplotlib.rcParams.update({'font.size': 10})
+
+    """ Plot ice_flux_div """
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+
+    ax1 = plt.subplot(121, projection=crs_sps)
+
+    ax1.add_feature(land_50m)
+    ax1.add_feature(ice_50m)
+    ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+
+    gl1 = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl1.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl1.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im1 = ax1.pcolormesh(lons, lats, 3600*24*365*ice_flux_div_field,
+                         transform=vector_crs, cmap=cmocean.cm.balance, vmin=-4, vmax=4)
+
+    ax1.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=2, transform=vector_crs)
+
+    ax1.text(0.49,  1.01,  '0°',   transform=ax1.transAxes)
+    ax1.text(1.01,  0.49,  '90°E', transform=ax1.transAxes)
+    ax1.text(0.47,  -0.03, '180°', transform=ax1.transAxes)
+    ax1.text(-0.09, 0.49,  '90°W', transform=ax1.transAxes)
+    ax1.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax1.transAxes)
+    ax1.text(0.85,  0.125, '135°E', rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax1.transAxes)
+
+    ax1.text(0.50, 1.05, r'$\nabla \cdot (\alpha h_{ice} \mathbf{u}_{ice})$',
+             fontsize=14, ha='center', transform=ax1.transAxes)
+
+    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'm/year')
+
+    zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    ice_edge_patch = mpatches.Patch(color='black', label=r'15% ice edge')
+    plt.legend(handles=[zero_stress_line_patch, ice_edge_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.15, 1, -0.15), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
+
+    plt.suptitle(r'spring (OND) mean', fontsize=16)
+
+    """ Plot melt_rate """
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+
+    ax2 = plt.subplot(122, projection=crs_sps)
+
+    ax2.add_feature(land_50m)
+    ax2.add_feature(ice_50m)
+    ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+
+    gl2 = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl2.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl2.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im2 = ax2.pcolormesh(lons, lats, np.ma.array(3600*24*365*melt_rate_field, mask=(climo_alpha_field < 0.15)),
+                         transform=vector_crs, cmap=cmocean.cm.balance, vmin=-1, vmax=1)
+
+    ax2.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=2, transform=vector_crs)
+    ax2.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+
+    ax2.text(0.49,  1.01,  '0°',   transform=ax2.transAxes)
+    ax2.text(1.01,  0.49,  '90°E', transform=ax2.transAxes)
+    ax2.text(0.47,  -0.03, '180°', transform=ax2.transAxes)
+    ax2.text(-0.09, 0.49,  '90°W', transform=ax2.transAxes)
+    ax2.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax2.transAxes)
+    ax2.text(0.85,  0.125, '135°E', rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax2.transAxes)
+
+    ax2.text(0.50, 1.05, r'$\frac{\mathcal{U}_{Ek} \cdot \nabla S}{S}$',
+             fontsize=14, ha='center', transform=ax2.transAxes)
+
+    clb = fig.colorbar(im2, ax=ax2, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'm/year')
+
+    png_filepath = os.path.join(figure_dir_path, 'melt_rate_figure.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
