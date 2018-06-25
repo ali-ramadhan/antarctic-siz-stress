@@ -2025,6 +2025,95 @@ def make_ugeo_uice_figure():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False) #, bbox_inches='tight')
 
 
+def make_salinity_figure():
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import figure_dir_path
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
+                                             year_start=2005, year_end=2015)
+    sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
+                                             year_start=2005, year_end=2015)
+
+    lons, lats, climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    climo_alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+    climo_salinity_field = get_field_from_netcdf(climo_filepath, 'temperature')[2]
+
+    feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
+    sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(16, 9))
+    matplotlib.rcParams.update({'font.size': 10})
+
+    ax = plt.subplot(111, projection=ccrs.SouthPolarStereo())
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+    ax.set_boundary(circle, transform=ax.transAxes)
+
+    ax.add_feature(land_50m)
+    ax.add_feature(ice_50m)
+    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im = ax.pcolormesh(lons, lats, climo_salinity_field, transform=vector_crs, cmap=cmocean.cm.thermal,
+                       vmin=-2, vmax=2)
+
+    ax.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+               colors='green', linewidths=2, transform=vector_crs)
+    ax.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+               levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    ax.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+               levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+
+    ax.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+            transform=ax.transAxes)
+    ax.text(1.05, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+            transform=ax.transAxes)
+    ax.text(0.50, -0.04, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+            transform=ax.transAxes)
+    ax.text(-0.05, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+            transform=ax.transAxes)
+
+    clb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.1, extend='both')
+    clb.ax.set_title(r'T (°C)')
+
+    plt.suptitle(r'Temperature (averaged over the Ekman layer), winter (JAS) mean', fontsize=16)
+
+    # zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    # ice_edge_patch = mpatches.Patch(color='black', label=r'15% ice edge')
+    # plt.legend(handles=[zero_stress_line_patch, ice_edge_patch], loc='lower center',
+    #            bbox_to_anchor=(-0.5, -0.1, 0.5, -0.1), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
+
+    png_filepath = os.path.join(figure_dir_path, 'salinity_figure.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
