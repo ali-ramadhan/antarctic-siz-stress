@@ -1818,6 +1818,213 @@ def make_figure1():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
+def make_ugeo_uice_figure():
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import figure_dir_path
+
+    import constants
+    constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    lons, lats, climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    climo_tau_y_field = get_field_from_netcdf(climo_filepath, 'tau_y')[2]
+
+    constants.output_dir_path = 'D:\\output\\'
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
+                                             year_start=2005, year_end=2015)
+    sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
+                                             year_start=2005, year_end=2015)
+
+    climo_alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+    climo_u_ice_field = get_field_from_netcdf(climo_filepath, 'ice_u')[2]
+    climo_v_ice_field = get_field_from_netcdf(climo_filepath, 'ice_v')[2]
+    climo_u_geo_field = get_field_from_netcdf(climo_filepath, 'geo_u')[2]
+    climo_v_geo_field = get_field_from_netcdf(climo_filepath, 'geo_v')[2]
+
+    feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
+    sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
+
+    climo_u_geo_field, lons_geo = cartopy.util.add_cyclic_point(climo_u_geo_field, coord=lons)
+    climo_v_geo_field, lons_geo = cartopy.util.add_cyclic_point(climo_v_geo_field, coord=lons)
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(16, 9))
+    gs = GridSpec(1, 2)
+    matplotlib.rcParams.update({'font.size': 10})
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+
+    """ Plot u_geo """
+    ax1 = plt.subplot(221, projection=ccrs.SouthPolarStereo())
+
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.add_feature(land_50m)
+    ax1.add_feature(ice_50m)
+    ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im1 = ax1.pcolormesh(lons_geo, lats, climo_u_geo_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-0.1, vmax=0.1)
+
+    ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=1.5, transform=vector_crs)
+    ax1.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=1.5, transform=vector_crs)
+
+    ax1.text(0.51, 1.005, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(0.505, 1.05, r'Zonal geostrophic velocity $u_g$', fontsize=14, va='bottom', ha='center', rotation='horizontal',
+             rotation_mode='anchor', transform=ax1.transAxes)
+
+    plt.suptitle(r'Figure 3: Geostrophic current $\mathbf{u}_g$ and ice drift $\mathbf{u}_i$ observations, '
+                 'winter (JAS) mean', fontsize=16)
+
+    """ Plot v_geo """
+    ax2 = plt.subplot(222, projection=ccrs.SouthPolarStereo())
+
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.add_feature(land_50m)
+    ax2.add_feature(ice_50m)
+    ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im2 = ax2.pcolormesh(lons_geo, lats, climo_v_geo_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-0.1, vmax=0.1)
+
+    ax2.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=1.5, transform=vector_crs)
+    ax2.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=1.5, transform=vector_crs)
+    # ax2.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+    # ax2.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+
+    ax2.text(0.51, 1.005, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax2.transAxes)
+    ax2.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax2.transAxes)
+    ax2.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax2.transAxes)
+    ax2.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax2.transAxes)
+    ax2.text(0.50, 1.05, r'Meridional geostrophic velocity $v_g$', fontsize=14, va='bottom', ha='center',
+             rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
+
+    """ Plot u_ice """
+    ax3 = plt.subplot(223, projection=ccrs.SouthPolarStereo())
+
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.add_feature(land_50m)
+    ax3.add_feature(ice_50m)
+    ax3.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im3 = ax3.pcolormesh(lons, lats, climo_u_ice_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-0.1, vmax=0.1)
+
+    ax3.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=1.5, transform=vector_crs)
+    ax3.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=1.5, transform=vector_crs)
+    # ax3.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+    # ax3.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+
+    ax3.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax3.transAxes)
+    ax3.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax3.transAxes)
+    ax3.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax3.transAxes)
+    ax3.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax3.transAxes)
+
+    ax3.text(0.50, 1.05, r'Zonal ice drift $u_i$', fontsize=14, va='bottom', ha='center',
+             rotation='horizontal', rotation_mode='anchor', transform=ax3.transAxes)
+
+    ax4 = plt.subplot(224, projection=ccrs.SouthPolarStereo())
+
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax4.add_feature(land_50m)
+    ax4.add_feature(ice_50m)
+    ax4.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im4 = ax4.pcolormesh(lons, lats, climo_v_ice_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-0.1, vmax=0.1)
+
+    ax4.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=1.5, transform=vector_crs)
+    ax4.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=1.5, transform=vector_crs)
+    # ax4.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+    # ax4.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
+
+    ax4.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax4.transAxes)
+    ax4.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax4.transAxes)
+    ax4.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax4.transAxes)
+    ax4.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax4.transAxes)
+
+    ax4.text(0.50, 1.05, r'Meridional ice velocity $v_i$', fontsize=14, va='bottom', ha='center',
+             rotation='horizontal', rotation_mode='anchor', transform=ax4.transAxes)
+
+    zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    ice_edge_patch = mpatches.Patch(color='black', label=r'15% ice edge')
+    plt.legend(handles=[zero_stress_line_patch, ice_edge_patch], loc='lower center',
+               bbox_to_anchor=(-0.5, -0.1, 0.5, -0.1), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
+
+    fig.subplots_adjust(right=0.9)
+    cbar_ax = fig.add_axes([0.90, 0.15, 0.015, 0.7])
+    clb = fig.colorbar(im4, cax=cbar_ax, extend='both')
+    clb.ax.set_title(r'm/s')
+
+    png_filepath = os.path.join(figure_dir_path, 'figure3.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False) #, bbox_inches='tight')
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
