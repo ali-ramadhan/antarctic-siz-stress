@@ -2114,6 +2114,83 @@ def make_salinity_figure():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
+def make_streamwise_coordinate_map():
+    from constants import figure_dir_path
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
+
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    lons, lats, tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+
+    contour_coordinate = np.empty((len(lats), len(lons)))
+    contour_coordinate[:] = np.nan
+
+    tau_x_lons, tau_x_lats = get_northward_zero_zonal_stress_line(climo_filepath)
+    alpha_lons, alpha_lats = get_northward_ice_edge(climo_filepath)
+    coast_lons, coast_lats = get_coast_coordinates(climo_filepath)
+
+    for i in range(len(lons)):
+        if alpha_lats[i] > tau_x_lats[i] > coast_lats[i]:
+            lat_0 = coast_lats[i]
+            lat_h = tau_x_lats[i]  # lat_h is short for lat_half ~ lat_1/2
+            lat_1 = alpha_lats[i]
+
+            for j in range(len(lats)):
+                lat = lats[j]
+
+                if lat < lat_0 or lat > lat_1:
+                    contour_coordinate[j][i] = np.nan
+                elif lat_0 <= lat <= lat_h:
+                    contour_coordinate[j][i] = (lat - lat_0) / (2 * (lat_h - lat_0))
+                elif lat_h <= lat <= lat_1:
+                    contour_coordinate[j][i] = 0.5 + ((lat - lat_h) / (2 * (lat_1 - lat_h)))
+
+    fig = plt.figure()
+
+    ax = plt.axes(projection=ccrs.SouthPolarStereo())
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face',
+                                                   facecolor='dimgray', linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+
+    ax.add_feature(land_50m)
+    ax.add_feature(ice_50m)
+    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+    vector_crs = ccrs.PlateCarree()
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+    ax.set_boundary(circle, transform=ax.transAxes)
+
+    im = ax.pcolormesh(lons, lats, contour_coordinate, transform=vector_crs, cmap='PuOr')
+    fig.colorbar(im, ax=ax)
+    plt.title('streamwise coordinates (0=coast, 0.5=zero stress line, 1=ice edge)')
+
+    png_filepath = os.path.join(figure_dir_path, 'streamwise_coordinate_map.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+    # fig = plt.figure(figsize=(16, 9))
+    # ax = fig.add_subplot(111)
+    # ax.plot(tau_x_lons, tau_x_lats, linewidth=1, label='tau_x')
+    # ax.plot(alpha_lons, alpha_lats, linewidth=1, label='alpha')
+    # ax.plot(coast_lons, coast_lats, linewidth=1, label='coast')
+    # ax.legend()
+    # plt.show()
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
