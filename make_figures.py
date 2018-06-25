@@ -2191,6 +2191,113 @@ def make_streamwise_coordinate_map():
     # plt.show()
 
 
+def make_streamwise_averaged_plots():
+    from constants import figure_dir_path, D_e
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=20
+
+    lons, lats, tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    tau_y_field = get_field_from_netcdf(climo_filepath, 'tau_y')[2]
+    u_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_u')[2]
+    v_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_v')[2]
+    w_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_w')[2]
+
+    contour_coordinate = np.empty((len(lats), len(lons)))
+    contour_coordinate[:] = np.nan
+
+    tau_x_lons, tau_x_lats = get_northward_zero_zonal_stress_line(climo_filepath)
+    alpha_lons, alpha_lats = get_northward_ice_edge(climo_filepath)
+    coast_lons, coast_lats = get_coast_coordinates(climo_filepath)
+
+    for i in range(len(lons)):
+        if alpha_lats[i] > tau_x_lats[i] > coast_lats[i]:
+            lat_0 = coast_lats[i]
+            lat_h = tau_x_lats[i]  # lat_h is short for lat_half ~ lat_1/2
+            lat_1 = alpha_lats[i]
+
+            for j in range(len(lats)):
+                lat = lats[j]
+
+                if lat < lat_0 or lat > lat_1:
+                    contour_coordinate[j][i] = np.nan
+                elif lat_0 <= lat <= lat_h:
+                    contour_coordinate[j][i] = (lat - lat_0) / (2 * (lat_h - lat_0))
+                elif lat_h <= lat <= lat_1:
+                    contour_coordinate[j][i] = 0.5 + ((lat - lat_h) / (2 * (lat_1 - lat_h)))
+
+    c_bins = np.linspace(0, 1, 41)[:-1]
+    delta_c = c_bins[1] - c_bins[0]
+    c_bins = c_bins + (delta_c / 2)
+
+    tau_x_cavg = np.zeros(c_bins.shape)
+    tau_y_cavg = np.zeros(c_bins.shape)
+    u_Ekman_cavg = np.zeros(c_bins.shape)
+    v_Ekman_cavg = np.zeros(c_bins.shape)
+    w_Ekman_cavg = np.zeros(c_bins.shape)
+
+    for i in range(len(c_bins)):
+        c = c_bins[i]
+        c_low = c - (delta_c / 2)
+        c_high = c + (delta_c / 2)
+
+        c_in_range = np.logical_and(contour_coordinate > c_low, contour_coordinate < c_high)
+
+        tau_x_cavg[i] = np.nanmean(tau_x_field[c_in_range])
+        tau_y_cavg[i] = np.nanmean(tau_y_field[c_in_range])
+        u_Ekman_cavg[i] = np.nanmean(u_Ekman_field[c_in_range])
+        v_Ekman_cavg[i] = np.nanmean(v_Ekman_field[c_in_range])
+        w_Ekman_cavg[i] = np.nanmean(w_Ekman_field[c_in_range])
+
+    fig = plt.figure(figsize=(20, 6))
+
+    ax = fig.add_subplot(131)
+    ax.plot(c_bins, tau_x_cavg, label=r'$\tau_x$')
+    ax.plot(c_bins, tau_y_cavg, label=r'$\tau_y$')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_xlabel('streamwise coordinate', fontsize='large')
+    ax.set_ylabel(r'Surface stress (N/m$^2$)', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    ax = fig.add_subplot(132)
+    ax.plot(c_bins, w_Ekman_cavg * 3600 * 24 * 365, label=r'$w_{Ek}$')
+    ax.set_xlabel('streamwise coordinate', fontsize='large')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_ylabel('Ekman pumping (m/year)', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    ax = fig.add_subplot(133)
+    ax.plot(c_bins, D_e * u_Ekman_cavg, label=r'$u_{Ek}$')
+    ax.plot(c_bins, D_e * v_Ekman_cavg, label=r'$v_{Ek}$')
+    ax.set_xlabel('streamwise coordinate', fontsize='large')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_ylabel('Ekman volume transport (m$^2$/s or Sv?)', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    plt.suptitle(r'Streamwise averages, winter (JAS) mean', fontsize=16)
+
+    png_filepath = os.path.join(figure_dir_path, 'streamwise_average.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
