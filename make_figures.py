@@ -1559,6 +1559,134 @@ def make_uEk_climo_fig():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
 
 
+def make_curl_climo_fig():
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import figure_dir_path
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
+                                             year_start=2005, year_end=2015)
+    sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
+                                             year_start=2005, year_end=2015)
+
+    lons, lats, climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    climo_tau_y_field = get_field_from_netcdf(climo_filepath, 'tau_y')[2]
+    climo_alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+    climo_curl_field = get_field_from_netcdf(climo_filepath, 'curl_stress')[2]
+    climo_w_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_w')[2]
+
+    feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
+    sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(16, 9))
+    gs = GridSpec(1, 2)
+    matplotlib.rcParams.update({'font.size': 10})
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+
+    """ Plot wind stress curl """
+    ax1 = plt.subplot(121, projection=ccrs.SouthPolarStereo())
+
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.add_feature(land_50m)
+    ax1.add_feature(ice_50m)
+    ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im1 = ax1.pcolormesh(lons, lats, climo_curl_field * 1e7, transform=vector_crs, cmap=cmocean.cm.curl,
+                         vmin=-5, vmax=5)
+
+    ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=2, transform=vector_crs)
+    ax1.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    ax1.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+
+    ax1.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(1.05, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(0.50, -0.04, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(-0.05, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(0.50, 1.05, r'Surface stress curl $\nabla \cdot (\mathbf{\tau} / \rho f)$', fontsize=14, va='bottom',
+             ha='center', rotation='horizontal', rotation_mode='anchor', transform=ax1.transAxes)
+
+    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'$10^{-7}$ N/m$^3$')
+
+    zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    ice_edge_patch = mpatches.Patch(color='black', label=r'15% ice edge')
+    plt.legend(handles=[zero_stress_line_patch, ice_edge_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.1, 1, -0.1), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
+
+    plt.suptitle(r'Figure 6: Surface stress curl and Ekman pumping observations, winter (JAS) mean', fontsize=16)
+
+    """ Plot Ekman pumping """
+    ax1 = plt.subplot(122, projection=ccrs.SouthPolarStereo())
+
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.add_feature(land_50m)
+    ax1.add_feature(ice_50m)
+    ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im1 = ax1.pcolormesh(lons, lats, climo_w_Ekman_field * 365*24*3600, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-100, vmax=100)
+
+    ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+                colors='green', linewidths=2, transform=vector_crs)
+    ax1.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    ax1.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+                levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+
+    ax1.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(1.05, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(0.50, -0.04, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+    ax1.text(-0.05, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
+             transform=ax1.transAxes)
+
+    ax1.text(0.50, 1.05, r'Ekman pumping $w_{Ek}$', fontsize=14, va='bottom',
+             ha='center', rotation='horizontal', rotation_mode='anchor', transform=ax1.transAxes)
+
+    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'm/year')
+
+    png_filepath = os.path.join(figure_dir_path, 'curl_climo.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False)  # , bbox_inches='tight')
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
