@@ -2298,6 +2298,75 @@ def make_streamwise_averaged_plots():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
+def make_zonal_average_plots():
+    from constants import figure_dir_path, D_e
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
+
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+    #                                      year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=20
+
+    lons, lats, tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    tau_y_field = get_field_from_netcdf(climo_filepath, 'tau_y')[2]
+    u_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_u')[2]
+    v_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_v')[2]
+    w_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_w')[2]
+
+    fig = plt.figure(figsize=(20, 6))
+
+    ax1 = fig.add_subplot(131)
+
+    ax1.plot(lats, np.nanmean(tau_x_field, axis=1), label=r'$\tau_x$')
+    ax1.plot(lats, np.nanmean(tau_y_field, axis=1), label=r'$\tau_y$')
+    ax1.set_xlim(-80, -40)
+    ax1.set_xlabel('latitude', fontsize='large')
+    ax1.set_ylabel('Surface stress (N/m$^2$)', fontsize='large')
+    ax1.tick_params(axis='both', which='major', labelsize=10)
+    ax1.grid(linestyle='--')
+    ax1.legend(fontsize='large')
+
+    ax2 = fig.add_subplot(132)
+    ax2.plot(lats, np.nanmean(w_Ekman_field * 365 * 24 * 3600, axis=1), label=r'$w_{Ek}$')
+    ax2.set_xlim(-80, -40)
+    ax2.set_xlabel('latitude', fontsize='large')
+    ax2.set_ylabel('Ekman pumping (m/year)', fontsize='large')
+    ax2.tick_params(axis='both', which='major', labelsize=10)
+    ax2.grid(linestyle='--')
+    ax2.legend(fontsize='large')
+
+    # [m^2/s] -> [Sv]
+    u_Ekman_zonal_avg = np.nanmean(D_e * u_Ekman_field, axis=1)
+    u_Ekman_zonal_avg = np.multiply(u_Ekman_zonal_avg, (2 * np.pi * 6371e3 * np.cos(np.deg2rad(lats))) / 1e6)
+    v_Ekman_zonal_avg = np.nanmean(D_e * v_Ekman_field, axis=1)
+    v_Ekman_zonal_avg = np.multiply(v_Ekman_zonal_avg, (2 * np.pi * 6371e3 * np.cos(np.deg2rad(lats))) / 1e6)
+
+    ax3 = fig.add_subplot(133)
+    ax3.plot(lats, u_Ekman_zonal_avg, label='$u_{Ek}$')
+    ax3.plot(lats, v_Ekman_zonal_avg, label='$v_{Ek}$')
+    ax3.set_xlim(-80, -40)
+    ax3.set_xlabel('latitude', fontsize='large')
+    ax3.set_ylabel('Ekman volume transport (m$^2$/s or Sv?)', fontsize='large')
+    ax3.tick_params(axis='both', which='major', labelsize=10)
+    ax3.grid(linestyle='--')
+    ax3.legend()
+    ax3.legend(fontsize='large')
+
+    plt.suptitle(r'Zonal averages, annual mean', fontsize=16)
+
+    png_filepath = os.path.join(figure_dir_path, 'zonal_averags.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
