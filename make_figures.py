@@ -2478,6 +2478,112 @@ def compare_zzsl_with_gamma_contour():
             plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
+def compare_zzsl_with_pellichero_gamma():
+    import netCDF4
+    from os import path
+    from constants import data_dir_path, figure_dir_path
+    from utils import log_netCDF_dataset_metadata, get_netCDF_filepath, get_field_from_netcdf
+
+    # Load neutral density map from Pellichero et al. (2017, 2018).
+    gamma_filepath = path.join(data_dir_path, 'Climatology_MLD_v2017.nc')
+    logger.info('Loading gamma dataset: {}'.format(gamma_filepath))
+    gamma_dataset = netCDF4.Dataset(gamma_filepath)
+
+    lats_gamma = np.array(gamma_dataset.variables['lat'])
+    lons_gamma = np.array(gamma_dataset.variables['lon'])
+    gamma_data = np.array(gamma_dataset.variables['ML_Gamma'])
+
+    gamma_avg = None
+
+    for month in [3, 4, 5]:
+        gamma_monthly = gamma_data[month]
+
+        if gamma_avg is None:
+            gamma_avg = np.nan_to_num(gamma_monthly)
+            gamma_monthly[~np.isnan(gamma_monthly)] = 1
+            gamma_monthly[np.isnan(gamma_monthly)] = 0
+            gamma_days = gamma_monthly
+        else:
+            gamma_avg = gamma_avg + np.nan_to_num(gamma_monthly)
+            gamma_monthly[~np.isnan(gamma_monthly)] = 1
+            gamma_monthly[np.isnan(gamma_monthly)] = 0
+            gamma_days = gamma_days + gamma_monthly
+
+    gamma_avg = np.divide(gamma_avg, gamma_days)
+
+    # Load appropriate surface stress map.
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+    #                                      year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='AMJ',
+    #                                      year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='AMJ',
+                                         year_start=2005, year_end=2015)
+
+    lons, lats, tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+
+    gamma_avg, lons_gamma = cartopy.util.add_cyclic_point(gamma_avg, coord=lons_gamma)
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m',
+                                                  edgecolor='face', facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2 * np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+
+    fig = plt.figure(figsize=(16, 9))
+    matplotlib.rcParams.update({'font.size': 10})
+
+    ax = plt.subplot(111, projection=ccrs.SouthPolarStereo())
+    ax.set_boundary(circle, transform=ax.transAxes)
+
+    ax.add_feature(land_50m)
+    ax.add_feature(ice_50m)
+    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im = ax.pcolormesh(lons_gamma, lats_gamma, gamma_avg, transform=vector_crs, cmap=cmocean.cm.haline,
+                       vmin=27, vmax=28)
+    ax.contour(lons_gamma, lats_gamma, gamma_avg, levels=[27.6], colors='red', linewidths=2, transform=vector_crs)
+    ax.contour(lons, lats, np.ma.array(tau_x_field, mask=np.isnan(alpha_field)), levels=[0],
+               colors='green', linewidths=2, transform=vector_crs)
+    ax.contour(lons, lats, np.ma.array(alpha_field, mask=np.isnan(alpha_field)), levels=[0.15],
+               colors='black', linewidths=2, transform=vector_crs)
+
+    clb = fig.colorbar(im, ax=ax, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'$\gamma^n$ (kg/m$^3$)')
+
+    zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    gamma_contour_patch = mpatches.Patch(color='red', label=r'$\gamma^n$ = 27.6 kg/m$^3$ (Pellichero et al., 2018)')
+    ice_edge_patch = mpatches.Patch(color='black', label='15% ice edge')
+    plt.legend(handles=[zero_stress_line_patch, gamma_contour_patch, ice_edge_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.05, 1, -0.05), ncol=3, mode='expand', borderaxespad=0, framealpha=0)
+
+    ax.set_title(r'Zero zonal stress line vs. $\gamma^n$ = 27.6 kg/m$^3$ contour, fall (AMJ) mean')
+
+    png_filepath = os.path.join(figure_dir_path, 'compare_zzsl_gamma_pellichero.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
