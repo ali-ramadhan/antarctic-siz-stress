@@ -13,6 +13,7 @@ from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
 from SurfaceWindDataset import SurfaceWindDataset
 from SeaIceConcentrationDataset import SeaIceConcentrationDataset
 from SeaIceMotionDataset import SeaIceMotionDataset
+from GeostrophicCurrentDataset import GeostrophicCurrentDataset
 
 from SalinityDataset import SalinityDataset
 from TemperatureDataset import TemperatureDataset

@@ -17,7 +17,9 @@ import cartopy.crs as ccrs
 import cmocean.cm
 
 from SurfaceStressDataWriter import SurfaceStressDataWriter
-from utils import date_range
+from constants import figure_dir_path
+from utils import date_range, get_netCDF_filepath, get_field_from_netcdf
+
 
 # Configure logger first before importing any sub-module that depend on the logger being already configured.
 import logging.config
@@ -27,9 +29,6 @@ logger = logging.getLogger(__name__)
 
 
 def make_five_box_climo_fig(var):
-    from utils import get_netCDF_filepath, get_field_from_netcdf
-    from constants import figure_dir_path
-
     climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
     JFM_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM', year_start=2005, year_end=2015)
     AMJ_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='AMJ', year_start=2005, year_end=2015)
