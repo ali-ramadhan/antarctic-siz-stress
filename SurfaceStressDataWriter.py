@@ -103,11 +103,15 @@ class SurfaceStressDataWriter(object):
         self.tau_x_field = np.zeros((len(self.lats), len(self.lons)))
         self.tau_y_field = np.zeros((len(self.lats), len(self.lons)))
 
-        # Ekman velocity fields.
+        # Ekman surface velocity (u_Ekman) and Ekman volume transport (U_Ekman) fields.
         self.u_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
         self.v_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
         self.u_Ekman_SIZ_field = np.zeros((len(self.lats), len(self.lons)))
         self.v_Ekman_SIZ_field = np.zeros((len(self.lats), len(self.lons)))
+        self.U_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
+        self.V_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
+        self.U_Ekman_SIZ_field = np.zeros((len(self.lats), len(self.lons)))
+        self.V_Ekman_SIZ_field = np.zeros((len(self.lats), len(self.lons)))
 
         # Ekman pumping fields.
         self.ddy_tau_x_field = np.zeros((len(self.lats), len(self.lons)))
@@ -161,6 +165,10 @@ class SurfaceStressDataWriter(object):
             'Ekman_v': self.v_Ekman_field,
             'Ekman_SIZ_u': self.u_Ekman_SIZ_field,
             'Ekman_SIZ_v': self.v_Ekman_SIZ_field,
+            'Ekman_U': self.U_Ekman_field,
+            'Ekman_V': self.V_Ekman_field,
+            'Ekman_SIZ_U': self.U_Ekman_SIZ_field,
+            'Ekman_SIZ_V': self.V_Ekman_SIZ_field,
             'dtau_x_dy': self.ddy_tau_x_field,
             'dtau_y_dx': self.ddx_tau_y_field,
             'curl_stress': self.stress_curl_field,
@@ -179,8 +187,8 @@ class SurfaceStressDataWriter(object):
             'psi_delta': self.psi_delta_field,
             'melt_rate_x': self.zonal_melt_rate_field,
             'melt_rate_y': self.merid_melt_rate_field,
-            'melt_rate': self.melt_rate_field  # ,
-            # 'h_ice': self.h_ice_field
+            'melt_rate': self.melt_rate_field,
+            'h_ice': self.h_ice_field
         }
 
         # Dictionary of all fields to be plotted.
@@ -198,8 +206,8 @@ class SurfaceStressDataWriter(object):
             'tau_ice_y': self.tau_ice_y_field,
             'tau_x': self.tau_x_field,
             'tau_y': self.tau_y_field,
-            'u_Ekman': self.u_Ekman_field,
-            'v_Ekman': self.v_Ekman_field,
+            'U_Ekman': self.U_Ekman_field,
+            'V_Ekman': self.V_Ekman_field,
             'dtauydx': self.ddx_tau_y_field,
             'dtauxdy': self.ddy_tau_x_field,
             'curl_tau': self.stress_curl_field,
@@ -227,21 +235,15 @@ class SurfaceStressDataWriter(object):
             field[i_max, :] = np.nan
 
         if date is not None and field_type == 'daily':
-            self.u_geo_data = MeanDynamicTopographyDataReader()
+            # self.u_geo_data = MeanDynamicTopographyDataReader()
+            self.u_geo_data = GeostrophicCurrentDataset(self.date)
             self.sea_ice_conc_data = SeaIceConcentrationDataset(self.date)
             self.sea_ice_motion_data = SeaIceMotionDataset(self.date)
             self.u_wind_data = SurfaceWindDataset(self.date)
 
-    def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec, u_Ekman_vec_type='vertical_avg'):
+    def surface_stress(self, f, u_geo_vec, u_wind_vec, alpha, u_ice_vec):
         """
         Use the modified Richardson iteration to calculate tau and u_Ekman.
-        :param f:
-        :param u_geo_vec:
-        :param u_wind_vec:
-        :param alpha:
-        :param u_ice_vec:
-        :param u_Ekman_vec_type:
-        :return:
         """
 
         # Here we set the variables to arbitrary initial guesses before iteratively calculating tau and u_Ekman.
@@ -269,14 +271,16 @@ class SurfaceStressDataWriter(object):
 
             tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
 
-            if u_Ekman_vec_type == 'surface':
-                u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
-            elif u_Ekman_vec_type == 'vertical_avg':
-                tau_x_scalar = tau_vec[0]
-                tau_y_scalar = tau_vec[1]
-                u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
-                v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
-                u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
+            u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+
+            # if u_Ekman_vec_type == 'surface':
+            #     u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+            # elif u_Ekman_vec_type == 'vertical_avg':
+            #     tau_x_scalar = tau_vec[0]
+            #     tau_y_scalar = tau_vec[1]
+            #     u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+            #     v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+            #     u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
 
             u_rel_vec = u_ice_vec - (u_geo_vec - u_Ekman_vec)
             tau_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_rel_vec) * u_rel_vec
@@ -293,7 +297,7 @@ class SurfaceStressDataWriter(object):
 
         return tau_vec, tau_air_vec, tau_ice_vec
 
-    def compute_daily_surface_stress_field(self, u_geo_source='zero', u_Ekman_vec_type='vertical_avg'):
+    def compute_daily_surface_stress_field(self, u_geo_source):
         logger.info('Calculating surface stress field (tau_x, tau_y) for:')
         logger.info('lat_min = {}, lat_max = {}, lat_step = {}, n_lat = {}'.format(lat_min, lat_max, lat_step, n_lat))
         logger.info('lon_min = {}, lon_max = {}, lon_step = {}, n_lon = {}'.format(lon_min, lon_max, lon_step, n_lon))
@@ -314,8 +318,10 @@ class SurfaceStressDataWriter(object):
 
                 if u_geo_source == 'zero':
                     u_geo_vec = np.array([0, 0])
-                elif u_geo_source == 'climo':
-                    u_geo_vec = self.u_geo_data.u_geo_mean(lat, lon, 'interp')
+                elif u_geo_source == 'CS2':
+                    u_geo_vec = self.u_geo_data.geostrophic_current_velocity(lat, lon)
+                # elif u_geo_source == 'climo':
+                #     u_geo_vec = self.u_geo_data.u_geo_mean(lat, lon, 'interp')
 
                 self.u_geo_field[i][j] = u_geo_vec[0]
                 self.v_geo_field[i][j] = u_geo_vec[1]
@@ -343,19 +349,31 @@ class SurfaceStressDataWriter(object):
                     self.tau_SIZ_x_field[i][j] = np.nan
                     self.tau_SIZ_y_field[i][j] = np.nan
 
-                    if u_Ekman_vec_type == 'surface':
-                        u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
-                    elif u_Ekman_vec_type == 'vertical_avg':
-                        tau_x_scalar = tau_air_vec[0]
-                        tau_y_scalar = tau_air_vec[1]
-                        u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
-                        v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
-                        u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
+                    u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
+
+                    tau_x_scalar = tau_air_vec[0]
+                    tau_y_scalar = tau_air_vec[1]
+                    U_Ekman_scalar = tau_y_scalar / (f * rho_0)
+                    V_Ekman_scalar = -tau_x_scalar / (f * rho_0)
+
+                    # if u_Ekman_vec_type == 'surface':
+                    #     u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_air_vec)
+                    # elif u_Ekman_vec_type == 'vertical_avg':
+                    #     tau_x_scalar = tau_air_vec[0]
+                    #     tau_y_scalar = tau_air_vec[1]
+                    #     u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+                    #     v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+                    #     u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
 
                     self.u_Ekman_field[i][j] = u_Ekman_vec[0]
                     self.v_Ekman_field[i][j] = u_Ekman_vec[1]
                     self.u_Ekman_SIZ_field[i][j] = np.nan
                     self.v_Ekman_SIZ_field[i][j] = np.nan
+
+                    self.U_Ekman_field[i][j] = U_Ekman_scalar
+                    self.V_Ekman_field[i][j] = V_Ekman_scalar
+                    self.U_Ekman_SIZ_field[i][j] = np.nan
+                    self.V_Ekman_SIZ_field[i][j] = np.nan
                     continue
 
                 # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
@@ -368,8 +386,16 @@ class SurfaceStressDataWriter(object):
                     self.tau_y_field[i][j] = np.nan
                     self.tau_SIZ_x_field[i][j] = np.nan
                     self.tau_SIZ_y_field[i][j] = np.nan
+
                     self.u_Ekman_field[i][j] = np.nan
                     self.v_Ekman_field[i][j] = np.nan
+                    self.u_Ekman_SIZ_field[i][j] = np.nan
+                    self.v_Ekman_SIZ_field[i][j] = np.nan
+
+                    self.U_Ekman_field[i][j] = np.nan
+                    self.V_Ekman_field[i][j] = np.nan
+                    self.U_Ekman_SIZ_field[i][j] = np.nan
+                    self.V_Ekman_SIZ_field[i][j] = np.nan
                     continue
 
                 # If we have data for everything, and we're in the SIZ then use the Richardson method to compute tau.
@@ -385,19 +411,32 @@ class SurfaceStressDataWriter(object):
                 self.tau_SIZ_y_field[i][j] = tau_vec[1]
 
                 # Recalculate u_Ekman_vec. Not sure why I have to do this, but otherwise I just get the zero vector...
-                if u_Ekman_vec_type == 'surface':
-                    u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
-                elif u_Ekman_vec_type == 'vertical_avg':
-                    tau_x_scalar = tau_vec[0]
-                    tau_y_scalar = tau_vec[1]
-                    u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
-                    v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
-                    u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
+                u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+
+                # if u_Ekman_vec_type == 'surface':
+                #     u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
+                # elif u_Ekman_vec_type == 'vertical_avg':
+                #     tau_x_scalar = tau_vec[0]
+                #     tau_y_scalar = tau_vec[1]
+                #     u_Ekman_scalar = tau_y_scalar / (f * rho_0 * D_e)
+                #     v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
+                #     u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
 
                 self.u_Ekman_field[i][j] = u_Ekman_vec[0]
                 self.v_Ekman_field[i][j] = u_Ekman_vec[1]
                 self.u_Ekman_SIZ_field[i][j] = u_Ekman_vec[0]
                 self.v_Ekman_SIZ_field[i][j] = u_Ekman_vec[1]
+
+                # Calculate Ekman volume transport
+                tau_x_scalar = tau_air_vec[0]
+                tau_y_scalar = tau_air_vec[1]
+                U_Ekman_scalar = tau_y_scalar / (f * rho_0)
+                V_Ekman_scalar = -tau_x_scalar / (f * rho_0)
+
+                self.U_Ekman_field[i][j] = U_Ekman_scalar
+                self.V_Ekman_field[i][j] = V_Ekman_scalar
+                self.U_Ekman_SIZ_field[i][j] = U_Ekman_scalar
+                self.V_Ekman_SIZ_field[i][j] = V_Ekman_scalar
 
     def compute_daily_ekman_pumping_field(self):
         """ Compute daily Ekman pumping field w_Ekman = curl(tau / rho * f). """
