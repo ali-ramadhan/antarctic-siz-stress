@@ -136,12 +136,9 @@ def interpolate(values, vtx, wts):
 
 
 def interpolate_scalar_field(data, x, y, pickle_filepath, mask_value_cond, grid_type, interp_method,
-                             repeat0tile1, convert_lon_range):
+                             repeat0tile1, convert_lon_range, debug_plots=False):
     import pickle
     from os.path import isfile
-
-    # Change to True to see the interpolated field (+ residual) as they are produced.
-    debug_plots = False
 
     # Check if the data has already been interpolated for the same grid points before doing the interpolation again. If
     # so, load the file, unpickle it and return the interpolated grid.
