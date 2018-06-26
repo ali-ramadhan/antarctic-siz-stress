@@ -137,9 +137,8 @@ class GeostrophicCurrentDataset(object):
             u_geo = -(g/f) * dHdx
             v_geo = (g/f) * dHdy
 
-            u_geo_vec_xy = np.array([u_geo, v_geo])
-            # u_ice_vec_latlon = polar_stereographic_velocity_vector_to_latlon(u_ice_vec_xy, lat, lon)
+            u_geo_vec = np.array([u_geo, v_geo])
 
-            return u_geo_vec_xy
+            return u_geo_vec
         else:
             return np.array([np.nan, np.nan])
