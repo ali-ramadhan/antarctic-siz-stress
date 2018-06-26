@@ -905,19 +905,21 @@ class SurfaceStressDataWriter(object):
 
         tau_dataset = netCDF4.Dataset(self.nc_filepath, 'w')
 
-        tau_dataset.title = 'Antarctic sea ice zone surface stress'
+        tau_dataset.title = 'Antarctic sea ice zone surface stress and related fields'
         tau_dataset.institution = 'Department of Earth, Atmospheric, and Planetary Science, ' \
                                   'Massachusetts Institute of Technology'
-        # tau_dataset.history = 'Created ' + datetime.time.ctime(datetime.time.time()) + '.'
+        tau_dataset.history = 'Created ' + time.ctime() + '.'
 
         tau_dataset.createDimension('time', None)
         tau_dataset.createDimension('lat', len(self.lats))
         tau_dataset.createDimension('lon', len(self.lons))
 
-        # TODO: Actually store a date.
         time_var = tau_dataset.createVariable('time', np.float64, ('time',))
         time_var.units = 'hours since 0001-01-01 00:00:00'
         time_var.calendar = 'gregorian'
+
+        d = datetime.datetime(self.date.year, self.date.month, self.date.day)
+        time_var[:] = netCDF4.date2num(d, units=time_var.units, calendar=time_var.calendar)
 
         lat_var = tau_dataset.createVariable('lat', np.float32, ('lat',))
         lat_var.units = 'degrees south'
