@@ -1,4 +1,6 @@
 import os
+import time
+import datetime
 import numpy as np
 
 import netCDF4
@@ -17,6 +19,7 @@ from TemperatureDataset import TemperatureDataset
 from NeutralDensityDataset import NeutralDensityDataset
 
 from utils import distance, get_netCDF_filepath, get_WOA_parameters
+from constants import output_dir_path, figure_dir_path
 from constants import lat_min, lat_max, lat_step, n_lat, lon_min, lon_max, lon_step, n_lon
 from constants import rho_air, rho_seawater, C_air, C_seawater
 from constants import Omega, rho_0, D_e
@@ -25,28 +28,15 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class MidpointNormalize(colors.Normalize):
-    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
-        self.midpoint = midpoint
-        colors.Normalize.__init__(self, vmin, vmax, clip)
-
-    def __call__(self, value, clip=None):
-        # Set NaN values to zero so they appear as white (i.e. not at all if using the 'seismic' colormap).
-        value[np.isnan(value)] = 0
-
-        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-        return np.ma.masked_array(np.interp(value, x, y))
-
-
 class SurfaceStressDataWriter(object):
     """
     Such an object should mainly compute daily (averaged) wind stress and wind stress curl fields and write them out
     to netCDF files. Computing monthly means makes sense here. But plotting should go elsewhere.
     """
 
-    from constants import output_dir_path
     surface_stress_dir = os.path.join(output_dir_path, 'surface_stress')
 
+    # 2D rotation matrices for +45 degree and -45 degree rotation.
     R_45deg = np.array([[np.cos(np.pi/4), -np.sin(np.pi/4)], [np.sin(np.pi/4), np.cos(np.pi/4)]])
     R_m45deg = np.array([[np.cos(-np.pi/4), -np.sin(-np.pi/4)], [np.sin(-np.pi/4), np.cos(-np.pi/4)]])
 
@@ -473,6 +463,7 @@ class SurfaceStressDataWriter(object):
                     # in the denominator because dx is the width of just one cell.
 
                     # TODO: Why does it look like accessing the wrong axis gives the right derivative!?
+
                     # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
                     # dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
                     dtauydx = (self.tau_y_field[i][jp1] - self.tau_y_field[i][jm1]) / dx
@@ -530,10 +521,9 @@ class SurfaceStressDataWriter(object):
             lat = self.lats[i]
 
             progress_percent = 100 * i / (len(self.lats) - 1)
-            logger.info('({} h_ice) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max,
-                                                                                    progress_percent))
+            logger.info('({} h_ice) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max, progress_percent))
             for j in range(len(self.lons)):
-                self.h_ice_field[i][j] = h_ice_dataset.sea_ice_thickness(lat, self.lons[j])
+                self.h_ice_field[i][j] = h_ice_dataset.sea_ice_thickness(i, j, self.date)
 
     def compute_daily_freshwater_ekman_advection_field(self):
         """ Calculate freshwater flux div(u_Ek*S).  """
@@ -545,8 +535,8 @@ class SurfaceStressDataWriter(object):
             f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
             progress_percent = 100 * i / (len(self.lats) - 2)
-            logger.info('({} freshwater_flux) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max,
-                                                                                    progress_percent))
+            logger.info('({} freshwater_flux) lat = {:.2f}/{:.2f} ({:.1f}%)'
+                        .format(self.date, lat, lat_max, progress_percent))
 
             dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
             dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
@@ -661,19 +651,24 @@ class SurfaceStressDataWriter(object):
                     self.ice_flux_div_field[i][j] = np.nan
 
     def compute_meridional_streamfunction_and_melt_rate(self):
+        from constants import R
+
         for i in range(1, len(self.lats) - 1):
             lat = self.lats[i]
             f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
             progress_percent = 100 * i / (len(self.lats) - 2)
-            logger.info('({} Psi_delta, M-F) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(self.date, lat, lat_max,
-                                                                                    progress_percent))
+            logger.info('({} Psi_delta, M-F) lat = {:.2f}/{:.2f} ({:.1f}%)'
+                        .format(self.date, lat, lat_max, progress_percent))
+
             for j in range(len(self.lons)):
                 tau_x = self.tau_x_field[i][j]
                 tau_y = self.tau_y_field[i][j]
                 S = self.salinity_field[i][j]
                 dSdx = self.dSdx_field[i][j]
                 dSdy = self.dSdy_field[i][j]
+
+                Psi_delta = np.nan
 
                 if not np.isnan(tau_x):
                     Psi_delta = -self.tau_x_field[i][j] / (rho_0 * f)
@@ -686,11 +681,11 @@ class SurfaceStressDataWriter(object):
 
                 if not np.isnan(Psi_delta):
                     # Convert [m^2/s] -> [Sv] and account for the latitudinal dependence of the circumpolar distance.
-                    self.psi_delta_field[i][j] = self.psi_delta_field[i][j] * (2 * np.pi * 6371e3 * np.cos(np.deg2rad(lat))) / 1e6
+                    L = 2 * np.pi * R * np.cos(np.deg2rad(lat))  # Circumpolar distance [m].
+                    self.psi_delta_field[i][j] = self.psi_delta_field[i][j] * L / 1e6
 
     def compute_daily_auxillary_fields(self):
         self.compute_daily_ekman_pumping_field()
-        self.process_thermodynamic_fields()
         self.process_thermodynamic_fields(levels=[0, 1, 2, 3, 4, 5], process_neutral_density=False)
         self.load_sea_ice_thickness_field()
         self.compute_daily_freshwater_ekman_advection_field()
@@ -699,7 +694,6 @@ class SurfaceStressDataWriter(object):
 
     def compute_mean_fields(self, dates, avg_method):
         import netCDF4
-        from constants import output_dir_path
         from utils import log_netCDF_dataset_metadata
 
         try:
@@ -916,20 +910,20 @@ class SurfaceStressDataWriter(object):
             tau_filename = 'surface_stress_' + custom_label
 
         # Saving diagnostic figure to disk.
-        tau_png_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.png')
+        tau_png_filepath = os.path.join(figure_dir_path, tau_filename + '.png')
 
         tau_dir = os.path.dirname(tau_png_filepath)
         if not os.path.exists(tau_dir):
             logger.info('Creating directory: {:s}'.format(tau_dir))
             os.makedirs(tau_dir)
 
-        logger.info('Saving diagnostic figure: {:s}'.format(tau_png_filepath))
+        logger.info('Saving diagnostic figure: {:s}...'.format(tau_png_filepath))
         plt.savefig(tau_png_filepath, dpi=600, format='png', transparent=False, bbox_inches='tight')
 
         # Only going to save in .png as .pdf takes forever to write and is MASSIVE.
-        # tau_pdf_filepath = os.path.join(self.surface_stress_dir, str(self.date.year), tau_filename + '.pdf')
+        # tau_pdf_filepath = os.path.join(figure_dir_path, tau_filename + '.pdf')
+        # logger.info('Saving diagnostic figure: {:s}...'.format(tau_pdf_filepath))
         # plt.savefig(tau_pdf_filepath, dpi=300, format='pdf', transparent=True)
-        # logger.info('Saved diagnostic figure: {:s}'.format(tau_pdf_filepath))
 
         plt.close()
 
