@@ -1,6 +1,6 @@
-from os import path
+import os
 import csv
-import bisect
+import pickle
 from scipy.spatial.distance import cdist
 
 import numpy as np
@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 class SeaIceThicknessDataset(object):
     from constants import data_dir_path, output_dir_path
 
-    h_ice_data_dir_path = path.join(data_dir_path, 'ICESat_sea_ice_thickness')
+    h_ice_data_dir_path = os.path.join(data_dir_path, 'ICESat_sea_ice_thickness')
+    h_ice_interp_filepath = os.path.join(output_dir_path, 'h_ice_ICESat_interp.pickle')
 
     def __init__(self, date):
         self.date = date
@@ -22,12 +23,6 @@ class SeaIceThicknessDataset(object):
         self.lons = np.zeros(104913)
         self.h_ice = np.zeros(104913)
         self.latlon = np.zeros((104913, 2))
-
-        self.h_ice_seasonal = {
-            'summer': np.zeros(104913),
-            'fall': np.zeros(104913),
-            'spring': np.zeros(104913)
-        }
 
         # Lots of "interpolation" happening here. I am using the Feb/Mar field for JFM, the May/Jun field for AMJ, and
         # the Nov/Dec field for OND. Also, since no JAS data exists, I am using the OND field for JAS, my argument
@@ -43,52 +38,84 @@ class SeaIceThicknessDataset(object):
             logger.error('No sea ice thickness data for month {:d}!'.format(date.month))
 
         self.dataset_filename = self.season + '_ICESat_gridded_mean_thickness_sorted.txt'
-        self.dataset_filepath = path.join(self.h_ice_data_dir_path, self.dataset_filename)
+        self.dataset_filepath = os.path.join(self.h_ice_data_dir_path, self.dataset_filename)
 
-        logger.info('SeaIceThicknessDataset object initializing for {:s} season...'.format(self.season))
-        self.load_h_ice_dataset()
+        pickle_found = False
+        try:
+            with open(self.h_ice_interp_filepath, 'rb') as f:
+                h_ice_interp_pickle_dict = pickle.load(f)
+                self.h_ice_seasonal = h_ice_interp_pickle_dict['h_ice_seasonal_dict']
+                self.closest_point_idx = h_ice_interp_pickle_dict['closest_point_idx_array']
+                pickle_found = True
+        except OSError as e:
+            logger.info('h_ice_ICESat_interp.pickle not found, will compute it.')
 
-        for season in ['summer', 'fall', 'spring']:
-            logger.info('Loading season {:s}...'.format(season))
-            dataset_filename = season + '_ICESat_gridded_mean_thickness_sorted.txt'
-            dataset_filepath = path.join(self.h_ice_data_dir_path, dataset_filename)
+        if not pickle_found:
+            logger.info('SeaIceThicknessDataset object initializing for {:s} season...'.format(self.season))
+            self.load_h_ice_dataset()
 
-            with open(dataset_filepath, 'rt') as f:
-                reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
-                for i, line in enumerate(reader):
-                    sea_ice_freeboard = line[2]
-                    sea_ice_thickness = line[3]
+            self.h_ice_seasonal = {
+                'summer': np.zeros(104913),
+                'fall': np.zeros(104913),
+                'spring': np.zeros(104913)
+            }
 
-                    if sea_ice_thickness == '-999':
-                        self.h_ice_seasonal[season][i] = np.nan
-                    else:
-                        self.h_ice_seasonal[season][i] = float(sea_ice_thickness)
+            # Load in all three seasonal h_ice fields.
+            for season in ['summer', 'fall', 'spring']:
+                logger.info('Loading season {:s}...'.format(season))
+                dataset_filename = season + '_ICESat_gridded_mean_thickness_sorted.txt'
+                dataset_filepath = os.path.join(self.h_ice_data_dir_path, dataset_filename)
 
-        from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
-        lats_array = np.linspace(lat_min, lat_max, n_lat)
-        lons_array = np.linspace(lon_min, lon_max, n_lon)
+                with open(dataset_filepath, 'rt') as f:
+                    reader = csv.reader(f, delimiter=' ', skipinitialspace=True)
+                    for i, line in enumerate(reader):
+                        sea_ice_freeboard = line[2]
+                        sea_ice_thickness = line[3]
 
-        self.closest_point_idx = np.zeros((len(lats_array), len(lons_array)))
+                        if sea_ice_thickness == '-999':
+                            self.h_ice_seasonal[season][i] = np.nan
+                        else:
+                            self.h_ice_seasonal[season][i] = float(sea_ice_thickness)
 
-        logger.info('Computing (lat, lon) -> closest_point_idx(lat, lon) map...')
-        for i in range(len(lats_array)):
-            lat = lats_array[i]
-            for j in range(len(lons_array)):
-                lon = lons_array[j]
+            # Create a map from input (lat, lon) to the closest idx in the h_ice list for quick h_ice(lat, lon) lookup.
+            from constants import lat_min, lat_max, n_lat, lon_min, lon_max, n_lon
+            lats_array = np.linspace(lat_min, lat_max, n_lat)
+            lons_array = np.linspace(lon_min, lon_max, n_lon)
 
-                if lon < 0:
-                    lon = lon + 360
+            self.closest_point_idx = np.zeros((len(lats_array), len(lons_array)))
 
-                lat_start_idx = np.searchsorted(self.lats, lat)
+            logger.info('Computing (lat, lon) -> closest_point_idx(lat, lon) map...')
+            for i in range(len(lats_array)):
+                lat = lats_array[i]
+                for j in range(len(lons_array)):
+                    lon = lons_array[j]
 
-                delta_idx = 250
-                idx1 = max(0, lat_start_idx - delta_idx)
-                idx2 = min(lat_start_idx + delta_idx, len(self.lats))
+                    if lon < 0:
+                        lon = lon + 360
 
-                point = np.array([lat, lon])
-                points = np.column_stack((self.lats[idx1:idx2], self.lons[idx1:idx2]))
+                    lat_start_idx = np.searchsorted(self.lats, lat)
 
-                self.closest_point_idx[i][j] = idx1 + cdist([point], points).argmin()
+                    delta_idx = 250
+                    idx1 = max(0, lat_start_idx - delta_idx)
+                    idx2 = min(lat_start_idx + delta_idx, len(self.lats))
+
+                    point = np.array([lat, lon])
+                    points = np.column_stack((self.lats[idx1:idx2], self.lons[idx1:idx2]))
+
+                    self.closest_point_idx[i][j] = idx1 + cdist([point], points).argmin()
+
+            h_ice_interp_pickle_dict = {
+                'h_ice_seasonal_dict': self.h_ice_seasonal,
+                'closest_point_idx_array': self.closest_point_idx
+            }
+
+            pickle_dir = os.path.dirname(self.h_ice_interp_filepath)
+            if not os.path.exists(pickle_dir):
+                logger.info('Creating directory: {:s}'.format(pickle_dir))
+                os.makedirs(pickle_dir)
+
+            with open(self.h_ice_interp_filepath, 'wb') as f:
+                pickle.dump(h_ice_interp_pickle_dict, f, pickle.HIGHEST_PROTOCOL)
 
     def load_h_ice_dataset(self):
         logger.info('Loading sea ice concentration dataset: {}'.format(self.dataset_filepath))
