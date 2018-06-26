@@ -18,7 +18,7 @@ data_dir_path = 'D:\\data\\'
 output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 # output_dir_path = '/d1/alir/output/'
 
-figure_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\figures\\'
+figure_dir_path = 'D:\\figures\\antarctic-siz-stress\\'
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity
@@ -66,6 +66,7 @@ u_geo_interp_method = 'linear'
 alpha_interp_method = 'linear'
 u_ice_interp_method = 'cubic'
 u_wind_interp_method = 'cubic'
+dot_interp_method = 'linear'
 
 """ Constants for saving fields to netCDF file. """
 var_units = {
@@ -88,6 +89,10 @@ var_units = {
     'Ekman_v': 'm/s',
     'Ekman_SIZ_u': 'm/s',
     'Ekman_SIZ_v': 'm/s',
+    'Ekman_U': 'm^2/s',
+    'Ekman_V': 'm^2/s',
+    'Ekman_SIZ_U': 'm^2/s',
+    'Ekman_SIZ_V': 'm^2/s',
     'dtau_x_dy': 'N/m^3',
     'dtau_y_dx': 'N/m^3',
     'curl_stress': 'N/m^3',
@@ -130,6 +135,10 @@ var_positive = {
     'Ekman_v': 'north',
     'Ekman_SIZ_u': 'east',
     'Ekman_SIZ_v': 'north',
+    'Ekman_U': 'east',
+    'Ekman_V': 'north',
+    'Ekman_SIZ_U': 'east',
+    'Ekman_SIZ_V': 'north',
     'dtau_x_dy': 'east',
     'dtau_y_dx': 'north',
     'curl_stress': 'up',
@@ -168,10 +177,14 @@ var_long_names = {
     'tau_SIZ_y': 'Meridional surface stress in the SIZ',
     'tau_x': 'Zonal surface stress',
     'tau_y': 'Meridional surface stress',
-    'Ekman_u': 'Zonal Ekman velocity',
-    'Ekman_v': 'Meridional Ekman velocity',
-    'Ekman_SIZ_u': 'Zonal Ekman velocity in the SIZ',
-    'Ekman_SIZ_v': 'Meridional Ekman velocity in the SIZ',
+    'Ekman_u': 'Zonal surface Ekman velocity',
+    'Ekman_v': 'Meridional surface Ekman velocity',
+    'Ekman_SIZ_u': 'Zonal surface Ekman velocity in the SIZ',
+    'Ekman_SIZ_v': 'Meridional surface Ekman velocity in the SIZ',
+    'Ekman_U': 'Zonal Ekman volume transport',
+    'Ekman_V': 'Meridional Ekman volume transport',
+    'Ekman_SIZ_U': 'Zonal Ekman volume transport in the SIZ',
+    'Ekman_SIZ_V': 'Meridional Ekman volume transport in the SIZ',
     'dtau_x_dy': 'd/dy (tau_x)',
     'dtau_y_dx': 'd/dx (tau_y)',
     'curl_stress': 'Wind stress curl',
@@ -209,12 +222,10 @@ titles = {
     'tau_ice_y': 'alpha*tau_ice_y',
     'tau_x': 'tau_x',
     'tau_y': 'tau_y',
-    'u_Ekman': 'u_Ekman',
-    'v_Ekman': 'v_Ekman',
+    'U_Ekman': 'U_Ekman',
+    'V_Ekman': 'V_Ekman',
     'dtauydx': 'd/dx (tau_y)',
     'dtauxdy': '-d/dy (tau_x)',
-    # 'tau_SIZ_x': 'Zonal surface stress in the SIZ',
-    # 'tau_SIZ_y': 'Meridional surface stress in the SIZ',
     'curl_tau': 'curl_tau',
     'w_Ekman': 'w_Ekman',
     'freshwater_flux': 'u_Ek · grad(S)',
@@ -238,12 +249,10 @@ gs_coords = {
     'tau_ice_y': (1, 5),
     'tau_x': (slice(2, 5), slice(0, 3)),
     'tau_y': (slice(2, 5), slice(3, 6)),
-    'u_Ekman': (0, 6),
-    'v_Ekman': (1, 6),
+    'U_Ekman': (0, 6),
+    'V_Ekman': (1, 6),
     'dtauydx': (0, 7),
     'dtauxdy': (1, 7),
-    # 'tau_SIZ_x': (1, 7),
-    # 'tau_SIZ_y': (1, 7),
     'curl_tau': (0, 8),
     'w_Ekman': (slice(2, 5), slice(6, 9)),
     'freshwater_flux': (0, 9),
@@ -267,13 +276,11 @@ scale_factor = {
     'tau_ice_y': 1,
     'tau_x': 1,
     'tau_y': 1,
-    'u_Ekman': 100,
-    'v_Ekman': 100,
+    'U_Ekman': 1,
+    'V_Ekman': 1,
     'dtauydx': 1e7,
     'dtauxdy': -1e7,
     'curl_tau': 1e7,
-    # 'tau_SIZ_x': 1,
-    # 'tau_SIZ_y': 1,
     'w_Ekman': 3600 * 365 * 24,  # [m/s] -> [m/year]
     'freshwater_flux': 3600 * 365 * 24,  # [m/s] -> [m/year]
     'ice_div': 3600 * 365 * 24,  # [m/s] -> [m/year]
@@ -296,13 +303,11 @@ colorbar_label = {
     'tau_ice_y': r'N/m$^2$',
     'tau_x': r'N/m$^2$',
     'tau_y': r'N/m$^2$',
-    'u_Ekman': 'cm/s',
-    'v_Ekman': 'cm/s',
+    'U_Ekman': r'm$^2$/s',
+    'V_Ekman': r'm$^2$/s',
     'dtauydx': r'10$^{-7}$ N/m$^3$',
     'dtauxdy': r'10$^{-7}$ N/m$^3$',
     'curl_tau': r'10$^{-7}$ N/m$^3$',
-    # 'tau_SIZ_x': r'N/m$^2$',
-    # 'tau_SIZ_y': r'N/m$^2$',
     'w_Ekman': r'm/year',
     'freshwater_flux': 'm/year',
     'ice_div': 'm/year',
@@ -326,8 +331,8 @@ cmaps = {
     'tau_ice_y': 'seismic',
     'tau_x': 'seismic',
     'tau_y': 'seismic',
-    'u_Ekman': 'seismic',
-    'v_Ekman': 'seismic',
+    'U_Ekman': 'seismic',
+    'V_Ekman': 'seismic',
     'dtauydx': 'seismic',
     'dtauxdy': 'seismic',
     'curl_tau': 'seismic',
@@ -355,13 +360,11 @@ cmap_ranges = {
     'tau_ice_y': (-0.15, 0.15),
     'tau_x': (-0.15, 0.15),
     'tau_y': (-0.15, 0.15),
-    'u_Ekman': (-3, 3),
-    'v_Ekman': (-3, 3),
+    'U_Ekman': (-2, 2),
+    'V_Ekman': (-2, 2),
     'dtauydx': (-5, 5),
     'dtauxdy': (-5, 5),
     'curl_tau': (-5, 5),
-    # 'tau_SIZ_x': (-0.5, 0.5),
-    # 'tau_SIZ_y': (-0.5, 0.5),
     'w_Ekman': (-100, 100),
     'freshwater_flux': (-5, 5),
     'ice_div': (-3, 3),
