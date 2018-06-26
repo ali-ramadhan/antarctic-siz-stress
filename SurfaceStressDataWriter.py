@@ -491,8 +491,6 @@ class SurfaceStressDataWriter(object):
     def process_thermodynamic_fields(self, levels=None, process_neutral_density=False):
         logger.info('Calculating average T, S, gamma_n...')
 
-        levels = [0, 1, 2, 3, 4, 5, 6, 7]
-
         salinity_dataset = SalinityDataset(time_span=self.WOA_time_span, avg_period=self.WOA_avg_period,
                                            grid_size=self.WOA_grid_size, field_type=self.WOA_field_type)
         temperature_dataset = TemperatureDataset(time_span=self.WOA_time_span, avg_period=self.WOA_avg_period,
@@ -510,9 +508,11 @@ class SurfaceStressDataWriter(object):
             progress_percent = 100 * i / (len(self.lats) - 1)
 
             if process_neutral_density:
-                logger.info('(T, S, gamma) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+                logger.info('({} T, S, gamma^n) lat = {:.2f}/{:.2f} ({:.1f}%)'
+                            .format(self.date, lat, lat_max, progress_percent))
             else:
-                logger.info('(T, S) lat = {:.2f}/{:.2f} ({:.1f}%)'.format(lat, lat_max, progress_percent))
+                logger.info('({} T, S) lat = {:.2f}/{:.2f} ({:.1f}%)'
+                            .format(self.date, lat, lat_max, progress_percent))
 
             for j in range(len(self.lons)):
                 lon = self.lons[j]
@@ -691,6 +691,7 @@ class SurfaceStressDataWriter(object):
     def compute_daily_auxillary_fields(self):
         self.compute_daily_ekman_pumping_field()
         self.process_thermodynamic_fields()
+        self.process_thermodynamic_fields(levels=[0, 1, 2, 3, 4, 5], process_neutral_density=False)
         self.load_sea_ice_thickness_field()
         self.compute_daily_freshwater_ekman_advection_field()
         self.compute_daily_ice_flux_divergence_field()

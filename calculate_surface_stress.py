@@ -58,7 +58,7 @@ def process_and_plot_day(date):
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     surface_stress_dataset = SurfaceStressDataWriter(field_type='daily', date=date)
 
-    surface_stress_dataset.compute_daily_surface_stress_field()
+    surface_stress_dataset.compute_daily_surface_stress_field(u_geo_source='CS2')
     surface_stress_dataset.compute_daily_auxillary_fields()
 
     surface_stress_dataset.write_fields_to_netcdf()
