@@ -74,7 +74,7 @@ def plot_day(date):
 
 
 def process_month(date_in_month):
-    """ Process one month and produce a monthly average. """
+    """ Process one month. """
     from utils import date_range
 
     year = date_in_month.year
@@ -83,13 +83,7 @@ def process_month(date_in_month):
     n_days = calendar.monthrange(year, month)[1]
     dates = date_range(datetime.date(year, month, 1), datetime.date(year, month, n_days))
 
-    Parallel(n_jobs=5)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days + 1))
-
-    surface_stress_dataset = SurfaceStressDataWriter(None)
-    surface_stress_dataset.date = date_in_month
-    surface_stress_dataset.compute_mean_fields(dates, avg_method='partial_data_ok')
-    surface_stress_dataset.plot_diagnostic_fields(plot_type='monthly')
-    surface_stress_dataset.write_fields_to_netcdf(field_type='monthly')
+    Parallel(n_jobs=16)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days + 1))
 
 
 def process_months_multiple_years(months, year_start, year_end):

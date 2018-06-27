@@ -34,7 +34,7 @@ class GeostrophicCurrentDataset(object):
         self.v_geo_interp = None
 
         if 2011 <= date.year <= 2016:
-            self.month_idx = (date.year-2011) * 12 + date.month
+            self.month_idx = (date.year-2011) * 12 + date.month - 1
         else:
             logger.error('Geostrophic current dataset only available for 2011-2016!')
 
