@@ -2,6 +2,7 @@ import os
 import datetime
 import calendar
 
+import netCDF4
 import numpy as np
 import matplotlib
 import matplotlib.cm as cm
@@ -1210,9 +1211,9 @@ def make_tau_climo_fig():
     from utils import get_netCDF_filepath, get_field_from_netcdf
     from constants import figure_dir_path, data_dir_path
 
-    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
-    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
-                                         year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2011, year_end=2016)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+    #                                      year_start=2005, year_end=2015)
     # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
     #                                      year_start=2005, year_end=2015)
 
@@ -1222,6 +1223,12 @@ def make_tau_climo_fig():
 
     # climo_tau_x_field, lons_tau = cartopy.util.add_cyclic_point(climo_tau_x_field, coord=lons)
     # climo_tau_y_field, lons_tau = cartopy.util.add_cyclic_point(climo_tau_y_field, coord=lons)
+
+    import astropy.convolution
+    kernel = astropy.convolution.Box2DKernel(10)
+    # kernel = astropy.convolution.Gaussian2DKernel(2)
+    climo_tau_x_field = astropy.convolution.convolve(climo_tau_x_field, kernel, boundary='wrap')
+    climo_tau_y_field = astropy.convolution.convolve(climo_tau_y_field, kernel, boundary='wrap')
 
     # Load neutral density map from Pellichero et al. (2017, 2018).
     gamma_filepath = path.join(data_dir_path, 'Climatology_MLD_v2017.nc')
@@ -1330,8 +1337,10 @@ def make_tau_climo_fig():
                bbox_to_anchor=(0, -0.15, 1, -0.15), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
 
     # plt.suptitle(r'Figure 2: Ocean surface stress $\mathbf{\tau}$ observations, winter (JAS) mean', fontsize=16)
-    plt.suptitle(r'Figure 4: Ocean surface stress $\mathbf{\tau}$ observations, with geostrophic current, '
-                 'winter (JAS) mean', fontsize=16)
+    # plt.suptitle(r'Figure 4: Ocean surface stress $\mathbf{\tau}$ observations, with geostrophic current, '
+    #              'winter (JAS) mean', fontsize=16)
+    plt.suptitle(r'Ocean surface stress $\mathbf{\tau}$ observations, with geostrophic current, annual mean',
+                 fontsize=16)
 
     """ Plot tau_y """
     crs_sps = ccrs.SouthPolarStereo()
@@ -1389,7 +1398,7 @@ def make_tau_climo_fig():
         os.makedirs(tau_dir)
 
     logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
-    plt.savefig(png_filepath, dpi=300, format='pdf', transparent=False)
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
 
 
 def make_uEk_climo_fig():
@@ -2720,9 +2729,9 @@ def look_for_ice_ocean_governor():
     from constants import figure_dir_path
 
     import constants
-    constants.output_dir_path = 'D:\\output\\'
+    constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 
-    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2011, year_end=2016)
     # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
     #                                      year_start=2005, year_end=2015)
     # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
@@ -2731,7 +2740,7 @@ def look_for_ice_ocean_governor():
     lons, lats, climo_tau_x_field_geo = get_field_from_netcdf(climo_filepath, 'tau_x')
     climo_w_Ekman_field_geo = get_field_from_netcdf(climo_filepath, 'Ekman_w')[2]
 
-    constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+    constants.output_dir_path = 'D:\\output\\'
 
     climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
     # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
@@ -2750,6 +2759,12 @@ def look_for_ice_ocean_governor():
 
     feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
     sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
+
+    import astropy.convolution
+    kernel = astropy.convolution.Box2DKernel(10)
+    # kernel = astropy.convolution.Gaussian2DKernel(2)
+    climo_w_Ekman_field_geo = astropy.convolution.convolve(climo_w_Ekman_field_geo, kernel, boundary='wrap')
+    climo_tau_x_field_geo = astropy.convolution.convolve(climo_tau_x_field_geo, kernel, boundary='wrap')
 
     # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
     # the smaller plots.

@@ -404,7 +404,7 @@ def get_field_from_netcdf(tau_filepath, var):
     try:
         tau_dataset = netCDF4.Dataset(tau_filepath)
         log_netCDF_dataset_metadata(tau_dataset)
-    except OSError as e:
+    except Exception as e:
         logger.error('{}'.format(e))
         logger.error('Dataset not found: {:s}'.format(tau_filepath))
 

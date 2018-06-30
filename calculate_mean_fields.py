@@ -180,7 +180,7 @@ def produce_climatology(year_start, year_end):
 
 
 if __name__ == '__main__':
-    produce_monthly_mean(datetime.date(2015, 10, 1))
+    # produce_monthly_mean(datetime.date(2015, 10, 1))
     # produce_monthly_climatology([2, 9], 2005, 2015)
     # produce_monthly_climatology([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], 2005, 2012)
 
@@ -192,4 +192,4 @@ if __name__ == '__main__':
     # for year in range(2005, 2014):
     #     produce_annual_mean(year)
 
-    # produce_climatology(2005, 2015)
+    produce_climatology(2011, 2016)
