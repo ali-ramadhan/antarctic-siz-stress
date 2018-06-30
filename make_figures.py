@@ -2879,6 +2879,572 @@ def look_for_ice_ocean_governor():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False)  # , bbox_inches='tight')
 
 
+def plot_Wedell_Gyre_Ekman_pumping():
+    import constants
+    constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2011, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+    #                                      year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    lons, lats, climo_tau_x_field_geo = get_field_from_netcdf(climo_filepath, 'tau_x')
+    climo_w_Ekman_field_geo = get_field_from_netcdf(climo_filepath, 'Ekman_w')[2]
+
+    constants.output_dir_path = 'D:\\output\\'
+
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+    #                                      year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
+                                             year_start=2005, year_end=2015)
+    sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
+                                             year_start=2005, year_end=2015)
+
+    lons, lats, climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    climo_alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+    climo_w_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_w')[2]
+
+    feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
+    sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
+
+    import astropy.convolution
+    kernel = astropy.convolution.Box2DKernel(10)
+    # kernel = astropy.convolution.Gaussian2DKernel(2)
+    climo_w_Ekman_field_geo = astropy.convolution.convolve(climo_w_Ekman_field_geo, kernel, boundary='wrap')
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(16, 9))
+
+    crs_sps = ccrs.SouthPolarStereo(central_longitude=-15)
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+
+    ax = plt.subplot(111, projection=crs_sps)
+    ax.add_feature(land_50m)
+    ax.add_feature(ice_50m)
+    ax.set_extent([-65, 32, -80, -53], ccrs.PlateCarree())
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl.xlocator = mticker.FixedLocator([-90, -70, -50, -30, -10, 10, 30, 50, 70])
+    gl.ylocator = mticker.FixedLocator([-80, -70, -60, -50, -40])
+
+    # im = ax.contourf(lons, lats, climo_w_Ekman_field * 365*24*3600, levels=np.arange(-100, 110, 10),
+    #                  transform=vector_crs, cmap=cmocean.cm.balance, vmin=-100, vmax=100, extend='both')
+    im = ax.contourf(lons, lats, climo_w_Ekman_field_geo * 365*24*3600, levels=np.arange(-100, 110, 10),
+                     transform=vector_crs, cmap=cmocean.cm.balance, vmin=-100, vmax=100, extend='both')
+
+    ax.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+               colors='green', linewidths=2, transform=vector_crs)
+
+    ax.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+               levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    ax.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+               levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+
+    ax.add_patch(mpatches.Rectangle(xy=[-60, -68], width=90, height=13, transform=ccrs.PlateCarree(),
+                                    edgecolor='gold', linewidth=3, linestyle='solid', facecolor='none'))
+
+    clb = fig.colorbar(im, ax=ax, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'm/year')
+
+    plt.title(r'Annual mean Ekman pumping in the Weddell Gyre region (with $u_{geo}$)')
+
+    zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    ice_edge_patch = mpatches.Patch(color='black', label=r'15% ice edge')
+    WGR_patch = mpatches.Patch(color='gold', label=r'boundary of the Weddell Gyre Region (WGR)')
+    plt.legend(handles=[zero_stress_line_patch, ice_edge_patch, WGR_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.1, 1, -0.1), ncol=3, mode='expand', borderaxespad=0, framealpha=0)
+
+    png_filepath = os.path.join(figure_dir_path, 'Ekman pumping in the Weddell Gyre region.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
+    plt.close()
+
+
+def plot_Weddell_Gyre_time_series():
+    import pickle
+
+    lat1_WGR, lat2_WGR = -68, -55
+    lon1_WGR, lon2_WGR = -60, 30
+
+    lat1_idx_WGR, lat2_idx_WGR = 48, 101
+    lon1_idx_WGR, lon2_idx_WGR = 480, 841
+
+    year_start = 2011
+    year_end = 2015
+    dates = date_range(datetime.date(year_start, 1, 1), datetime.date(year_end, 12, 31))
+
+    n_days = len(dates)
+
+    pickle_filepath = 'D:\\output\\WGR_time_series.pickle'
+
+    pickle_found = False
+    try:
+        with open(pickle_filepath, 'rb') as f:
+            WGR_time_series_dict = pickle.load(f)
+            logger.info('Previous computation found. Loading {:s}...'.format(pickle_filepath))
+            pickle_found = True
+    except OSError:
+        logger.info('Computing Weddell Gyre Region (WGR) time series...')
+
+    if pickle_found:
+        alpha_WGR = WGR_time_series_dict['alpha']
+        u_wind_WGR = WGR_time_series_dict['u_wind']
+        v_wind_WGR = WGR_time_series_dict['v_wind']
+        wind_speed_WGR = WGR_time_series_dict['wind_speed']
+        u_ice_WGR = WGR_time_series_dict['u_ice']
+        v_ice_WGR = WGR_time_series_dict['v_ice']
+        ice_speed_WGR = WGR_time_series_dict['ice_speed']
+        u_geo_WGR = WGR_time_series_dict['u_geo']
+        v_geo_WGR = WGR_time_series_dict['v_geo']
+        geo_speed_WGR = WGR_time_series_dict['geo_speed']
+        w_Ekman_WGR = WGR_time_series_dict['w_Ekman']
+        w_Ekman_geo_WGR = WGR_time_series_dict['w_Ekman_geo']
+
+    else:
+        alpha_WGR = np.zeros(n_days)
+        u_wind_WGR = np.zeros(n_days)
+        v_wind_WGR = np.zeros(n_days)
+        wind_speed_WGR = np.zeros(n_days)
+        u_ice_WGR = np.zeros(n_days)
+        v_ice_WGR = np.zeros(n_days)
+        ice_speed_WGR = np.zeros(n_days)
+        u_geo_WGR = np.zeros(n_days)
+        v_geo_WGR = np.zeros(n_days)
+        geo_speed_WGR = np.zeros(n_days)
+        w_Ekman_WGR = np.zeros(n_days)
+        w_Ekman_geo_WGR = np.zeros(n_days)
+
+        for d, date in enumerate(dates):
+            tau_filepath = get_netCDF_filepath(field_type='daily', date=date)
+
+            import constants
+            constants.output_dir_path = 'D:\\output\\'
+
+            try:
+                climo_filepath_no_geo = get_netCDF_filepath(field_type='daily', date=date)
+                _, _, w_Ekman_field = get_field_from_netcdf(climo_filepath_no_geo, 'Ekman_w')
+            except Exception as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+
+            try:
+                tau_dataset = netCDF4.Dataset(tau_filepath)
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(tau_filepath))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            logger.info('Averaging {:%b %d, %Y} ({:s})...'.format(date, tau_filepath))
+
+            lats = np.array(tau_dataset.variables['lat'])[lat1_idx_WGR:lat2_idx_WGR]
+            lons = np.array(tau_dataset.variables['lon'])[lon1_idx_WGR:lon2_idx_WGR]
+
+            alpha_field = np.array(tau_dataset.variables['alpha'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+            u_wind_field = np.array(tau_dataset.variables['wind_u'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+            v_wind_field = np.array(tau_dataset.variables['wind_v'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+            u_ice_field = np.array(tau_dataset.variables['ice_u'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+            v_ice_field = np.array(tau_dataset.variables['ice_v'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+            u_geo_field = np.array(tau_dataset.variables['geo_u'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+            v_geo_field = np.array(tau_dataset.variables['geo_v'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+            w_Ekman_geo_field = np.array(tau_dataset.variables['Ekman_w'])[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+
+            w_Ekman_field = w_Ekman_field[lat1_idx_WGR:lat2_idx_WGR, lon1_idx_WGR:lon2_idx_WGR]
+
+            import astropy.convolution
+            kernel = astropy.convolution.Box2DKernel(10)
+            # kernel = astropy.convolution.Gaussian2DKernel(2)
+            w_Ekman_geo_field = astropy.convolution.convolve(w_Ekman_geo_field, kernel, boundary='wrap')
+
+            alpha_WGR[d] = np.nanmean(alpha_field)
+            u_wind_WGR[d] = np.nanmean(u_wind_field)
+            v_wind_WGR[d] = np.nanmean(v_wind_field)
+            u_ice_WGR[d] = np.nanmean(u_ice_field)
+            v_ice_WGR[d] = np.nanmean(v_ice_field)
+            u_geo_WGR[d] = np.nanmean(u_geo_field)
+            v_geo_WGR[d] = np.nanmean(v_geo_field)
+            w_Ekman_WGR[d] = np.nanmean(w_Ekman_field)
+            w_Ekman_geo_WGR[d] = np.nanmean(w_Ekman_geo_field)
+
+            wind_speed_field = np.zeros(alpha_field.shape)
+            ice_speed_field = np.zeros(alpha_field.shape)
+            geo_speed_field = np.zeros(alpha_field.shape)
+
+            for i, lat in enumerate(lats):
+                for j, lon in enumerate(lons):
+                    if not np.isnan(u_wind_field[i][j]) and not np.isnan(v_wind_field[i][j]):
+                        wind_speed_field[i][j] = np.sqrt(u_wind_field[i][j]**2 + v_wind_field[i][j]**2)
+                    else:
+                        wind_speed_field[i][j] = np.nan
+
+                    if not np.isnan(u_ice_field[i][j]) and not np.isnan(v_ice_field[i][j]):
+                        ice_speed_field[i][j] = np.sqrt(u_ice_field[i][j]**2 + v_ice_field[i][j]**2)
+                    else:
+                        ice_speed_field[i][j] = np.nan
+
+                    if not np.isnan(u_geo_field[i][j]) and not np.isnan(v_geo_field[i][j]):
+                        geo_speed_field[i][j] = np.sqrt(u_geo_field[i][j]**2 + v_geo_field[i][j]**2)
+                    else:
+                        geo_speed_field[i][j] = np.nan
+
+            wind_speed_WGR[d] = np.nanmean(wind_speed_field)
+            ice_speed_WGR[d] = np.nanmean(ice_speed_field)
+            geo_speed_WGR[d] = np.nanmean(geo_speed_field)
+
+    with open(pickle_filepath, 'wb') as f:
+        WGR_time_series_dict = {
+            'alpha': alpha_WGR,
+            'u_wind': u_wind_WGR,
+            'v_wind': v_wind_WGR,
+            'wind_speed': wind_speed_WGR,
+            'u_ice': u_ice_WGR,
+            'v_ice': v_ice_WGR,
+            'ice_speed': ice_speed_WGR,
+            'u_geo': u_geo_WGR,
+            'v_geo': v_geo_WGR,
+            'geo_speed': geo_speed_WGR,
+            'w_Ekman': w_Ekman_WGR,
+            'w_Ekman_geo': w_Ekman_geo_WGR
+        }
+        pickle.dump(WGR_time_series_dict, f, pickle.HIGHEST_PROTOCOL)
+
+    import astropy.convolution
+
+    kernel = astropy.convolution.Box1DKernel(30)
+
+    alpha_WGR = astropy.convolution.convolve(alpha_WGR, kernel, boundary='extend')
+    wind_speed_WGR = astropy.convolution.convolve(wind_speed_WGR, kernel, boundary='extend')
+    ice_speed_WGR = astropy.convolution.convolve(ice_speed_WGR, kernel, boundary='extend')
+    geo_speed_WGR = astropy.convolution.convolve(geo_speed_WGR, kernel, boundary='extend')
+
+    w_Ekman_WGR = astropy.convolution.convolve(w_Ekman_WGR, kernel, boundary='extend')
+    w_Ekman_geo_WGR = astropy.convolution.convolve(w_Ekman_geo_WGR, kernel, boundary='extend')
+
+    def make_patch_spines_invisible(ax):
+        ax.set_frame_on(True)
+        ax.patch.set_visible(False)
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+
+    fig, host = plt.subplots(figsize=(16, 4.5))
+    fig.subplots_adjust(right=0.75)
+
+    par1 = host.twinx()
+    par2 = host.twinx()
+
+    # Offset the right spine of par2.  The ticks and label have already been placed on the right by twinx above.
+    par2.spines['right'].set_position(('axes', 1.1))
+
+    # Having been created by twinx, par2 has its frame off, so the line of its detached spine is invisible.  First,
+    # activate the frame but make the patch and spines invisible.
+    make_patch_spines_invisible(par2)
+
+    # Second, show the right spine.
+    par2.spines['right'].set_visible(True)
+
+    host.fill_between(dates, 0, alpha_WGR, color='lightgray')
+
+    p1, = host.plot(dates, alpha_WGR, 'lightgray')
+    p2, = par1.plot(dates, wind_speed_WGR, 'red')
+    p3, = par2.plot(dates, ice_speed_WGR, 'green')
+    p4, = par2.plot(dates, geo_speed_WGR, 'dodgerblue')
+
+    host.set_xlim(dates[0], dates[-1])
+    host.set_ylim(0, 1)
+    par1.set_ylim(0, 10)
+    par2.set_ylim(0, 0.50)
+
+    host.set_xlabel('Date')
+    host.set_ylabel(r'Mean sea ice fraction $\alpha$')
+    par1.set_ylabel('Mean wind speed (m/s)', color='red')
+    par2.set_ylabel(r'Mean ice and geostrophic speed (m/s)')
+
+    # host.yaxis.label.set_color(p1.get_color())
+    # par1.yaxis.label.set_color(p2.get_color())
+    # par2.yaxis.label.set_color(p3.get_color())
+
+    tkw = dict(size=4, width=1.5)
+    # host.tick_params(axis='y', colors=p1.get_color(), **tkw)
+    par1.tick_params(axis='y', colors=p2.get_color(), **tkw)
+    # par2.tick_params(axis='y', colors=p3.get_color(), **tkw)
+    host.tick_params(axis='x', **tkw)
+
+    # lines = [p1, p2, p3]
+    # host.legend(lines, [l.get_label() for l in lines])
+
+    plt.title('30-day running mean of sea ice fraction, wind, ice, and geostrophic speeds in the Weddell Gyre Region')
+
+    alpha_patch = mpatches.Patch(color='lightgray', label='Sea ice fraction')
+    wind_speed_patch = mpatches.Patch(color='red', label='Wind speed')
+    ice_speed_patch = mpatches.Patch(color='green', label='Ice speed')
+    geostrophic_speed_patch = mpatches.Patch(color='dodgerblue', label='Geostrophic speed')
+
+    plt.legend(handles=[alpha_patch, wind_speed_patch, ice_speed_patch, geostrophic_speed_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.2, 1, -0.2), ncol=4, mode='expand', borderaxespad=0, framealpha=0)
+
+    png_filepath = os.path.join(figure_dir_path, 'WGR velocities time series.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+    plt.close()
+
+    """ Second figure """
+    fig, host = plt.subplots(figsize=(16, 4.5))
+    fig.subplots_adjust(right=0.75)
+
+    par1 = host.twinx()
+    par2 = host.twinx()
+
+    # Offset the right spine of par2.  The ticks and label have already been placed on the right by twinx above.
+    par2.spines['right'].set_position(('axes', 1.1))
+
+    # Having been created by twinx, par2 has its frame off, so the line of its detached spine is invisible.  First,
+    # activate the frame but make the patch and spines invisible.
+    make_patch_spines_invisible(par2)
+
+    # Second, show the right spine.
+    par2.spines['right'].set_visible(True)
+
+    host.fill_between(dates, 0, alpha_WGR, color='lightgray')
+
+    p1, = host.plot(dates, alpha_WGR, 'lightgray')
+    p2, = par1.plot(dates, 3600*24*365 * w_Ekman_WGR, 'red')
+    p3, = par2.plot(dates, 3600*24*365 * w_Ekman_geo_WGR, 'black')
+
+    par2.axhline(linewidth=1, color='black', linestyle='dashed')
+
+    host.set_xlim(dates[0], dates[-1])
+    host.set_ylim(0, 1)
+    par1.set_ylim(-20, 100)
+    par2.set_ylim(-20, 100)
+
+    host.set_xlabel('Date')
+    host.set_ylabel(r'Mean sea ice fraction $\alpha$')
+    par1.set_ylabel(r'Mean Ekman pumping (no $u_{geo}$) (m/year)', color='red')
+    par2.set_ylabel(r'Mean Ekman pumping (with $u_{geo}$) (m/year)')
+
+    # host.yaxis.label.set_color(p1.get_color())
+    # par1.yaxis.label.set_color(p2.get_color())
+    # par2.yaxis.label.set_color(p3.get_color())
+
+    tkw = dict(size=4, width=1.5)
+    # host.tick_params(axis='y', colors=p1.get_color(), **tkw)
+    par1.tick_params(axis='y', colors=p2.get_color(), **tkw)
+    par2.tick_params(axis='y', colors=p3.get_color(), **tkw)
+    host.tick_params(axis='x', **tkw)
+
+    # lines = [p1, p2, p3]
+    # host.legend(lines, [l.get_label() for l in lines])
+
+    plt.title(r'30-day running mean of Ekman pumping (with and without $u_{geo}$) in the Weddell Gyre Region')
+
+    alpha_patch = mpatches.Patch(color='lightgray', label='Sea ice fraction')
+    w_Ekman_patch = mpatches.Patch(color='red', label=r'Ekman pumping (no $u_{geo}$)')
+    w_Ekman_geo_patch = mpatches.Patch(color='black', label=r'Ekman pumping (with $u_{geo}$)')
+
+    plt.legend(handles=[alpha_patch, w_Ekman_patch, w_Ekman_geo_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.2, 1, -0.2), ncol=3, mode='expand', borderaxespad=0, framealpha=0)
+
+    png_filepath = os.path.join(figure_dir_path, 'WGR Ekman pumping time series.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+    plt.close()
+
+
+def make_u_geo_climo_fig():
+    from os import path
+    import netCDF4
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import figure_dir_path, data_dir_path
+
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2011, year_end=2016)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+    #                                      year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    lons, lats, climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
+    climo_tau_y_field = get_field_from_netcdf(climo_filepath, 'tau_y')[2]
+    climo_alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+    climo_u_geo_field = get_field_from_netcdf(climo_filepath, 'geo_u')[2]
+    climo_v_geo_field = get_field_from_netcdf(climo_filepath, 'geo_v')[2]
+
+    # climo_tau_x_field, lons_tau = cartopy.util.add_cyclic_point(climo_tau_x_field, coord=lons)
+    # climo_tau_y_field, lons_tau = cartopy.util.add_cyclic_point(climo_tau_y_field, coord=lons)
+
+    import astropy.convolution
+    kernel = astropy.convolution.Box2DKernel(10)
+    # kernel = astropy.convolution.Gaussian2DKernel(2)
+    climo_u_geo_field = astropy.convolution.convolve(climo_u_geo_field, kernel, boundary='wrap')
+    climo_v_geo_field = astropy.convolution.convolve(climo_v_geo_field, kernel, boundary='wrap')
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    # Compute a circle in axes coordinates, which we can use as a boundary for the map. We can pan/zoom as much as we
+    # like - the boundary will be permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+
+    fig = plt.figure(figsize=(16, 9))
+    gs = GridSpec(1, 2)
+    matplotlib.rcParams.update({'font.size': 10})
+
+    """ Plot u_geo """
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+
+    ax1 = plt.subplot(121, projection=crs_sps)
+
+    ax1.add_feature(land_50m)
+    ax1.add_feature(ice_50m)
+    ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+
+    gl1 = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl1.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl1.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im1 = ax1.pcolormesh(lons, lats, climo_u_geo_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-0.10, vmax=0.10)
+    # im1 = ax1.contourf(lons, lats, climo_u_geo_field, levels=np.arange(-0.10, 0.12, 0.02),
+    #                    transform=vector_crs, cmap=cmocean.cm.balance, vmin=-0.10, vmax=0.10, extend='both')
+
+    Q = ax1.quiver(lons[::10], lats[::10], climo_u_geo_field[::10, ::10], climo_v_geo_field[::10, ::10],
+                   color='black', pivot='middle', transform=vector_crs, units='width', width=0.002, scale=4)
+
+    plt.quiverkey(Q, 0.33, 0.88, 0.1, r'0.1 m/s', labelpos='E', coordinates='figure',
+                  fontproperties={'size': 11}, transform=ax1.transAxes)
+
+    # ax1.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    # ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+    #             colors='green', linewidths=2, transform=vector_crs)
+
+    ax1.add_patch(mpatches.Rectangle(xy=[-60, -68], width=90, height=13, transform=ccrs.PlateCarree(),
+                                    edgecolor='gold', linewidth=2, linestyle='solid', facecolor='none'))
+
+    ax1.text(0.49,  1.01,  '0°',   transform=ax1.transAxes)
+    ax1.text(1.01,  0.49,  '90°E', transform=ax1.transAxes)
+    ax1.text(0.47,  -0.03, '180°', transform=ax1.transAxes)
+    ax1.text(-0.09, 0.49,  '90°W', transform=ax1.transAxes)
+    ax1.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax1.transAxes)
+    ax1.text(0.85,  0.125, '135°E', rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax1.transAxes)
+
+    ax1.text(0.50, 1.05, r'Zonal component $u_{geo}$', fontsize=14, va='bottom', ha='center', rotation='horizontal',
+             rotation_mode='anchor', transform=ax1.transAxes)
+
+    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'm/s')
+
+    # zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    # ice_edge_patch = mpatches.Patch(color='black', label=r'15% ice edge')
+    # plt.legend(handles=[zero_stress_line_patch, ice_edge_patch], loc='lower center',
+    #            bbox_to_anchor=(0, -0.15, 1, -0.15), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
+
+    plt.suptitle(r'Southern Ocean geostrophic current velocity $\mathbf{u}_{geo}$', fontsize=16)
+
+    """ Plot v_geo """
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+
+    ax2 = plt.subplot(122, projection=crs_sps)
+
+    ax2.add_feature(land_50m)
+    ax2.add_feature(ice_50m)
+    ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+
+    gl2 = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl2.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl2.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im2 = ax2.pcolormesh(lons, lats, climo_v_geo_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-0.10, vmax=0.10)
+
+    Q = ax2.quiver(lons[::10], lats[::10], climo_u_geo_field[::10, ::10], climo_v_geo_field[::10, ::10],
+                   pivot='middle', transform=vector_crs, units='width', width=0.002, scale=4)
+
+    # plt.quiverkey(Q, 0.33, 0.88, 0.1, r'0.1 m/s', labelpos='E', coordinates='figure',
+    #               fontproperties={'size': 11}, transform=ax1.transAxes)
+
+    # ax2.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+    #             levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    # ax2.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+    #             colors='green', linewidths=2, transform=vector_crs)
+
+    ax2.add_patch(mpatches.Rectangle(xy=[-60, -68], width=90, height=13, transform=ccrs.PlateCarree(),
+                                     edgecolor='gold', linewidth=2, linestyle='solid', facecolor='none'))
+
+    ax2.text(0.49,  1.01,  '0°',   transform=ax2.transAxes)
+    ax2.text(1.01,  0.49,  '90°E', transform=ax2.transAxes)
+    ax2.text(0.47,  -0.03, '180°', transform=ax2.transAxes)
+    ax2.text(-0.09, 0.49,  '90°W', transform=ax2.transAxes)
+    ax2.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax2.transAxes)
+    ax2.text(0.85,  0.125, '135°E', rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax2.transAxes)
+
+    ax2.text(0.50, 1.05, r'Meridional component $v_{geo}$', fontsize=14, va='bottom', ha='center',
+             rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
+
+    clb = fig.colorbar(im2, ax=ax2, extend='both', fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'm/s')
+
+    png_filepath = os.path.join(figure_dir_path, 'u_geo_climo_figure.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
@@ -2908,7 +3474,7 @@ if __name__ == '__main__':
     # plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=250)
 
     # make_figure1()
-    # make_tau_climo_fig()
+    make_tau_climo_fig()
     # make_ugeo_uice_figure()
     # make_tau_climo_fig()
     # make_uEk_climo_fig()
@@ -2919,7 +3485,11 @@ if __name__ == '__main__':
     # make_streamwise_averaged_plots()
     # make_zonal_average_plots()
     # make_melt_rate_plots()
-    look_for_ice_ocean_governor()
 
     # compare_zzsl_with_gamma_contour()
     # compare_zzsl_with_pellichero_gamma()
+
+    # look_for_ice_ocean_governor()
+    # plot_Wedell_Gyre_Ekman_pumping()
+    # plot_Weddell_Gyre_time_series()
+    # make_u_geo_climo_fig()
