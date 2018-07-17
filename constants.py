@@ -40,6 +40,10 @@ C_seawater = 0.0055  # Drag coefficient
 rho_0 = 1027.5  # "reference" density [kg/m^3]
 D_e = 20  # Ekman layer depth [m]
 
+# Estimate of the Osborne-Cox diffusivity in the Southern Ocean from Abernathey & Marhsall, "Global surface eddy
+# diffusivities derived from satellite altimetry", JGR Oceans (2013)
+kappa = 400  # [m^2/s]
+
 """ Latitude-longitude interpolation grid constants """
 lat_min = -80
 lat_max = -40
