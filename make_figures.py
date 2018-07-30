@@ -3445,6 +3445,155 @@ def make_u_geo_climo_fig():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
 
 
+def make_melting_freezing_rate_term_plots():
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import output_dir_path, figure_dir_path
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2011, year_end=2016)
+
+    climo_filepath = os.path.join(output_dir_path, 'melting_freezing_rate_2011-01-01_2016-12-31.nc')
+
+    # feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
+    #                                          year_start=2005, year_end=2015)
+    # sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
+    #                                          year_start=2005, year_end=2015)
+
+    lons, lats, div_field = get_field_from_netcdf(climo_filepath, 'div')
+
+    Ekman_term_field = get_field_from_netcdf(climo_filepath, 'Ekman_term')[2]
+    geo_term_field = get_field_from_netcdf(climo_filepath, 'geo_term')[2]
+    diffusion_term_field = get_field_from_netcdf(climo_filepath, 'diffusion_term')[2]
+
+    # climo_u_geo_field, lons_geo = cartopy.util.add_cyclic_point(climo_u_geo_field, coord=lons)
+    # climo_v_geo_field, lons_geo = cartopy.util.add_cyclic_point(climo_v_geo_field, coord=lons)
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(16, 12))
+    matplotlib.rcParams.update({'font.size': 10})
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+
+    ax1 = plt.subplot(221, projection=ccrs.SouthPolarStereo())
+
+    ax1.set_boundary(circle, transform=ax1.transAxes)
+    ax1.add_feature(land_50m)
+    ax1.add_feature(ice_50m)
+    ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im1 = ax1.pcolormesh(lons, lats, div_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-1, vmax=1)
+
+    ax1.text(0.49,  1.01,  '0°',   transform=ax1.transAxes)
+    ax1.text(1.01,  0.49,  '90°E', transform=ax1.transAxes)
+    ax1.text(0.47,  -0.03, '180°', transform=ax1.transAxes)
+    ax1.text(-0.09, 0.49,  '90°W', transform=ax1.transAxes)
+    ax1.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax1.transAxes)
+    ax1.text(0.85,  0.125, '135°E', rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax1.transAxes)
+
+    ax1.text(0.505, 1.05, r'Sea ice advection $\nabla\cdot(\alpha h_{ice} \mathbf{u}_{ice})$', fontsize=14,
+             va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor', transform=ax1.transAxes)
+
+    # plt.suptitle(r'Figure 3: Geostrophic current $\mathbf{u}_g$ and ice drift $\mathbf{u}_i$ observations, '
+    #              'winter (JAS) mean', fontsize=16)
+
+    ax2 = plt.subplot(222, projection=ccrs.SouthPolarStereo())
+
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.add_feature(land_50m)
+    ax2.add_feature(ice_50m)
+    ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im2 = ax2.pcolormesh(lons, lats, Ekman_term_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-1, vmax=1)
+
+    ax2.text(0.49,  1.01,  '0°',   transform=ax2.transAxes)
+    ax2.text(1.01,  0.49,  '90°E', transform=ax2.transAxes)
+    ax2.text(0.47,  -0.03, '180°', transform=ax2.transAxes)
+    ax2.text(-0.09, 0.49,  '90°W', transform=ax2.transAxes)
+    ax2.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax2.transAxes)
+    ax2.text(0.85,  0.125, '135°E', rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax2.transAxes)
+
+    ax1.text(0.505, 1.05, r'Ekman advection $\frac{\mathcal{U}_{Ek} \cdot \nabla S}{S}$', fontsize=14,
+             va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
+
+    ax3 = plt.subplot(223, projection=ccrs.SouthPolarStereo())
+
+    ax3.set_boundary(circle, transform=ax3.transAxes)
+    ax3.add_feature(land_50m)
+    ax3.add_feature(ice_50m)
+    ax3.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im3 = ax3.pcolormesh(lons, lats, geo_term_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-1, vmax=1)
+
+    ax3.text(0.49,  1.01,  '0°',   transform=ax3.transAxes)
+    ax3.text(1.01,  0.49,  '90°E', transform=ax3.transAxes)
+    ax3.text(0.47,  -0.03, '180°', transform=ax3.transAxes)
+    ax3.text(-0.09, 0.49,  '90°W', transform=ax3.transAxes)
+    ax3.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax3.transAxes)
+    ax3.text(0.85,  0.125, '135°E', rotation=-45, transform=ax3.transAxes)
+    ax3.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax3.transAxes)
+    ax3.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax3.transAxes)
+
+    ax3.text(0.50, 1.05, r'Geostrophic advection $(D_e / S) \mathbf{u}_{geo} \cdot \nabla S$', fontsize=14, va='bottom', ha='center',
+             rotation='horizontal', rotation_mode='anchor', transform=ax3.transAxes)
+
+    ax4 = plt.subplot(224, projection=ccrs.SouthPolarStereo())
+
+    ax4.set_boundary(circle, transform=ax4.transAxes)
+    ax4.add_feature(land_50m)
+    ax4.add_feature(ice_50m)
+    ax4.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    im4 = ax4.pcolormesh(lons, lats, diffusion_term_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                         vmin=-1, vmax=1)
+
+    ax4.text(0.49,  1.01,  '0°',   transform=ax4.transAxes)
+    ax4.text(1.01,  0.49,  '90°E', transform=ax4.transAxes)
+    ax4.text(0.47,  -0.03, '180°', transform=ax4.transAxes)
+    ax4.text(-0.09, 0.49,  '90°W', transform=ax4.transAxes)
+    ax4.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax4.transAxes)
+    ax4.text(0.85,  0.125, '135°E', rotation=-45, transform=ax4.transAxes)
+    ax4.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax4.transAxes)
+    ax4.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax4.transAxes)
+
+    ax4.text(0.50, 1.05, r'Diffusion $\kappa \nabla^2 S$', fontsize=14, va='bottom', ha='center',
+             rotation='horizontal', rotation_mode='anchor', transform=ax4.transAxes)
+
+    fig.subplots_adjust(right=0.9)
+    cbar_ax = fig.add_axes([0.90, 0.15, 0.015, 0.7])
+    clb = fig.colorbar(im4, cax=cbar_ax, extend='both')
+    clb.ax.set_title(r'm/year')
+
+    png_filepath = os.path.join(figure_dir_path, 'melting_freezing_rate_terms.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
@@ -3474,7 +3623,7 @@ if __name__ == '__main__':
     # plot_meridional_gamma_profiles(time_span='A5B2', grid_size='04', field_type='an', lon=75, split_depth=250)
 
     # make_figure1()
-    make_tau_climo_fig()
+    # make_tau_climo_fig()
     # make_ugeo_uice_figure()
     # make_tau_climo_fig()
     # make_uEk_climo_fig()
@@ -3493,3 +3642,5 @@ if __name__ == '__main__':
     # plot_Wedell_Gyre_Ekman_pumping()
     # plot_Weddell_Gyre_time_series()
     # make_u_geo_climo_fig()
+
+    make_melting_freezing_rate_term_plots()
