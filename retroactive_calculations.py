@@ -20,10 +20,13 @@ np.set_printoptions(precision=4)
 
 def retroactively_compute_sea_ice_advection():
     start_date = datetime.date(2005, 1, 1)
-    end_date = datetime.date(2015, 12, 31)
+    end_date = datetime.date(2005, 12, 31)
     dates = date_range(start_date, end_date)
 
     h_ice_dataset = SeaIceThicknessDataset(start_date)
+
+    import constants
+    constants.output_dir_path = 'D:\\output\\'
 
     try:
         tau_filepath = get_netCDF_filepath(field_type='daily', date=start_date)
@@ -76,6 +79,13 @@ def retroactively_compute_sea_ice_advection():
             for j in range(len(lons)):
                 h_ice_daily_field[i][j] = h_ice_dataset.sea_ice_thickness(i, j, date)
 
+        # import astropy.convolution
+        # kernel = astropy.convolution.Box2DKernel(10)
+        # alpha_daily_field = astropy.convolution.convolve(alpha_daily_field, kernel, boundary='wrap')
+        # h_ice_daily_field = astropy.convolution.convolve(h_ice_daily_field, kernel, boundary='wrap')
+        # u_ice_daily_field = astropy.convolution.convolve(u_ice_daily_field, kernel, boundary='wrap')
+        # v_ice_daily_field = astropy.convolution.convolve(v_ice_daily_field, kernel, boundary='wrap')
+
         i_max = len(lats) - 1
         j_max = len(lons) - 1
 
@@ -94,16 +104,25 @@ def retroactively_compute_sea_ice_advection():
                 jm1 = (j - 1) % j_max
                 jp1 = (j + 1) % j_max
 
+                u_ice_ij = u_ice_daily_field[i][j]
                 u_ice_i_jp1 = u_ice_daily_field[i][jp1]
                 u_ice_i_jm1 = u_ice_daily_field[i][jm1]
+                u_ice_ip1_j = u_ice_daily_field[i+1][j]
+                u_ice_im1_j = u_ice_daily_field[i-1][j]
+
+                v_ice_ij = v_ice_daily_field[i][j]
                 v_ice_ip1_j = v_ice_daily_field[i+1][j]
                 v_ice_im1_j = v_ice_daily_field[i-1][j]
+                v_ice_i_jp1 = v_ice_daily_field[i][jp1]
+                v_ice_i_jm1 = v_ice_daily_field[i][jm1]
 
+                alpha_ij = alpha_daily_field[i][j]
                 alpha_i_jp1 = alpha_daily_field[i][jp1]
                 alpha_i_jm1 = alpha_daily_field[i][jm1]
                 alpha_ip1_j = alpha_daily_field[i+1][j]
                 alpha_im1_j = alpha_daily_field[i-1][j]
 
+                h_ice_ij = h_ice_daily_field[i][j]
                 h_ice_i_jp1 = h_ice_daily_field[i][jp1]
                 h_ice_i_jm1 = h_ice_daily_field[i][jm1]
                 h_ice_ip1_j = h_ice_daily_field[i+1][j]
@@ -125,6 +144,12 @@ def retroactively_compute_sea_ice_advection():
                     div_daily_field[i][j] = C_fw * (div_x + div_y)
                 else:
                     div_daily_field[i][j] = np.nan
+
+                
+
+        # import astropy.convolution
+        # kernel = astropy.convolution.Box2DKernel(10)
+        # div_daily_field = astropy.convolution.convolve(div_daily_field, kernel, boundary='wrap')
 
         alpha_avg_field = alpha_avg_field + np.nan_to_num(alpha_daily_field)
         alpha_daily_field[~np.isnan(alpha_daily_field)] = 1
@@ -167,7 +192,7 @@ def retroactively_compute_sea_ice_advection():
     h_ice_avg_field = np.divide(h_ice_avg_field, h_ice_day_field)
     zonal_div_avg_field = np.divide(zonal_div_avg_field, zonal_div_day_field)
     merid_div_avg_field = np.divide(merid_div_avg_field, merid_div_day_field)
-    div_avg_field = np.divide(div_avg_field, div_day_field)
+    div_avg_field = 3600*24*365 * np.divide(div_avg_field, div_day_field)
 
     nc_dir = os.path.dirname(output_dir_path)
     nc_filepath = os.path.join(nc_dir, 'ice_flux_div_{:}_{:}.nc'.format(start_date, end_date))
@@ -488,5 +513,5 @@ def retroactively_compute_melting_freezing_rate():
 
 
 if __name__ == '__main__':
-    # retroactively_compute_sea_ice_advection()
-    retroactively_compute_melting_freezing_rate()
+    retroactively_compute_sea_ice_advection()
+    # retroactively_compute_melting_freezing_rate()
