@@ -40,6 +40,12 @@ C_seawater = 0.0055  # Drag coefficient
 rho_0 = 1027.5  # "reference" density [kg/m^3]
 D_e = 20  # Ekman layer depth [m]
 
+rho_ice = 925  # [kg/m^3] nominal sea ice density
+rho_fw = 1000  # [kg/m^3] reference freshwater density
+s_ice = 6    # [g/kg] sea oce salinity
+s_sw = 34.7  # [g/kg] reference seawater salinity
+C_fw = rho_ice * (1 - s_ice/s_sw) / rho_fw  # conversion factor between sea ice volume flux to a freshwater equivalent
+
 # Estimate of the Osborne-Cox diffusivity in the Southern Ocean from Abernathey & Marhsall, "Global surface eddy
 # diffusivities derived from satellite altimetry", JGR Oceans (2013)
 kappa = 400  # [m^2/s]

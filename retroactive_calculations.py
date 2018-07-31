@@ -12,7 +12,7 @@ logging.config.fileConfig('logging.ini')
 logger = logging.getLogger(__name__)
 
 from SeaIceThicknessDataset import SeaIceThicknessDataset
-from constants import output_dir_path
+from constants import output_dir_path, C_fw
 from utils import date_range, distance, log_netCDF_dataset_metadata, get_netCDF_filepath
 
 np.set_printoptions(precision=4)
@@ -122,7 +122,7 @@ def retroactively_compute_sea_ice_advection():
                     merid_div_daily_field[i][j] = np.nan
 
                 if not np.isnan(zonal_div_daily_field[i][j]) and not np.isnan(merid_div_daily_field[i][j]):
-                    div_daily_field[i][j] = div_x + div_y
+                    div_daily_field[i][j] = C_fw * (div_x + div_y)
                 else:
                     div_daily_field[i][j] = np.nan
 
