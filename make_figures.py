@@ -2593,14 +2593,12 @@ def compare_zzsl_with_pellichero_gamma():
 
 
 def make_melt_rate_plots():
-    from os import path
-    import netCDF4
     from utils import get_netCDF_filepath, get_field_from_netcdf
     from constants import figure_dir_path, data_dir_path
 
-    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
-    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='OND',
-                                         year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='OND',
+    #                                      year_start=2005, year_end=2015)
 
     lons, lats, ice_flux_div_field = get_field_from_netcdf(climo_filepath, 'ice_flux_div')
     melt_rate_field = get_field_from_netcdf(climo_filepath, 'melt_rate')[2]
@@ -2645,8 +2643,8 @@ def make_melt_rate_plots():
     gl1.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
     gl1.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
 
-    im1 = ax1.pcolormesh(lons, lats, 3600*24*365*ice_flux_div_field,
-                         transform=vector_crs, cmap=cmocean.cm.balance, vmin=-4, vmax=4)
+    im1 = ax1.pcolormesh(lons, lats, np.ma.array(3600*24*365*ice_flux_div_field, mask=(climo_alpha_field < 0.15)),
+                         transform=vector_crs, cmap=cmocean.cm.balance, vmin=-2, vmax=2)
 
     ax1.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
                 levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
@@ -2673,7 +2671,7 @@ def make_melt_rate_plots():
     plt.legend(handles=[zero_stress_line_patch, ice_edge_patch], loc='lower center',
                bbox_to_anchor=(0, -0.15, 1, -0.15), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
 
-    plt.suptitle(r'spring (OND) mean', fontsize=16)
+    plt.suptitle(r'Annual mean', fontsize=16)
 
     """ Plot melt_rate """
     crs_sps = ccrs.SouthPolarStereo()
@@ -3633,7 +3631,7 @@ if __name__ == '__main__':
     # make_streamwise_coordinate_map()
     # make_streamwise_averaged_plots()
     # make_zonal_average_plots()
-    # make_melt_rate_plots()
+    make_melt_rate_plots()
 
     # compare_zzsl_with_gamma_contour()
     # compare_zzsl_with_pellichero_gamma()
@@ -3643,4 +3641,4 @@ if __name__ == '__main__':
     # plot_Weddell_Gyre_time_series()
     # make_u_geo_climo_fig()
 
-    make_melting_freezing_rate_term_plots()
+    # make_melting_freezing_rate_term_plots()

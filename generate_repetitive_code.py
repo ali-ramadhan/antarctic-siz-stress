@@ -14,7 +14,7 @@ varz = ['tau_air_x_field', 'tau_air_y_field', 'tau_ice_x_field', 'tau_ice_y_fiel
 #     print('self.{:s} = np.divide({:s}_avg, {:s}_days)'.format(s, s, s))
 
 varz2 = ['alpha', 'u_ice', 'v_ice', 'h_ice', 'zonal_div', 'merid_div', 'div',
-         'hu_dadx', 'au_dhdx', 'ah_dudx', 'hv_dady', 'av_dhdy', 'ah_dvdy']
+         'hu_dadx', 'au_dhdx', 'ah_dudx', 'hv_dady', 'av_dhdy', 'ah_dvdy', 'div2']
 
 for var in varz2:
     print('{:s}_avg_field = {:s}_avg_field + np.nan_to_num({:s}_daily_field)'.format(var, var, var))
