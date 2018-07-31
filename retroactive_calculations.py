@@ -19,8 +19,8 @@ np.set_printoptions(precision=4)
 
 
 def retroactively_compute_sea_ice_advection():
-    start_date = datetime.date(2005, 1, 1)
-    end_date = datetime.date(2005, 12, 31)
+    start_date = datetime.date(2005, 9, 1)
+    end_date = datetime.date(2005, 9, 10)
     dates = date_range(start_date, end_date)
 
     h_ice_dataset = SeaIceThicknessDataset(start_date)
@@ -52,6 +52,19 @@ def retroactively_compute_sea_ice_advection():
     div_avg_field = np.zeros((len(lats), len(lons)))
     div_day_field = np.zeros((len(lats), len(lons)))
 
+    hu_dadx_avg_field = np.zeros((len(lats), len(lons)))
+    au_dhdx_avg_field = np.zeros((len(lats), len(lons)))
+    ah_dudx_avg_field = np.zeros((len(lats), len(lons)))
+    hv_dady_avg_field = np.zeros((len(lats), len(lons)))
+    av_dhdy_avg_field = np.zeros((len(lats), len(lons)))
+    ah_dvdy_avg_field = np.zeros((len(lats), len(lons)))
+    hu_dadx_day_field = np.zeros((len(lats), len(lons)))
+    au_dhdx_day_field = np.zeros((len(lats), len(lons)))
+    ah_dudx_day_field = np.zeros((len(lats), len(lons)))
+    hv_dady_day_field = np.zeros((len(lats), len(lons)))
+    av_dhdy_day_field = np.zeros((len(lats), len(lons)))
+    ah_dvdy_day_field = np.zeros((len(lats), len(lons)))
+
     for date in dates:
         tau_filepath = get_netCDF_filepath(field_type='daily', date=date)
 
@@ -73,6 +86,13 @@ def retroactively_compute_sea_ice_advection():
         zonal_div_daily_field = np.zeros((len(lats), len(lons)))
         merid_div_daily_field = np.zeros((len(lats), len(lons)))
         div_daily_field = np.zeros((len(lats), len(lons)))
+
+        hu_dadx_daily_field = np.zeros((len(lats), len(lons)))
+        au_dhdx_daily_field = np.zeros((len(lats), len(lons)))
+        ah_dudx_daily_field = np.zeros((len(lats), len(lons)))
+        hv_dady_daily_field = np.zeros((len(lats), len(lons)))
+        av_dhdy_daily_field = np.zeros((len(lats), len(lons)))
+        ah_dvdy_daily_field = np.zeros((len(lats), len(lons)))
 
         # Load h_ice field for the day (i.e. the correct seasonal field).
         for i in range(len(lats)):
@@ -145,7 +165,35 @@ def retroactively_compute_sea_ice_advection():
                 else:
                     div_daily_field[i][j] = np.nan
 
-                
+                if not np.isnan(alpha_i_jm1) and not np.isnan(alpha_i_jp1):
+                    hu_dadx_daily_field[i][j] = h_ice_ij * u_ice_ij * (alpha_i_jp1 - alpha_i_jm1) / dx
+                else:
+                    hu_dadx_daily_field[i][j] = np.nan
+
+                if not np.isnan(h_ice_i_jm1) and not np.isnan(h_ice_i_jp1):
+                    au_dhdx_daily_field[i][j] = alpha_ij * u_ice_ij * (h_ice_i_jp1 - h_ice_i_jm1) / dx
+                else:
+                    au_dhdx_daily_field[i][j] = np.nan
+
+                if not np.isnan(u_ice_i_jm1) and not np.isnan(u_ice_i_jp1):
+                    ah_dudx_daily_field[i][j] = alpha_ij * h_ice_ij * (u_ice_i_jp1 - u_ice_i_jm1) / dx
+                else:
+                    ah_dudx_daily_field[i][j] = np.nan
+
+                if not np.isnan(alpha_im1_j) and np.isnan(alpha_ip1_j):
+                    hv_dady_daily_field[i][j] = h_ice_ij * v_ice_ij * (alpha_ip1_j - alpha_im1_j) / dy
+                else:
+                    hv_dady_daily_field[i][j] = np.nan
+
+                if not np.isnan(h_ice_im1_j) and np.isnan(h_ice_ip1_j):
+                    av_dhdy_daily_field[i][j] = alpha_ij * v_ice_ij * (h_ice_ip1_j - h_ice_im1_j) / dy
+                else:
+                    av_dhdy_daily_field[i][j] = np.nan
+
+                if not np.isnan(v_ice_im1_j) and np.isnan(v_ice_ip1_j):
+                    ah_dvdy_daily_field[i][j] = alpha_ij * h_ice_ij * (v_ice_ip1_j - v_ice_im1_j) / dy
+                else:
+                    ah_dvdy_daily_field[i][j] = np.nan
 
         # import astropy.convolution
         # kernel = astropy.convolution.Box2DKernel(10)
@@ -186,6 +234,36 @@ def retroactively_compute_sea_ice_advection():
         div_daily_field[np.isnan(div_daily_field)] = 0
         div_day_field = div_day_field + div_daily_field
 
+        hu_dadx_avg_field = hu_dadx_avg_field + np.nan_to_num(hu_dadx_daily_field)
+        hu_dadx_daily_field[~np.isnan(hu_dadx_daily_field)] = 1
+        hu_dadx_daily_field[np.isnan(hu_dadx_daily_field)] = 0
+        hu_dadx_day_field = hu_dadx_day_field + hu_dadx_daily_field
+
+        au_dhdx_avg_field = au_dhdx_avg_field + np.nan_to_num(au_dhdx_daily_field)
+        au_dhdx_daily_field[~np.isnan(au_dhdx_daily_field)] = 1
+        au_dhdx_daily_field[np.isnan(au_dhdx_daily_field)] = 0
+        au_dhdx_day_field = au_dhdx_day_field + au_dhdx_daily_field
+
+        ah_dudx_avg_field = ah_dudx_avg_field + np.nan_to_num(ah_dudx_daily_field)
+        ah_dudx_daily_field[~np.isnan(ah_dudx_daily_field)] = 1
+        ah_dudx_daily_field[np.isnan(ah_dudx_daily_field)] = 0
+        ah_dudx_day_field = ah_dudx_day_field + ah_dudx_daily_field
+
+        hv_dady_avg_field = hv_dady_avg_field + np.nan_to_num(hv_dady_daily_field)
+        hv_dady_daily_field[~np.isnan(hv_dady_daily_field)] = 1
+        hv_dady_daily_field[np.isnan(hv_dady_daily_field)] = 0
+        hv_dady_day_field = hv_dady_day_field + hv_dady_daily_field
+
+        av_dhdy_avg_field = av_dhdy_avg_field + np.nan_to_num(av_dhdy_daily_field)
+        av_dhdy_daily_field[~np.isnan(av_dhdy_daily_field)] = 1
+        av_dhdy_daily_field[np.isnan(av_dhdy_daily_field)] = 0
+        av_dhdy_day_field = av_dhdy_day_field + av_dhdy_daily_field
+
+        ah_dvdy_avg_field = ah_dvdy_avg_field + np.nan_to_num(ah_dvdy_daily_field)
+        ah_dvdy_daily_field[~np.isnan(ah_dvdy_daily_field)] = 1
+        ah_dvdy_daily_field[np.isnan(ah_dvdy_daily_field)] = 0
+        ah_dvdy_day_field = ah_dvdy_day_field + ah_dvdy_daily_field
+
     alpha_avg_field = np.divide(alpha_avg_field, alpha_day_field)
     u_ice_avg_field = np.divide(u_ice_avg_field, u_ice_day_field)
     v_ice_avg_field = np.divide(v_ice_avg_field, v_ice_day_field)
@@ -193,6 +271,13 @@ def retroactively_compute_sea_ice_advection():
     zonal_div_avg_field = np.divide(zonal_div_avg_field, zonal_div_day_field)
     merid_div_avg_field = np.divide(merid_div_avg_field, merid_div_day_field)
     div_avg_field = 3600*24*365 * np.divide(div_avg_field, div_day_field)
+
+    hu_dadx_avg_field = np.divide(hu_dadx_avg_field, hu_dadx_day_field)
+    au_dhdx_avg_field = np.divide(au_dhdx_avg_field, au_dhdx_day_field)
+    ah_dudx_avg_field = np.divide(ah_dudx_avg_field, ah_dudx_day_field)
+    hv_dady_avg_field = np.divide(hv_dady_avg_field, hv_dady_day_field)
+    av_dhdy_avg_field = np.divide(av_dhdy_avg_field, av_dhdy_day_field)
+    ah_dvdy_avg_field = np.divide(ah_dvdy_avg_field, ah_dvdy_day_field)
 
     nc_dir = os.path.dirname(output_dir_path)
     nc_filepath = os.path.join(nc_dir, 'ice_flux_div_{:}_{:}.nc'.format(start_date, end_date))
@@ -233,7 +318,13 @@ def retroactively_compute_sea_ice_advection():
         'h_ice': h_ice_avg_field,
         'zonal_div': zonal_div_avg_field,
         'merid_div': merid_div_avg_field,
-        'div': div_avg_field
+        'div': div_avg_field,
+        'hu_dadx': hu_dadx_avg_field,
+        'au_dhdx': au_dhdx_avg_field,
+        'ah_dudx': ah_dudx_avg_field,
+        'hv_dady': hv_dady_avg_field,
+        'av_dhdy': av_dhdy_avg_field,
+        'ah_dvdy': ah_dvdy_avg_field
     }
 
     for var_name in var_fields.keys():
