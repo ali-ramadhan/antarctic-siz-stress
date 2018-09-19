@@ -399,20 +399,24 @@ def get_netCDF_filepath(field_type, date=None, season_str=None, year_start=None,
 
 
 def get_field_from_netcdf(tau_filepath, var):
+    import sys
     import netCDF4
 
     try:
         tau_dataset = netCDF4.Dataset(tau_filepath)
         log_netCDF_dataset_metadata(tau_dataset)
+
+        lats = np.array(tau_dataset.variables['lat'])
+        lons = np.array(tau_dataset.variables['lon'])
+        field = np.array(tau_dataset.variables[var])
+
+        return lons, lats, field
+
     except Exception as e:
         logger.error('{}'.format(e))
         logger.error('Dataset not found: {:s}'.format(tau_filepath))
 
-    lats = np.array(tau_dataset.variables['lat'])
-    lons = np.array(tau_dataset.variables['lon'])
-    field = np.array(tau_dataset.variables[var])
-
-    return lons, lats, field
+        sys.exit('Dataset not found: {:s}'.format(tau_filepath))
 
 
 def get_contour_from_netcdf(tau_filepath, var, contour_level):
