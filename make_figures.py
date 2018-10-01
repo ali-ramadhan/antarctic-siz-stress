@@ -2166,6 +2166,126 @@ def make_salinity_figure():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 
 
+def make_urel_figure():
+    import constants
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import figure_dir_path, n_lat, n_lon
+
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2011, year_end=2016)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    #                                      year_start=2005, year_end=2015)
+
+    lons, lats, climo_u_ice_field = get_field_from_netcdf(climo_filepath, 'ice_u')
+    climo_v_ice_field = get_field_from_netcdf(climo_filepath, 'ice_v')[2]
+    climo_u_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_u')[2]
+    climo_v_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_v')[2]
+    climo_alpha_field = get_field_from_netcdf(climo_filepath, 'alpha')[2]
+
+    climo_u_geo_field = get_field_from_netcdf(climo_filepath, 'geo_u')[2]
+    climo_v_geo_field = get_field_from_netcdf(climo_filepath, 'geo_v')[2]
+
+    constants.output_dir_path = 'E:\\output\\'  # u_geo = 0
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2005, year_end=2015)
+    climo_u_Ekman_nogeo_field = get_field_from_netcdf(climo_filepath, 'Ekman_u')[2]
+    climo_v_Ekman_nogeo_field = get_field_from_netcdf(climo_filepath, 'Ekman_v')[2]
+
+    constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'  # With u_geo
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2011, year_end=2016)
+    climo_u_Ekman_total_field = get_field_from_netcdf(climo_filepath, 'Ekman_u')[2]
+    climo_v_Ekman_total_field = get_field_from_netcdf(climo_filepath, 'Ekman_v')[2]
+
+    climo_ice_mag_field = np.zeros((n_lat, n_lon))
+    climo_geo_mag_field = np.zeros((n_lat, n_lon))
+    climo_Ekman_mag_field = np.zeros((n_lat, n_lon))
+    climo_rel_mag_field = np.zeros((n_lat, n_lon))
+    climo_rel_ice_ratio_field = np.zeros((n_lat, n_lon))
+    climo_Ek_ratio_field = np.zeros((n_lat, n_lon))
+
+    for i in range(n_lat):
+        for j in range(n_lon):
+            climo_ice_mag_field[i][j] = np.sqrt(climo_u_ice_field[i][j]**2 + climo_v_ice_field[i][j]**2)
+            climo_Ekman_mag_field[i][j] = np.sqrt(climo_u_Ekman_field[i][j] ** 2 + climo_v_Ekman_field[i][j] ** 2)
+
+            climo_geo_mag_field[i][j] = np.sqrt(climo_u_geo_field[i][j] ** 2 + climo_v_geo_field[i][j] ** 2)
+
+            u_rel = climo_u_ice_field[i][j] - (climo_u_Ekman_field[i][j] + climo_u_geo_field[i][j])
+            v_rel = climo_v_ice_field[i][j] - (climo_v_Ekman_field[i][j] + climo_v_geo_field[i][j])
+            climo_rel_mag_field[i][j] = np.sqrt(u_rel**2 + v_rel**2)
+
+            climo_rel_ice_ratio_field[i][j] = climo_rel_mag_field[i][j] / climo_ice_mag_field[i][j]
+
+            u_Ek_nogeo_mag = np.sqrt(climo_u_Ekman_nogeo_field[i][j]**2 + climo_v_Ekman_total_field[i][j]**2)
+            u_Ek_total_mag = np.sqrt(climo_u_Ekman_total_field[i][j]**2 + climo_v_Ekman_total_field[i][j]**2)
+            climo_Ek_ratio_field[i][j] = u_Ek_total_mag / u_Ek_nogeo_mag
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(16, 9))
+    matplotlib.rcParams.update({'font.size': 10})
+
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+    ax = plt.subplot(111, projection=crs_sps)
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+    ax.set_boundary(circle, transform=ax.transAxes)
+
+    ax.add_feature(land_50m)
+    ax.add_feature(ice_50m)
+    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im = ax.contourf(lons, lats, climo_Ek_ratio_field, transform=vector_crs, cmap='seismic',
+                     vmin=0, vmax=2, levels=np.linspace(0, 2, 16), extend='both')
+
+    ax.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
+               levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+
+    ax.text(0.49,  1.01,  '0°',   transform=ax.transAxes)
+    ax.text(1.01,  0.49,  '90°E', transform=ax.transAxes)
+    ax.text(0.47,  -0.03, '180°', transform=ax.transAxes)
+    ax.text(-0.09, 0.49,  '90°W', transform=ax.transAxes)
+    ax.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax.transAxes)
+    ax.text(0.85,  0.125, '135°E', rotation=-45, transform=ax.transAxes)
+    ax.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax.transAxes)
+    ax.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax.transAxes)
+
+    clb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.1)
+    clb.ax.set_title(r'm/s')
+
+    plt.gcf().text(0.5, 0.95, r'$|\mathbf{u}_{Ek}(total)| / |\mathbf{u}_{Ek}(no geo)$, winter (JAS) mean', fontsize=14)
+
+    png_filepath = os.path.join(figure_dir_path, 'urel_mag_climo.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
 def make_streamwise_coordinate_map():
     from constants import figure_dir_path
     from utils import get_netCDF_filepath, get_field_from_netcdf
@@ -3670,12 +3790,13 @@ if __name__ == '__main__':
     # make_tau_climo_fig()
     # make_uEk_climo_fig()
     # make_curl_climo_fig()
+    make_urel_figure()
 
     # make_salinity_figure()
     # make_streamwise_coordinate_map()
     # make_streamwise_averaged_plots()
     # make_zonal_average_plots()
-    make_melt_rate_plots()
+    # make_melt_rate_plots()
 
     # compare_zzsl_with_gamma_contour()
     # compare_zzsl_with_pellichero_gamma()
