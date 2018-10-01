@@ -9,16 +9,16 @@ cwd = path.dirname(path.abspath(__file__))
 
 # Data directory string constants
 # data_dir_path = path.join(cwd, 'data')
-data_dir_path = 'D:\\data\\'
+data_dir_path = 'E:\\data\\'
 # data_dir_path = '/d1/alir/data/'
 
 # Output data directory
 # output_dir_path = path.join(cwd, 'output')
-output_dir_path = 'D:\\output\\'
-# output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+# output_dir_path = 'E:\\output\\'
+output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 # output_dir_path = '/d1/alir/output/'
 
-figure_dir_path = 'D:\\figures\\antarctic-siz-stress\\'
+figure_dir_path = 'E:\\figures\\antarctic-siz-stress\\'
 
 """ Physical constants """
 # Could use a theoretical gravity model: https://en.wikipedia.org/wiki/Theoretical_gravity

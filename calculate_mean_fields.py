@@ -192,4 +192,5 @@ if __name__ == '__main__':
     # for year in range(2005, 2014):
     #     produce_annual_mean(year)
 
-    produce_climatology(2011, 2016)
+    # produce_climatology(2011, 2016)
+    produce_seasonal_climatology(['JAS'], 2011, 2016)
