@@ -1211,7 +1211,9 @@ def make_tau_climo_fig():
     from utils import get_netCDF_filepath, get_field_from_netcdf
     from constants import figure_dir_path, data_dir_path
 
+    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
     climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2011, year_end=2016)
+
     # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
     #                                      year_start=2005, year_end=2015)
     # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
@@ -1292,8 +1294,8 @@ def make_tau_climo_fig():
     gl1.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
     gl1.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
 
-    im1 = ax1.pcolormesh(lons, lats, climo_tau_x_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-0.20, vmax=0.20)
+    im1 = ax1.contourf(lons, lats, climo_tau_x_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                       vmin=-0.20, vmax=0.20, levels=np.linspace(-0.20, 0.20, 16))
 
     Q1 = ax1.quiver(lons[::10], lats[::10],
                     np.ma.array(climo_tau_x_field, mask=(climo_alpha_field > 0.15))[::10, ::10],
@@ -1327,7 +1329,7 @@ def make_tau_climo_fig():
     ax1.text(0.50, 1.05, r'Zonal component $\tau_x$', fontsize=14, va='bottom', ha='center', rotation='horizontal',
              rotation_mode='anchor', transform=ax1.transAxes)
 
-    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1, ticks=np.linspace(-0.20, 0.20, 6))
     clb.ax.set_title(r'N/m$^2$')
 
     zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
@@ -1337,10 +1339,10 @@ def make_tau_climo_fig():
                bbox_to_anchor=(0, -0.15, 1, -0.15), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
 
     # plt.suptitle(r'Figure 2: Ocean surface stress $\mathbf{\tau}$ observations, winter (JAS) mean', fontsize=16)
-    # plt.suptitle(r'Figure 4: Ocean surface stress $\mathbf{\tau}$ observations, with geostrophic current, '
-    #              'winter (JAS) mean', fontsize=16)
-    plt.suptitle(r'Ocean surface stress $\mathbf{\tau}$ observations, with geostrophic current, annual mean',
-                 fontsize=16)
+    plt.suptitle(r'Figure 4: Ocean surface stress $\mathbf{\tau}$ observations, with geostrophic current, '
+                 'winter (JAS) mean', fontsize=16)
+    # plt.suptitle(r'Ocean surface stress $\mathbf{\tau}$ observations, with geostrophic current, annual mean',
+    #              fontsize=16)
 
     """ Plot tau_y """
     crs_sps = ccrs.SouthPolarStereo()
@@ -1357,8 +1359,8 @@ def make_tau_climo_fig():
     gl2.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
     gl2.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
 
-    im2 = ax2.pcolormesh(lons, lats, climo_tau_y_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-0.20, vmax=0.20)
+    im2 = ax2.contourf(lons, lats, climo_tau_y_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                       vmin=-0.20, vmax=0.20, levels=np.linspace(-0.20, 0.20, 16))
 
     ax2.quiver(lons[::10], lats[::10],
                np.ma.array(climo_tau_x_field, mask=(climo_alpha_field > 0.15))[::10, ::10],
@@ -1387,7 +1389,7 @@ def make_tau_climo_fig():
     ax2.text(0.50, 1.05, r'Meridional component $\tau_y$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
 
-    clb = fig.colorbar(im2, ax=ax2, extend='both', fraction=0.046, pad=0.1)
+    clb = fig.colorbar(im2, ax=ax2, extend='both', fraction=0.046, pad=0.1, ticks=np.linspace(-0.20, 0.20, 6))
     clb.ax.set_title(r'N/m$^2$')
 
     png_filepath = os.path.join(figure_dir_path, 'tau_climo_figure.png')
@@ -1406,15 +1408,15 @@ def make_uEk_climo_fig():
     from constants import figure_dir_path, D_e
 
     # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
-    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
-                                         year_start=2005, year_end=2015)
-    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
     #                                      year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                         year_start=2011, year_end=2016)
 
-    feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
-                                             year_start=2005, year_end=2015)
-    sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
-                                             year_start=2005, year_end=2015)
+    # feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
+    #                                          year_start=2005, year_end=2015)
+    # sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
+    #                                          year_start=2005, year_end=2015)
 
     lons, lats, climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
     climo_tau_y_field = get_field_from_netcdf(climo_filepath, 'tau_y')[2]
@@ -1422,8 +1424,8 @@ def make_uEk_climo_fig():
     climo_u_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_u')[2]
     climo_v_Ekman_field = get_field_from_netcdf(climo_filepath, 'Ekman_v')[2]
 
-    feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
-    sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
+    # feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
+    # sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
 
     # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
     # the smaller plots.
@@ -1461,8 +1463,8 @@ def make_uEk_climo_fig():
     gl1.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
     gl1.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
 
-    im1 = ax1.pcolormesh(lons, lats, D_e * climo_u_Ekman_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-2, vmax=2)
+    im1 = ax1.contourf(lons, lats, D_e * climo_u_Ekman_field, transform=vector_crs, cmap='BrBG',
+                       vmin=-2, vmax=2, levels=np.linspace(-2.0, 2.0, 16))
 
     Q1 = ax1.quiver(lons[::10], lats[::10],
                     np.ma.array(D_e * climo_u_Ekman_field, mask=(climo_alpha_field > 0.15))[::10, ::10],
@@ -1499,7 +1501,7 @@ def make_uEk_climo_fig():
     ax1.text(0.50, 1.05, r'Zonal component $\mathcal{U}_{Ek}$', fontsize=14, va='bottom', ha='center', rotation='horizontal',
              rotation_mode='anchor', transform=ax1.transAxes)
 
-    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1, ticks=np.linspace(-2, 2, 6))
     clb.ax.set_title(r'm$^2$/s')
 
     zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
@@ -1524,8 +1526,8 @@ def make_uEk_climo_fig():
     ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
     ax2.set_boundary(circle, transform=ax2.transAxes)
 
-    im2 = ax2.pcolormesh(lons, lats, D_e * climo_v_Ekman_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-2, vmax=2)
+    im2 = ax2.contourf(lons, lats, D_e * climo_v_Ekman_field, transform=vector_crs, cmap='BrBG',
+                       vmin=-2, vmax=2, levels=np.linspace(-2.0, 2.0, 16))
 
     ax2.quiver(lons[::10], lats[::10],
                np.ma.array(D_e * climo_u_Ekman_field, mask=(climo_alpha_field > 0.15))[::10, ::10],
@@ -1553,7 +1555,7 @@ def make_uEk_climo_fig():
     ax2.text(0.50, 1.05, r'Meridional component $\mathcal{V}_{Ek}$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
 
-    clb = fig.colorbar(im2, ax=ax2, extend='both', fraction=0.046, pad=0.1)
+    clb = fig.colorbar(im2, ax=ax2, extend='both', fraction=0.046, pad=0.1, ticks=np.linspace(-2, 2, 6))
     clb.ax.set_title(r'm$^2$/s')
 
     png_filepath = os.path.join(figure_dir_path, 'Ekman_transport_climo_figure.png')
@@ -1613,15 +1615,22 @@ def make_curl_climo_fig():
     circle = mpath.Path(verts * radius + center)
 
     """ Plot wind stress curl """
-    ax1 = plt.subplot(121, projection=ccrs.SouthPolarStereo())
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+
+    ax1 = plt.subplot(121, projection=crs_sps)
 
     ax1.set_boundary(circle, transform=ax1.transAxes)
     ax1.add_feature(land_50m)
     ax1.add_feature(ice_50m)
     ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
-    im1 = ax1.pcolormesh(lons, lats, climo_curl_field * 1e7, transform=vector_crs, cmap=cmocean.cm.curl,
-                         vmin=-5, vmax=5)
+    gl1 = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl1.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl1.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im1 = ax1.contourf(lons, lats, climo_curl_field * 1e7, transform=vector_crs, cmap=cmocean.cm.curl,
+                       vmin=-5, vmax=5, levels=np.linspace(-5, 5, 16), extend='both')
 
     ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
                 colors='green', linewidths=2, transform=vector_crs)
@@ -1630,18 +1639,19 @@ def make_curl_climo_fig():
     ax1.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
                 levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
 
-    ax1.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(1.05, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(0.50, -0.04, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(-0.05, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
+    ax1.text(0.49,  1.01,  '0°',   transform=ax1.transAxes)
+    ax1.text(1.01,  0.49,  '90°E', transform=ax1.transAxes)
+    ax1.text(0.47,  -0.03, '180°', transform=ax1.transAxes)
+    ax1.text(-0.09, 0.49,  '90°W', transform=ax1.transAxes)
+    ax1.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax1.transAxes)
+    ax1.text(0.85,  0.125, '135°E', rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax1.transAxes)
+
     ax1.text(0.50, 1.05, r'Surface stress curl $\nabla \cdot (\mathbf{\tau} / \rho f)$', fontsize=14, va='bottom',
              ha='center', rotation='horizontal', rotation_mode='anchor', transform=ax1.transAxes)
 
-    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1, ticks=np.linspace(-5, 5, 6))
     clb.ax.set_title(r'$10^{-7}$ N/m$^3$')
 
     zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
@@ -1652,36 +1662,43 @@ def make_curl_climo_fig():
     plt.suptitle(r'Figure 6: Surface stress curl and Ekman pumping observations, winter (JAS) mean', fontsize=16)
 
     """ Plot Ekman pumping """
-    ax1 = plt.subplot(122, projection=ccrs.SouthPolarStereo())
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
 
-    ax1.set_boundary(circle, transform=ax1.transAxes)
-    ax1.add_feature(land_50m)
-    ax1.add_feature(ice_50m)
-    ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+    ax2 = plt.subplot(122, projection=crs_sps)
 
-    im1 = ax1.pcolormesh(lons, lats, climo_w_Ekman_field * 365*24*3600, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-100, vmax=100)
+    ax2.set_boundary(circle, transform=ax2.transAxes)
+    ax2.add_feature(land_50m)
+    ax2.add_feature(ice_50m)
+    ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
-    ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
+    gl2 = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl2.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl2.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im2 = ax2.contourf(lons, lats, climo_w_Ekman_field * 365*24*3600, transform=vector_crs, cmap=cmocean.cm.balance,
+                       vmin=-100, vmax=100, levels=np.linspace(-100, 100, 16), extend='both')
+
+    ax2.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
                 colors='green', linewidths=2, transform=vector_crs)
-    ax1.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+    ax2.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
                 levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
-    ax1.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+    ax2.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
                 levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
 
-    ax1.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(1.05, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(0.50, -0.04, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(-0.05, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
+    ax2.text(0.49,  1.01,  '0°',   transform=ax2.transAxes)
+    ax2.text(1.01,  0.49,  '90°E', transform=ax2.transAxes)
+    ax2.text(0.47,  -0.03, '180°', transform=ax2.transAxes)
+    ax2.text(-0.09, 0.49,  '90°W', transform=ax2.transAxes)
+    ax2.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax2.transAxes)
+    ax2.text(0.85,  0.125, '135°E', rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax2.transAxes)
 
-    ax1.text(0.50, 1.05, r'Ekman pumping $w_{Ek}$', fontsize=14, va='bottom',
-             ha='center', rotation='horizontal', rotation_mode='anchor', transform=ax1.transAxes)
+    ax2.text(0.50, 1.05, r'Ekman pumping $w_{Ek}$', fontsize=14, va='bottom',
+             ha='center', rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
 
-    clb = fig.colorbar(im1, ax=ax1, extend='both', fraction=0.046, pad=0.1)
+    clb = fig.colorbar(im2, ax=ax2, extend='both', fraction=0.046, pad=0.1, ticks=np.linspace(-100, 100, 6))
     clb.ax.set_title(r'm/year')
 
     png_filepath = os.path.join(figure_dir_path, 'curl_climo.png')
@@ -1758,7 +1775,8 @@ def make_figure1():
     ax.add_feature(ice_50m)
     ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
-    im = ax.pcolormesh(lons, lats, climo_alpha_field, transform=vector_crs, cmap='Blues', vmin=-0, vmax=1)
+    im = ax.contourf(lons, lats, climo_alpha_field, transform=vector_crs, cmap='Blues', vmin=-0, vmax=1,
+                     levels=np.linspace(0, 1, 11))
 
     gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
     gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
@@ -1782,7 +1800,7 @@ def make_figure1():
                   fontproperties={'size': 11}, transform=ax.transAxes)
     plt.quiverkey(Q1, 0.70, 0.83, 10, r'10 m/s (wind, outside ice zone)', labelpos='E', coordinates='figure',
                   fontproperties={'size': 11}, transform=ax.transAxes)
-    plt.quiverkey(Q3, 0.73, 0.80, 0.05, r'5 cm/s (ice drift)', labelpos='E', coordinates='figure',
+    plt.quiverkey(Q3, 0.77, 0.80, 0.05, r'5 cm/s (ice drift)', labelpos='E', coordinates='figure',
                   fontproperties={'size': 11}, transform=ax.transAxes)
 
     # ax.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
@@ -1831,7 +1849,7 @@ def make_ugeo_uice_figure():
     from constants import figure_dir_path
 
     import constants
-    constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+    constants.output_dir_path = 'E:\\output\\'
 
     # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
     climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
@@ -1842,11 +1860,11 @@ def make_ugeo_uice_figure():
     lons, lats, climo_tau_x_field = get_field_from_netcdf(climo_filepath, 'tau_x')
     climo_tau_y_field = get_field_from_netcdf(climo_filepath, 'tau_y')[2]
 
-    constants.output_dir_path = 'D:\\output\\'
+    constants.output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 
-    # climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2005, year_end=2015)
-    climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
-                                         year_start=2005, year_end=2015)
+    climo_filepath = get_netCDF_filepath(field_type='climo', year_start=2011, year_end=2016)
+    # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+    #                                      year_start=2005, year_end=2015)
     # climo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JFM',
     #                                      year_start=2005, year_end=2015)
 
@@ -1866,6 +1884,12 @@ def make_ugeo_uice_figure():
 
     climo_u_geo_field, lons_geo = cartopy.util.add_cyclic_point(climo_u_geo_field, coord=lons)
     climo_v_geo_field, lons_geo = cartopy.util.add_cyclic_point(climo_v_geo_field, coord=lons)
+
+    # Smooth out the u_geo fields
+    import astropy.convolution
+    kernel = astropy.convolution.Gaussian2DKernel(2)
+    climo_u_geo_field = astropy.convolution.convolve(climo_u_geo_field, kernel, boundary='wrap')
+    climo_v_geo_field = astropy.convolution.convolve(climo_v_geo_field, kernel, boundary='wrap')
 
     # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
     # the smaller plots.
@@ -1896,22 +1920,27 @@ def make_ugeo_uice_figure():
     ax1.add_feature(ice_50m)
     ax1.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
-    im1 = ax1.pcolormesh(lons_geo, lats, climo_u_geo_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-0.1, vmax=0.1)
+    gl = ax1.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im1 = ax1.contourf(lons_geo, lats, climo_u_geo_field, transform=vector_crs, cmap='seismic',
+                       vmin=-0.1, vmax=0.1, levels=np.linspace(-0.10, 0.10, 16), extend='both')
 
     ax1.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
                 colors='green', linewidths=1.5, transform=vector_crs)
     ax1.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
                 levels=[0.15], colors='black', linewidths=1.5, transform=vector_crs)
 
-    ax1.text(0.51, 1.005, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
-    ax1.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax1.transAxes)
+    ax1.text(0.49,  1.01,  '0°',   transform=ax1.transAxes)
+    ax1.text(1.01,  0.49,  '90°E', transform=ax1.transAxes)
+    ax1.text(0.47,  -0.03, '180°', transform=ax1.transAxes)
+    ax1.text(-0.09, 0.49,  '90°W', transform=ax1.transAxes)
+    ax1.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax1.transAxes)
+    ax1.text(0.85,  0.125, '135°E', rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax1.transAxes)
+
     ax1.text(0.505, 1.05, r'Zonal geostrophic velocity $u_g$', fontsize=14, va='bottom', ha='center', rotation='horizontal',
              rotation_mode='anchor', transform=ax1.transAxes)
 
@@ -1926,8 +1955,12 @@ def make_ugeo_uice_figure():
     ax2.add_feature(ice_50m)
     ax2.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
-    im2 = ax2.pcolormesh(lons_geo, lats, climo_v_geo_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-0.1, vmax=0.1)
+    gl = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im2 = ax2.contourf(lons_geo, lats, climo_v_geo_field, transform=vector_crs, cmap='seismic',
+                       vmin=-0.1, vmax=0.1, levels=np.linspace(-0.10, 0.10, 16), extend='both')
 
     ax2.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
                 colors='green', linewidths=1.5, transform=vector_crs)
@@ -1938,14 +1971,15 @@ def make_ugeo_uice_figure():
     # ax2.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
     #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-    ax2.text(0.51, 1.005, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax2.transAxes)
-    ax2.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax2.transAxes)
-    ax2.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax2.transAxes)
-    ax2.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax2.transAxes)
+    ax2.text(0.49,  1.01,  '0°',   transform=ax2.transAxes)
+    ax2.text(1.01,  0.49,  '90°E', transform=ax2.transAxes)
+    ax2.text(0.47,  -0.03, '180°', transform=ax2.transAxes)
+    ax2.text(-0.09, 0.49,  '90°W', transform=ax2.transAxes)
+    ax2.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax2.transAxes)
+    ax2.text(0.85,  0.125, '135°E', rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax2.transAxes)
+
     ax2.text(0.50, 1.05, r'Meridional geostrophic velocity $v_g$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
 
@@ -1957,8 +1991,13 @@ def make_ugeo_uice_figure():
     ax3.add_feature(ice_50m)
     ax3.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
-    im3 = ax3.pcolormesh(lons, lats, climo_u_ice_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-0.1, vmax=0.1)
+    gl = ax3.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im3 = ax3.contourf(lons, lats, np.ma.array(climo_u_ice_field, mask=(sep_climo_alpha_field < 0.15)),
+                       transform=vector_crs, cmap='seismic',
+                       vmin=-0.1, vmax=0.1, levels=np.linspace(-0.10, 0.10, 16), extend='both')
 
     ax3.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
                 colors='green', linewidths=1.5, transform=vector_crs)
@@ -1969,14 +2008,14 @@ def make_ugeo_uice_figure():
     # ax3.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
     #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-    ax3.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax3.transAxes)
-    ax3.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax3.transAxes)
-    ax3.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax3.transAxes)
-    ax3.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax3.transAxes)
+    ax3.text(0.49,  1.01,  '0°',   transform=ax3.transAxes)
+    ax3.text(1.01,  0.49,  '90°E', transform=ax3.transAxes)
+    ax3.text(0.47,  -0.03, '180°', transform=ax3.transAxes)
+    ax3.text(-0.09, 0.49,  '90°W', transform=ax3.transAxes)
+    ax3.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax3.transAxes)
+    ax3.text(0.85,  0.125, '135°E', rotation=-45, transform=ax3.transAxes)
+    ax3.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax3.transAxes)
+    ax3.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax3.transAxes)
 
     ax3.text(0.50, 1.05, r'Zonal ice drift $u_i$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax3.transAxes)
@@ -1988,8 +2027,13 @@ def make_ugeo_uice_figure():
     ax4.add_feature(ice_50m)
     ax4.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
 
-    im4 = ax4.pcolormesh(lons, lats, climo_v_ice_field, transform=vector_crs, cmap=cmocean.cm.balance,
-                         vmin=-0.1, vmax=0.1)
+    gl = ax4.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    im4 = ax4.contourf(lons, lats, np.ma.array(climo_v_ice_field, mask=(sep_climo_alpha_field < 0.15)),
+                       transform=vector_crs, cmap='seismic',
+                       vmin=-0.1, vmax=0.1, levels=np.linspace(-0.10, 0.10, 16), extend='both')
 
     ax4.contour(lons, lats, np.ma.array(climo_tau_x_field, mask=np.isnan(climo_alpha_field)), levels=[0],
                 colors='green', linewidths=1.5, transform=vector_crs)
@@ -2000,14 +2044,14 @@ def make_ugeo_uice_figure():
     # ax4.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
     #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-    ax4.text(0.51, 1.01, '0°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax4.transAxes)
-    ax4.text(1.07, 0.50, '90°E', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax4.transAxes)
-    ax4.text(0.50, -0.06, '180°', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax4.transAxes)
-    ax4.text(-0.07, 0.50, '90°W', va='bottom', ha='center', rotation='horizontal', rotation_mode='anchor',
-             transform=ax4.transAxes)
+    ax4.text(0.49,  1.01,  '0°',   transform=ax4.transAxes)
+    ax4.text(1.01,  0.49,  '90°E', transform=ax4.transAxes)
+    ax4.text(0.47,  -0.03, '180°', transform=ax4.transAxes)
+    ax4.text(-0.09, 0.49,  '90°W', transform=ax4.transAxes)
+    ax4.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax4.transAxes)
+    ax4.text(0.85,  0.125, '135°E', rotation=-45, transform=ax4.transAxes)
+    ax4.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax4.transAxes)
+    ax4.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax4.transAxes)
 
     ax4.text(0.50, 1.05, r'Meridional ice velocity $v_i$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax4.transAxes)
@@ -2019,7 +2063,7 @@ def make_ugeo_uice_figure():
 
     fig.subplots_adjust(right=0.9)
     cbar_ax = fig.add_axes([0.90, 0.15, 0.015, 0.7])
-    clb = fig.colorbar(im4, cax=cbar_ax, extend='both')
+    clb = fig.colorbar(im1, cax=cbar_ax, extend='both', ticks=np.linspace(-0.10, 0.10, 6))
     clb.ax.set_title(r'm/s')
 
     png_filepath = os.path.join(figure_dir_path, 'figure3.png')
@@ -2030,7 +2074,7 @@ def make_ugeo_uice_figure():
         os.makedirs(tau_dir)
 
     logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
-    plt.savefig(png_filepath, dpi=300, format='png', transparent=False) #, bbox_inches='tight')
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
 
 
 def make_salinity_figure():
