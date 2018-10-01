@@ -354,12 +354,19 @@ def retroactively_compute_sea_ice_advection():
 def retroactively_compute_melting_freezing_rate():
     from constants import D_e, kappa
 
-    import constants
-    constants.output_dir_path = 'D:\\output\\'
+    # import constants
+    # constants.output_dir_path = 'D:\\output\\'
 
     start_date = datetime.date(2011, 1, 1)
-    end_date = datetime.date(2011, 1, 31)
+    end_date = datetime.date(2016, 12, 31)
     dates = date_range(start_date, end_date)
+
+    # dates = []
+    # for year in range(2011, 2016 + 1):
+    #     start_date = datetime.date(year, 7, 1)
+    #     end_date = datetime.date(year, 9, 30)
+    #
+    #     dates = dates + date_range(start_date, end_date)
 
     h_ice_dataset = SeaIceThicknessDataset(start_date)
 
@@ -440,6 +447,9 @@ def retroactively_compute_melting_freezing_rate():
 
         # salinity_daily_field = np.array(current_tau_dataset.variables['salinity'])
         salinity_daily_field = salinity_monthly_climo[date.month-1]
+        # logger.info('salinity_daily_field: min = {:}, max = {:}, mean = {:}'
+        #             .format(np.nanmin(salinity_daily_field), np.nanmax(salinity_daily_field),
+        #                     np.nanmean(salinity_daily_field)))
 
         h_ice_daily_field = np.zeros((len(lats), len(lons)))
         zonal_div_daily_field = np.zeros((len(lats), len(lons)))
@@ -450,6 +460,7 @@ def retroactively_compute_melting_freezing_rate():
         diffusion_term_daily_field = np.zeros((len(lats), len(lons)))
 
         salinity_interp_daily_field = np.zeros((len(lats), len(lons)))
+        salinity_interp_daily_field[:] = np.nan
 
         # Load h_ice field for the day (i.e. the correct seasonal field).
         for i in range(len(lats)):
@@ -469,6 +480,11 @@ def retroactively_compute_melting_freezing_rate():
 
             for j in range(len(lons)):
                 lon = lons[j]
+
+                if lon < 0:
+                    lon_ml = lon + 360
+                else:
+                    lon_ml = lon
 
                 # Taking modulus of j-1 and j+1 to get the correct index in the special cases of
                 #  * j=0 (180 W) and need to use the value from j=j_max (180 E)
@@ -492,7 +508,7 @@ def retroactively_compute_melting_freezing_rate():
                 h_ice_im1_j = h_ice_daily_field[i-1][j]
 
                 idx_lat = np.abs(lats_ml - lat).argmin()
-                idx_lon = np.abs(lons_ml - lon).argmin()
+                idx_lon = np.abs(lons_ml - lon_ml).argmin()
 
                 idx_lonp1 = (idx_lon + 1) % lons_ml_max
                 idx_lonm1 = (idx_lon - 1) % lons_ml_max
@@ -602,11 +618,21 @@ def retroactively_compute_melting_freezing_rate():
         diffusion_term_daily_field[np.isnan(diffusion_term_daily_field)] = 0
         diffusion_term_day_field = diffusion_term_day_field + diffusion_term_daily_field
 
+        # logger.info('salinity_interp_daily_field: min = {:}, max = {:}, mean = {:}'
+        #             .format(np.nanmin(salinity_interp_daily_field), np.nanmax(salinity_interp_daily_field),
+        #                     np.nanmean(salinity_interp_daily_field)))
+
         salinity_avg_field = salinity_avg_field + np.nan_to_num(salinity_interp_daily_field)
         salinity_interp_daily_field[~np.isnan(salinity_interp_daily_field)] = 1
         salinity_interp_daily_field[np.isnan(salinity_interp_daily_field)] = 0
         salinity_day_field = salinity_day_field + salinity_interp_daily_field
-        salinity_avg_field = np.divide(salinity_avg_field, salinity_day_field)
+
+        # logger.info('salinity_avg_field: min = {:}, max = {:}, mean = {:}'
+        #             .format(np.nanmin(salinity_avg_field), np.nanmax(salinity_avg_field),
+        #                     np.nanmean(salinity_avg_field)))
+        # logger.info('salinity_day_field: min = {:}, max = {:}, mean = {:}'
+        #             .format(np.nanmin(salinity_day_field), np.nanmax(salinity_day_field),
+        #                     np.nanmean(salinity_day_field)))
 
     alpha_avg_field = np.divide(alpha_avg_field, alpha_day_field)
     u_ice_avg_field = np.divide(u_ice_avg_field, u_ice_day_field)
@@ -619,6 +645,13 @@ def retroactively_compute_melting_freezing_rate():
     geo_term_avg_field = 3600*24*365 * np.divide(geo_term_avg_field, geo_term_day_field)
     diffusion_term_avg_field = 3600*24*365 * np.divide(diffusion_term_avg_field, diffusion_term_day_field)
     salinity_avg_field = np.divide(salinity_avg_field, salinity_day_field)
+
+    logger.info('salinity_avg_field: min = {:}, max = {:}, mean = {:}'
+                .format(np.nanmin(salinity_avg_field), np.nanmax(salinity_avg_field),
+                        np.nanmean(salinity_avg_field)))
+    logger.info('salinity_day_field: min = {:}, max = {:}, mean = {:}'
+                .format(np.nanmin(salinity_day_field), np.nanmax(salinity_day_field),
+                        np.nanmean(salinity_day_field)))
 
     nc_dir = os.path.dirname(output_dir_path)
     nc_filepath = os.path.join(nc_dir, 'melting_freezing_rate_{:}_{:}.nc'.format(start_date, end_date))
