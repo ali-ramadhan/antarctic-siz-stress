@@ -416,7 +416,9 @@ def get_field_from_netcdf(tau_filepath, var):
         logger.error('{}'.format(e))
         logger.error('Dataset not found: {:s}'.format(tau_filepath))
 
-        sys.exit('Dataset not found: {:s}'.format(tau_filepath))
+        return None
+
+        # sys.exit('Dataset not found: {:s}'.format(tau_filepath))
 
 
 def get_contour_from_netcdf(tau_filepath, var, contour_level):

@@ -14,8 +14,8 @@ data_dir_path = 'E:\\data\\'
 
 # Output data directory
 # output_dir_path = path.join(cwd, 'output')
-# output_dir_path = 'E:\\output\\'
-output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+output_dir_path = 'E:\\output\\'
+# output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
 # output_dir_path = '/d1/alir/output/'
 
 figure_dir_path = 'E:\\figures\\antarctic-siz-stress\\'
