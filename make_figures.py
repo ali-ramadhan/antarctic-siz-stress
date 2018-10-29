@@ -3872,6 +3872,116 @@ def plot_streamwise_velocity_integrals():
 
     logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
+def plot_ice_ocean_pumping():
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from constants import figure_dir_path
+
+    nc_filepath = "C:\\Users\\Ali\\Downloads\\output\\ice_ocean_govenor_2011-07-01_2016-09-30.nc"
+
+    JAS_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                       year_start=2005, year_end=2015)
+    feb_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 2, 1),
+                                             year_start=2005, year_end=2015)
+    sep_climo_filepath = get_netCDF_filepath(field_type='monthly_climo', date=datetime.date(2005, 9, 1),
+                                             year_start=2005, year_end=2015)
+
+    lons, lats, tau_x_JAS_field = get_field_from_netcdf(JAS_filepath, 'tau_x')
+    w_Ek_nogeo_field = get_field_from_netcdf(nc_filepath, 'w_Ek_nogeo')[2]
+    w_ig_field = get_field_from_netcdf(nc_filepath, 'w_ig')[2]
+    w_Ek_geo_field = get_field_from_netcdf(nc_filepath, 'w_Ek_geo')[2]
+    tau_ig_x_field = get_field_from_netcdf(nc_filepath, 'tau_ig_x')[2]
+    tau_ig_y_field = get_field_from_netcdf(nc_filepath, 'tau_ig_y')[2]
+
+    feb_climo_alpha_field = get_field_from_netcdf(feb_climo_filepath, 'alpha')[2]
+    sep_climo_alpha_field = get_field_from_netcdf(sep_climo_filepath, 'alpha')[2]
+
+    import astropy.convolution
+    kernel = astropy.convolution.Box2DKernel(5)
+    w_Ek_nogeo_field = astropy.convolution.convolve(w_Ek_nogeo_field, kernel, boundary='wrap')
+    w_ig_field = astropy.convolution.convolve(w_ig_field, kernel, boundary='wrap')
+    tau_ig_x_field = astropy.convolution.convolve(tau_ig_x_field, kernel, boundary='wrap')
+    tau_ig_y_field = astropy.convolution.convolve(tau_ig_y_field, kernel, boundary='wrap')
+
+    # Add land to the plot with a 1:50,000,000 scale. Line width is set to 0 so that the edges aren't poofed up in
+    # the smaller plots.
+    land_50m = cartopy.feature.NaturalEarthFeature('physical', 'land', '50m', edgecolor='face', facecolor='dimgray',
+                                                   linewidth=0)
+    ice_50m = cartopy.feature.NaturalEarthFeature('physical', 'antarctic_ice_shelves_polys', '50m', edgecolor='face',
+                                                  facecolor='darkgray', linewidth=0)
+    vector_crs = ccrs.PlateCarree()
+
+    fig = plt.figure(figsize=(16, 9))
+    matplotlib.rcParams.update({'font.size': 10})
+
+    crs_sps = ccrs.SouthPolarStereo()
+    crs_sps._threshold = 1000.0  # This solves https://github.com/SciTools/cartopy/issues/363
+    ax = plt.subplot(111, projection=crs_sps)
+
+    # Compute a circle in axes coordinates, which we can use as a boundary
+    # for the map. We can pan/zoom as much as we like - the boundary will be
+    # permanently circular.
+    import matplotlib.path as mpath
+    theta = np.linspace(0, 2*np.pi, 100)
+    center, radius = [0.5, 0.5], 0.5
+    verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+    circle = mpath.Path(verts * radius + center)
+    ax.set_boundary(circle, transform=ax.transAxes)
+
+    ax.add_feature(land_50m)
+    ax.add_feature(ice_50m)
+    ax.set_extent([-180, 180, -90, -50], ccrs.PlateCarree())
+
+    # im = ax.contourf(lons, lats, 365*24*3600 * w_Ek_geo_field, transform=vector_crs, cmap=cmocean.cm.balance,
+    #                  vmin=-100, vmax=100, levels=np.linspace(-100, 100, 16), extend='both')
+    im = ax.contourf(lons, lats, tau_ig_y_field, transform=vector_crs, cmap=cmocean.cm.balance,
+                     vmin=-0.15, vmax=0.15, levels=np.linspace(-0.15, 0.15, 16), extend='both')
+
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=False, linewidth=1, color='black', alpha=.8, linestyle='--')
+    gl.xlocator = mticker.FixedLocator([-180, -135, -90, -45, 0, 45, 90, 135, 180])
+    gl.ylocator = mticker.FixedLocator([-80, -70, -60, -50])
+
+    ax.contour(lons, lats, np.ma.array(tau_x_JAS_field, mask=np.isnan(sep_climo_alpha_field)),
+               levels=[0], colors='green', linewidths=2, transform=vector_crs)
+    ax.contour(lons, lats, np.ma.array(feb_climo_alpha_field, mask=np.isnan(feb_climo_alpha_field)),
+               levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+    ax.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
+               levels=[0.15], colors='black', linewidths=2, transform=vector_crs)
+
+    ax.text(0.49,  1.01,  '0°',   transform=ax.transAxes)
+    ax.text(1.01,  0.49,  '90°E', transform=ax.transAxes)
+    ax.text(0.47,  -0.03, '180°', transform=ax.transAxes)
+    ax.text(-0.09, 0.49,  '90°W', transform=ax.transAxes)
+    ax.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax.transAxes)
+    ax.text(0.85,  0.125, '135°E', rotation=-45, transform=ax.transAxes)
+    ax.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax.transAxes)
+    ax.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax.transAxes)
+
+    # clb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.1, ticks=np.linspace(-100, 100, 6))
+    # clb.ax.set_title(r'm/year')
+    clb = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.1, ticks=np.linspace(-0.15, 0.15, 6))
+    clb.ax.set_title(r'$N/m^2$')
+
+    # plt.gcf().text(0.5, 0.95, 'Ekman pumping due to wind+ice, winter (JAS) mean', fontsize=14)
+    # plt.gcf().text(0.5, 0.95, 'Ekman pumping due to geostrophic currents, winter (JAS) mean', fontsize=14)
+    # plt.gcf().text(0.5, 0.95, 'Ekman pumping total, winter (JAS) mean', fontsize=14)
+    plt.gcf().text(0.5, 0.95, 'Meridional ice-ocean stress due to geostrophic currents, winter (JAS) mean', fontsize=14)
+
+    zero_stress_line_patch = mpatches.Patch(color='green', label='zero zonal stress line')
+    ice_edge_patch = mpatches.Patch(color='black', label=r'Feb (min) and Sep (max) 15% sea ice edge')
+    plt.legend(handles=[zero_stress_line_patch, ice_edge_patch], loc='lower center', fontsize=13,
+               bbox_to_anchor=(0, -0.1, 1, -0.1), ncol=1, mode='expand', borderaxespad=0, framealpha=0)
+
+    png_filepath = os.path.join(figure_dir_path, 'tau_ig_y.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
