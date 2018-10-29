@@ -4357,6 +4357,211 @@ def antarctic_divergence_time_series():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
     plt.close()
 
+
+def ice_ocean_govenor_monthly_climo_barchart():
+    import pickle
+    import constants
+    from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
+
+    nogeo_output_dir_path = 'E:\\output\\'
+    geo_output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+    govenor_output_dir_path = "E:\\output\\ice_ocean_govenor\\"
+
+    constants.output_dir_path = nogeo_output_dir_path
+    climo_nogeo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                               year_start=2005, year_end=2015)
+
+    lons, lats, tau_x_nogeo_field = get_field_from_netcdf(climo_nogeo_filepath, 'tau_x')
+
+    contour_coordinates = np.empty((len(lats), len(lons)))
+    contour_coordinates[:] = np.nan
+
+    tau_x_lons, tau_x_lats = get_northward_zero_zonal_stress_line(climo_nogeo_filepath)
+    alpha_lons, alpha_lats = get_northward_ice_edge(climo_nogeo_filepath)
+    coast_lons, coast_lats = get_coast_coordinates(climo_nogeo_filepath)
+
+    for i, lon in enumerate(lons):
+        if alpha_lats[i] > tau_x_lats[i] > coast_lats[i]:
+            lat_0 = coast_lats[i]
+            lat_h = tau_x_lats[i]  # lat_h is short for lat_half ~ lat_1/2
+            lat_1 = alpha_lats[i]
+
+            for j, lat in enumerate(lats):
+                if lat < lat_0 or lat > lat_1:
+                    contour_coordinates[j][i] = np.nan
+                elif lat_0 <= lat <= lat_h:
+                    contour_coordinates[j][i] = (lat - lat_0) / (2 * (lat_h - lat_0))
+                elif lat_h <= lat <= lat_1:
+                    contour_coordinates[j][i] = 0.5 + ((lat - lat_h) / (2 * (lat_1 - lat_h)))
+
+    c_bins = np.linspace(0, 1, 41)[:-1]
+    delta_c = c_bins[1] - c_bins[0]
+    c_bins = c_bins + (delta_c / 2)
+
+    year_start = 2011
+    year_end = 2015
+    dates = date_range(datetime.date(year_start, 1, 1), datetime.date(year_end, 12, 31))
+
+    n_days = len(dates)
+    month_days = np.zeros(12)
+
+    pickle_filepath = os.path.join(figure_dir_path, 'Antarctic_Divergence_Ekman_pumping_barchart.pickle')
+
+    pickle_found = False
+    try:
+        with open(pickle_filepath, 'rb') as f:
+            monthly_barchart_dict = pickle.load(f)
+            logger.info('Previous computation found. Loading {:s}...'.format(pickle_filepath))
+            pickle_found = True
+    except OSError:
+        logger.info('Computing Antarctic Divergence time series...')
+
+    if pickle_found:
+        alpha_monthly = monthly_barchart_dict['alpha']
+        w_a_monthly = monthly_barchart_dict['w_a']
+        w_A_monthly = monthly_barchart_dict['w_A']
+        w_Ek_nogeo_monthly = monthly_barchart_dict['w_Ek_nogeo']
+        w_Ek_geo_monthly = monthly_barchart_dict['w_Ek_geo']
+        w_ig_monthly = monthly_barchart_dict['w_ig']
+        w_i_monthly = monthly_barchart_dict['w_i']
+        w_i0_monthly = monthly_barchart_dict['w_i0']
+
+    else:
+        alpha_monthly = np.zeros(12)
+
+        w_a_monthly = np.zeros(12)
+        w_A_monthly = np.zeros(12)
+        w_Ek_nogeo_monthly = np.zeros(12)
+        w_Ek_geo_monthly = np.zeros(12)
+        w_ig_monthly = np.zeros(12)
+        w_i_monthly = np.zeros(12)
+        w_i0_monthly = np.zeros(12)
+
+        for d, date in enumerate(dates):
+            constants.output_dir_path = nogeo_output_dir_path
+
+            try:
+                climo_filepath_nogeo = get_netCDF_filepath(field_type='daily', date=date)
+                lons, lats, _ = get_field_from_netcdf(climo_filepath_nogeo, 'Ekman_w')
+            except Exception as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_nogeo))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            constants.output_dir_path = geo_output_dir_path
+
+            try:
+                climo_filepath_geo = get_netCDF_filepath(field_type='daily', date=date)
+                _, _, _ = get_field_from_netcdf(climo_filepath_geo, 'Ekman_w')
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_geo))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            try:
+                govenor_filename = "ice_ocean_govenor_{:}.nc".format(date)
+                govenor_filepath = os.path.join(govenor_output_dir_path, govenor_filename)
+                _, _, _ = get_field_from_netcdf(govenor_filepath, 'alpha')
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_geo))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            logger.info('Averaging {:%b %d, %Y}...'.format(date))
+
+            alpha_field = get_field_from_netcdf(climo_filepath_geo, 'alpha')[2]
+
+            w_a_field = get_field_from_netcdf(govenor_filepath, 'w_a')[2]
+            w_A_field = get_field_from_netcdf(govenor_filepath, 'w_A')[2]
+            w_Ek_geo_field = get_field_from_netcdf(govenor_filepath, 'w_Ek_geo')[2]
+            w_Ek_nogeo_field = get_field_from_netcdf(govenor_filepath, 'w_Ek_nogeo')[2]
+            w_i_field = get_field_from_netcdf(govenor_filepath, 'w_i')[2]
+            w_i0_field = get_field_from_netcdf(govenor_filepath, 'w_i0')[2]
+            w_ig_field = get_field_from_netcdf(govenor_filepath, 'w_ig')[2]
+
+            import astropy.convolution
+            kernel = astropy.convolution.Box2DKernel(4)
+
+            c_south_of_AD = np.logical_and(contour_coordinates >= 0, contour_coordinates < 0.5)
+
+            m = date.month - 1
+            month_days[m] += 1
+
+            alpha_monthly[m] += np.nanmean(alpha_field[c_south_of_AD])
+
+            w_a_monthly[m] += np.nanmean(w_a_field[c_south_of_AD])
+            w_A_monthly[m] += np.nanmean(w_A_field[c_south_of_AD])
+            w_Ek_geo_monthly[m] += np.nanmean(w_Ek_geo_field[c_south_of_AD])
+            w_Ek_nogeo_monthly[m] += np.nanmean(w_Ek_nogeo_field[c_south_of_AD])
+            w_i_monthly[m] += np.nanmean(w_i_field[c_south_of_AD])
+            w_i0_monthly[m] += np.nanmean(w_i0_field[c_south_of_AD])
+            w_ig_monthly[m] += np.nanmean(w_ig_field[c_south_of_AD])
+
+        for m in range(12):
+            alpha_monthly[m] /= month_days[m]
+
+            w_a_monthly[m] /= month_days[m]
+            w_A_monthly[m] /= month_days[m]
+            w_Ek_geo_monthly[m] /= month_days[m]
+            w_Ek_nogeo_monthly[m] /= month_days[m]
+            w_i_monthly[m] /= month_days[m]
+            w_i0_monthly[m] /= month_days[m]
+            w_ig_monthly[m] /= month_days[m]
+
+    with open(pickle_filepath, 'wb') as f:
+        monthly_barchart_dict = {
+            'alpha': alpha_monthly,
+            'w_a': w_a_monthly,
+            'w_A': w_A_monthly,
+            'w_Ek_nogeo': w_Ek_nogeo_monthly,
+            'w_Ek_geo': w_Ek_geo_monthly,
+            'w_ig': w_ig_monthly,
+            'w_i': w_i_monthly,
+            'w_i0': w_i0_monthly
+        }
+        pickle.dump(monthly_barchart_dict, f, pickle.HIGHEST_PROTOCOL)
+
+    import calendar
+
+    fig = plt.subplots(figsize=(16, 9))
+    ax = plt.subplot(111)
+
+    ax.bar(np.arange(1, 13)-0.3, 365*3600*24 * w_i0_monthly, width=0.15, color='green', align='center', label="ice")
+    ax.bar(np.arange(1, 13)-0.15, 365*3600*24 * w_ig_monthly, width=0.15, color='blue', align='center', label="geo")
+    ax.bar(np.arange(1, 13), 365*3600*24 * w_a_monthly, width=0.15, color='red', align='center', label="wind")
+    ax.bar(np.arange(1, 13)+0.15, 365*3600*24 * w_i_monthly, width=0.15, color='orange', align='center', label="ice+geo")
+    ax.bar(np.arange(1, 13)+0.3, 365*3600*24 * w_Ek_geo_monthly, width=0.15, color='black', align='center', label="total")
+
+    ax.set_xlabel("Month", fontsize=18)
+    ax.set_ylabel("Ekman pumping (m/year)", fontsize=18)
+    plt.xticks(np.arange(1, 13), calendar.month_abbr[1:], fontsize=16)
+    plt.yticks(fontsize=16)
+
+    ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1), fontsize=18)
+
+    ax2 = ax.twinx()
+    ax2.plot(np.arange(1, 13), alpha_monthly, color='gray', label='sea ice fraction')
+    ax2.set_ylim([-1, 1])
+    ax2.tick_params('y', colors='gray')
+    ax2.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1])
+    plt.yticks(fontsize=16)
+    ax2.set_ylabel('Mean Sea ice fraction', color='gray', fontsize=18)
+
+    png_filepath = os.path.join(figure_dir_path, 'Ekman pumping south of the Antarctic Divergence bar chart.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+    plt.close()
+
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
@@ -4391,7 +4596,7 @@ if __name__ == '__main__':
     # make_tau_climo_fig()
     # make_uEk_climo_fig()
     # make_curl_climo_fig()
-    make_urel_figure()
+    # make_urel_figure()
 
     # make_salinity_figure()
     # make_streamwise_coordinate_map()
@@ -4408,3 +4613,8 @@ if __name__ == '__main__':
     # make_u_geo_climo_fig()
 
     # make_melting_freezing_rate_term_plots()
+
+    # plot_streamwise_velocity_integrals()
+    # plot_ice_ocean_pumping()
+    # antarctic_divergence_time_series()
+    ice_ocean_govenor_monthly_climo_barchart()
