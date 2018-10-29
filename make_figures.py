@@ -3756,6 +3756,122 @@ def make_melting_freezing_rate_term_plots():
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False)
 
 
+def plot_streamwise_velocity_integrals():
+    import constants
+    from constants import figure_dir_path, D_e
+    from utils import get_netCDF_filepath, get_field_from_netcdf
+    from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
+
+    nogeo_output_dir_path = 'E:\\output\\'
+    geo_output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+
+    constants.output_dir_path = nogeo_output_dir_path
+    climo_nogeo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                               year_start=2005, year_end=2015)
+
+    lons, lats, tau_x_nogeo_field = get_field_from_netcdf(climo_nogeo_filepath, 'tau_x')
+
+    constants.output_dir_path = geo_output_dir_path
+    climo_geo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                             year_start=2011, year_end=2016)
+
+    u_ice_field = get_field_from_netcdf(climo_geo_filepath, 'ice_u')[2]
+    v_ice_field = get_field_from_netcdf(climo_geo_filepath, 'ice_v')[2]
+    u_geo_field = get_field_from_netcdf(climo_geo_filepath, 'geo_u')[2]
+    v_geo_field = get_field_from_netcdf(climo_geo_filepath, 'geo_v')[2]
+
+    contour_coordinates = np.empty((len(lats), len(lons)))
+    contour_coordinates[:] = np.nan
+
+    tau_x_lons, tau_x_lats = get_northward_zero_zonal_stress_line(climo_nogeo_filepath)
+    alpha_lons, alpha_lats = get_northward_ice_edge(climo_nogeo_filepath)
+    coast_lons, coast_lats = get_coast_coordinates(climo_nogeo_filepath)
+
+    ice_mag_field = np.sqrt(u_ice_field*u_ice_field + v_ice_field*v_ice_field)
+    geo_mag_field = np.sqrt(u_geo_field*u_geo_field + v_geo_field*v_geo_field)
+
+    for i, lon in enumerate(lons):
+        if alpha_lats[i] > tau_x_lats[i] > coast_lats[i]:
+            lat_0 = coast_lats[i]
+            lat_h = tau_x_lats[i]  # lat_h is short for lat_half ~ lat_1/2
+            lat_1 = alpha_lats[i]
+
+            for j, lat in enumerate(lats):
+                if lat < lat_0 or lat > lat_1:
+                    contour_coordinates[j][i] = np.nan
+                elif lat_0 <= lat <= lat_h:
+                    contour_coordinates[j][i] = (lat - lat_0) / (2 * (lat_h - lat_0))
+                elif lat_h <= lat <= lat_1:
+                    contour_coordinates[j][i] = 0.5 + ((lat - lat_h) / (2 * (lat_1 - lat_h)))
+
+    c_bins = np.linspace(0, 1, 41)[:-1]
+    delta_c = c_bins[1] - c_bins[0]
+    c_bins = c_bins + (delta_c / 2)
+
+    u_ice_cavg = np.zeros(c_bins.shape)
+    v_ice_cavg = np.zeros(c_bins.shape)
+    u_geo_cavg = np.zeros(c_bins.shape)
+    v_geo_cavg = np.zeros(c_bins.shape)
+    ice_mag_cavg = np.zeros(c_bins.shape)
+    geo_mag_cavg = np.zeros(c_bins.shape)
+
+    for i in range(len(c_bins)):
+        c = c_bins[i]
+        c_low = c - (delta_c / 2)
+        c_high = c + (delta_c / 2)
+
+        c_in_range = np.logical_and(contour_coordinates > c_low, contour_coordinates < c_high)
+
+        u_ice_cavg[i] = np.nanmean(u_ice_field[c_in_range])
+        v_ice_cavg[i] = np.nanmean(v_ice_field[c_in_range])
+        u_geo_cavg[i] = np.nanmean(u_geo_field[c_in_range])
+        v_geo_cavg[i] = np.nanmean(v_geo_field[c_in_range])
+        ice_mag_cavg[i] = np.nanmean(ice_mag_field[c_in_range])
+        geo_mag_cavg[i] = np.nanmean(geo_mag_field[c_in_range])
+
+    fig = plt.figure(figsize=(20, 6))
+
+    ax = fig.add_subplot(131)
+    ax.plot(c_bins, u_ice_cavg, label=r'$u_{ice}$')
+    ax.plot(c_bins, u_geo_cavg, label=r'$u_{geo}$')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_xlabel('streamwise coordinate', fontsize='large')
+    ax.set_ylabel(r'Velocity (m/s)', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    ax = fig.add_subplot(132)
+    ax.plot(c_bins, v_ice_cavg, label=r'$v_{ice}$')
+    ax.plot(c_bins, v_geo_cavg, label=r'$v_{geo }$')
+    ax.set_xlabel('streamwise coordinate', fontsize='large')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_ylabel('Velocity (m/s)', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    ax = fig.add_subplot(133)
+    ax.plot(c_bins, ice_mag_cavg, label=r'$|\mathbf{u}_{ice}|$')
+    ax.plot(c_bins, geo_mag_cavg, label=r'$|\mathbf{u}_{geo}|$')
+    ax.set_xlabel('streamwise coordinate', fontsize='large')
+    ax.set_xticks([0, 0.25, 0.5, 0.75, 1], minor=False)
+    ax.set_ylabel('Speed (m/s)', fontsize='large')
+    ax.tick_params(axis='both', which='major', labelsize=10)
+    ax.grid(linestyle='--')
+    ax.legend(fontsize='large')
+
+    plt.suptitle(r'Streamwise averages, winter (JAS) mean', fontsize=16)
+
+    png_filepath = os.path.join(figure_dir_path, 'ice_geo_streamwise_average.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
