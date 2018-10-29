@@ -3982,6 +3982,381 @@ def plot_ice_ocean_pumping():
 
     logger.info('Saving diagnostic figure: {:s}'.format(png_filepath))
     plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+
+
+def antarctic_divergence_time_series():
+    import pickle
+    import constants
+    from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
+
+    nogeo_output_dir_path = 'E:\\output\\'
+    geo_output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
+    govenor_output_dir_path = "E:\\output\\ice_ocean_govenor\\"
+
+    constants.output_dir_path = nogeo_output_dir_path
+    climo_nogeo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
+                                               year_start=2005, year_end=2015)
+
+    lons, lats, tau_x_nogeo_field = get_field_from_netcdf(climo_nogeo_filepath, 'tau_x')
+
+    contour_coordinates = np.empty((len(lats), len(lons)))
+    contour_coordinates[:] = np.nan
+
+    tau_x_lons, tau_x_lats = get_northward_zero_zonal_stress_line(climo_nogeo_filepath)
+    alpha_lons, alpha_lats = get_northward_ice_edge(climo_nogeo_filepath)
+    coast_lons, coast_lats = get_coast_coordinates(climo_nogeo_filepath)
+
+    for i, lon in enumerate(lons):
+        if alpha_lats[i] > tau_x_lats[i] > coast_lats[i]:
+            lat_0 = coast_lats[i]
+            lat_h = tau_x_lats[i]  # lat_h is short for lat_half ~ lat_1/2
+            lat_1 = alpha_lats[i]
+
+            for j, lat in enumerate(lats):
+                if lat < lat_0 or lat > lat_1:
+                    contour_coordinates[j][i] = np.nan
+                elif lat_0 <= lat <= lat_h:
+                    contour_coordinates[j][i] = (lat - lat_0) / (2 * (lat_h - lat_0))
+                elif lat_h <= lat <= lat_1:
+                    contour_coordinates[j][i] = 0.5 + ((lat - lat_h) / (2 * (lat_1 - lat_h)))
+
+    c_bins = np.linspace(0, 1, 41)[:-1]
+    delta_c = c_bins[1] - c_bins[0]
+    c_bins = c_bins + (delta_c / 2)
+
+    year_start = 2011
+    year_end = 2015
+    dates = date_range(datetime.date(year_start, 1, 1), datetime.date(year_end, 12, 31))
+
+    n_days = len(dates)
+
+    pickle_filepath = os.path.join(figure_dir_path, 'Antarctic_Divergence_time_series.pickle')
+
+    pickle_found = False
+    try:
+        with open(pickle_filepath, 'rb') as f:
+            AD_time_series_dict = pickle.load(f)
+            logger.info('Previous computation found. Loading {:s}...'.format(pickle_filepath))
+            pickle_found = True
+    except OSError:
+        logger.info('Computing Antarctic Divergence time series...')
+
+    if pickle_found:
+        alpha_AD = AD_time_series_dict['alpha']
+        u_wind_AD = AD_time_series_dict['u_wind']
+        v_wind_AD = AD_time_series_dict['v_wind']
+        wind_speed_AD = AD_time_series_dict['wind_speed']
+        u_ice_AD = AD_time_series_dict['u_ice']
+        v_ice_AD = AD_time_series_dict['v_ice']
+        ice_speed_AD = AD_time_series_dict['ice_speed']
+        u_geo_AD = AD_time_series_dict['u_geo']
+        v_geo_AD = AD_time_series_dict['v_geo']
+        geo_speed_AD = AD_time_series_dict['geo_speed']
+        w_a_AD = AD_time_series_dict['w_a']
+        w_A_AD = AD_time_series_dict['w_A']
+        w_Ek_nogeo_AD = AD_time_series_dict['w_Ek_nogeo']
+        w_Ek_geo_AD = AD_time_series_dict['w_Ek_geo']
+        w_ig_AD = AD_time_series_dict['w_ig']
+        w_i_AD = AD_time_series_dict['w_i']
+        w_i0_AD = AD_time_series_dict['w_i0']
+
+    else:
+        alpha_AD = np.zeros(n_days)
+
+        u_wind_AD = np.zeros(n_days)
+        v_wind_AD = np.zeros(n_days)
+        wind_speed_AD = np.zeros(n_days)
+
+        u_ice_AD = np.zeros(n_days)
+        v_ice_AD = np.zeros(n_days)
+        ice_speed_AD = np.zeros(n_days)
+
+        u_geo_AD = np.zeros(n_days)
+        v_geo_AD = np.zeros(n_days)
+        geo_speed_AD = np.zeros(n_days)
+
+        w_a_AD = np.zeros(n_days)
+        w_A_AD = np.zeros(n_days)
+        w_Ek_nogeo_AD = np.zeros(n_days)
+        w_Ek_geo_AD = np.zeros(n_days)
+        w_ig_AD = np.zeros(n_days)
+        w_i_AD = np.zeros(n_days)
+        w_i0_AD = np.zeros(n_days)
+
+        for d, date in enumerate(dates):
+            constants.output_dir_path = nogeo_output_dir_path
+
+            try:
+                climo_filepath_nogeo = get_netCDF_filepath(field_type='daily', date=date)
+                lons, lats, _ = get_field_from_netcdf(climo_filepath_nogeo, 'Ekman_w')
+            except Exception as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_nogeo))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            constants.output_dir_path = geo_output_dir_path
+
+            try:
+                climo_filepath_geo = get_netCDF_filepath(field_type='daily', date=date)
+                _, _, _ = get_field_from_netcdf(climo_filepath_geo, 'Ekman_w')
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_geo))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            try:
+                govenor_filename = "ice_ocean_govenor_{:}.nc".format(date)
+                govenor_filepath = os.path.join(govenor_output_dir_path, govenor_filename)
+                _, _, _ = get_field_from_netcdf(govenor_filepath, 'alpha')
+            except OSError as e:
+                logger.error('{}'.format(e))
+                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_geo))
+                n_days = n_days - 1  # Must account for lost day if no data available for that day.
+                continue
+
+            logger.info('Averaging {:%b %d, %Y}...'.format(date))
+
+            alpha_field = get_field_from_netcdf(climo_filepath_geo, 'alpha')[2]
+
+            u_wind_field = get_field_from_netcdf(climo_filepath_geo, 'wind_u')[2]
+            v_wind_field = get_field_from_netcdf(climo_filepath_geo, 'wind_v')[2]
+            wind_speed_field = np.sqrt(u_wind_field*u_wind_field + v_wind_field*v_wind_field)
+
+            u_ice_field = get_field_from_netcdf(climo_filepath_geo, 'ice_u')[2]
+            v_ice_field = get_field_from_netcdf(climo_filepath_geo, 'ice_v')[2]
+            ice_speed_field = np.sqrt(u_ice_field*u_ice_field + v_ice_field*v_ice_field)
+
+            u_geo_field = get_field_from_netcdf(climo_filepath_geo, 'geo_u')[2]
+            v_geo_field = get_field_from_netcdf(climo_filepath_geo, 'geo_v')[2]
+            geo_speed_field = np.sqrt(u_geo_field*u_geo_field + v_geo_field*v_geo_field)
+
+            w_a_field = get_field_from_netcdf(govenor_filepath, 'w_a')[2]
+            w_A_field = get_field_from_netcdf(govenor_filepath, 'w_A')[2]
+            w_Ek_geo_field = get_field_from_netcdf(govenor_filepath, 'w_Ek_geo')[2]
+            w_Ek_nogeo_field = get_field_from_netcdf(govenor_filepath, 'w_Ek_nogeo')[2]
+            w_i_field = get_field_from_netcdf(govenor_filepath, 'w_i')[2]
+            w_i0_field = get_field_from_netcdf(govenor_filepath, 'w_i0')[2]
+            w_ig_field = get_field_from_netcdf(govenor_filepath, 'w_ig')[2]
+
+            import astropy.convolution
+            kernel = astropy.convolution.Box2DKernel(4)
+
+            c_south_of_AD = np.logical_and(contour_coordinates >= 0, contour_coordinates < 0.5)
+
+            alpha_AD[d] = np.nanmean(alpha_field[c_south_of_AD])
+
+            u_wind_AD[d] = np.nanmean(u_wind_field[c_south_of_AD])
+            v_wind_AD[d] = np.nanmean(v_wind_field[c_south_of_AD])
+            wind_speed_AD[d] = np.nanmean(wind_speed_field[c_south_of_AD])
+
+            u_ice_AD[d] = np.nanmean(u_ice_field[c_south_of_AD])
+            v_ice_AD[d] = np.nanmean(v_ice_field[c_south_of_AD])
+            ice_speed_AD[d] = np.nanmean(ice_speed_field[c_south_of_AD])
+
+            u_geo_AD[d] = np.nanmean(u_geo_field[c_south_of_AD])
+            v_geo_AD[d] = np.nanmean(v_geo_field[c_south_of_AD])
+            geo_speed_AD[d] = np.nanmean(geo_speed_field[c_south_of_AD])
+
+            w_a_AD[d] = np.nanmean(w_a_field[c_south_of_AD])
+            w_A_AD[d] = np.nanmean(w_A_field[c_south_of_AD])
+            w_Ek_geo_AD[d] = np.nanmean(w_Ek_geo_field[c_south_of_AD])
+            w_Ek_nogeo_AD[d] = np.nanmean(w_Ek_nogeo_field[c_south_of_AD])
+            w_i_AD[d] = np.nanmean(w_i_field[c_south_of_AD])
+            w_i0_AD[d] = np.nanmean(w_i0_field[c_south_of_AD])
+            w_ig_AD[d] = np.nanmean(w_ig_field[c_south_of_AD])
+
+    with open(pickle_filepath, 'wb') as f:
+        AD_time_series_dict = {
+            'alpha': alpha_AD,
+            'u_wind': u_wind_AD,
+            'v_wind': v_wind_AD,
+            'wind_speed': wind_speed_AD,
+            'u_ice': u_ice_AD,
+            'v_ice': v_ice_AD,
+            'ice_speed': ice_speed_AD,
+            'u_geo': u_geo_AD,
+            'v_geo': v_geo_AD,
+            'geo_speed': geo_speed_AD,
+            'w_a': w_a_AD,
+            'w_A': w_A_AD,
+            'w_Ek_nogeo': w_Ek_nogeo_AD,
+            'w_Ek_geo': w_Ek_geo_AD,
+            'w_ig': w_ig_AD,
+            'w_i': w_i_AD,
+            'w_i0': w_i0_AD
+        }
+        pickle.dump(AD_time_series_dict, f, pickle.HIGHEST_PROTOCOL)
+
+    import astropy.convolution
+    kernel = astropy.convolution.Box1DKernel(30)
+
+    alpha_AD = astropy.convolution.convolve(alpha_AD, kernel, boundary='extend')
+
+    u_wind_AD = astropy.convolution.convolve(u_wind_AD, kernel, boundary='extend')
+    v_wind_AD = astropy.convolution.convolve(v_wind_AD, kernel, boundary='extend')
+    wind_speed_AD = astropy.convolution.convolve(wind_speed_AD, kernel, boundary='extend')
+
+    u_ice_AD = astropy.convolution.convolve(u_ice_AD, kernel, boundary='extend')
+    v_ice_AD = astropy.convolution.convolve(v_ice_AD, kernel, boundary='extend')
+    ice_speed_AD = astropy.convolution.convolve(ice_speed_AD, kernel, boundary='extend')
+
+    u_geo_AD = astropy.convolution.convolve(u_geo_AD, kernel, boundary='extend')
+    v_geo_AD = astropy.convolution.convolve(v_geo_AD, kernel, boundary='extend')
+    geo_speed_AD = astropy.convolution.convolve(geo_speed_AD, kernel, boundary='extend')
+
+    w_a_AD = astropy.convolution.convolve(w_a_AD, kernel, boundary='extend')
+    w_A_AD = astropy.convolution.convolve(w_A_AD, kernel, boundary='extend')
+    w_Ek_nogeo_AD = astropy.convolution.convolve(w_Ek_nogeo_AD, kernel, boundary='extend')
+    w_Ek_geo_AD = astropy.convolution.convolve(w_Ek_geo_AD, kernel, boundary='extend')
+    w_ig_AD = astropy.convolution.convolve(w_ig_AD, kernel, boundary='extend')
+    w_i_AD = astropy.convolution.convolve(w_i_AD, kernel, boundary='extend')
+    w_i0_AD = astropy.convolution.convolve(w_i0_AD, kernel, boundary='extend')
+
+    def make_patch_spines_invisible(ax):
+        ax.set_frame_on(True)
+        ax.patch.set_visible(False)
+        for sp in ax.spines.values():
+            sp.set_visible(False)
+
+    fig, host = plt.subplots(figsize=(16, 4.5))
+    fig.subplots_adjust(right=0.75)
+
+    par1 = host.twinx()
+    par2 = host.twinx()
+
+    # Offset the right spine of par2.  The ticks and label have already been placed on the right by twinx above.
+    par2.spines['right'].set_position(('axes', 1.1))
+
+    # Having been created by twinx, par2 has its frame off, so the line of its detached spine is invisible.  First,
+    # activate the frame but make the patch and spines invisible.
+    make_patch_spines_invisible(par2)
+
+    # Second, show the right spine.
+    par2.spines['right'].set_visible(True)
+
+    host.fill_between(dates, 0, alpha_AD, color='lightgray')
+
+    p1, = host.plot(dates, alpha_AD, 'lightgray')
+    p2, = par1.plot(dates, u_wind_AD, 'red')
+    p3, = par2.plot(dates, u_ice_AD, 'green')
+    p4, = par2.plot(dates, u_geo_AD, 'dodgerblue')
+
+    host.set_xlim(dates[0], dates[-1])
+    host.set_ylim(0, 1)
+    par1.set_ylim(-3, 3)
+    par2.set_ylim(-0.10, 0.10)
+
+    host.set_xlabel('Date')
+    host.set_ylabel(r'Mean sea ice fraction $\alpha$')
+    # par1.set_ylabel('Mean wind speed (m/s)', color='red')
+    # par2.set_ylabel(r'Mean ice and geostrophic speed (m/s)')
+    par1.set_ylabel('Mean zonal wind velocity (m/s)', color='red')
+    par2.set_ylabel(r'Mean zonal ice and geostrophic velocity (m/s)')
+
+    # host.yaxis.label.set_color(p1.get_color())
+    # par1.yaxis.label.set_color(p2.get_color())
+    # par2.yaxis.label.set_color(p3.get_color())
+
+    tkw = dict(size=4, width=1.5)
+    # host.tick_params(axis='y', colors=p1.get_color(), **tkw)
+    par1.tick_params(axis='y', colors=p2.get_color(), **tkw)
+    # par2.tick_params(axis='y', colors=p3.get_color(), **tkw)
+    host.tick_params(axis='x', **tkw)
+
+    # lines = [p1, p2, p3]
+    # host.legend(lines, [l.get_label() for l in lines])
+
+    plt.title('30-day running mean of sea ice fraction, wind, ice, and geostrophic speeds south of the Antarctic Divergence')
+
+    alpha_patch = mpatches.Patch(color='lightgray', label='Sea ice fraction')
+    wind_speed_patch = mpatches.Patch(color='red', label='Wind speed')
+    ice_speed_patch = mpatches.Patch(color='green', label='Ice speed')
+    geostrophic_speed_patch = mpatches.Patch(color='dodgerblue', label='Geostrophic speed')
+
+    plt.legend(handles=[alpha_patch, wind_speed_patch, ice_speed_patch, geostrophic_speed_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.2, 1, -0.2), ncol=4, mode='expand', borderaxespad=0, framealpha=0)
+
+    png_filepath = os.path.join(figure_dir_path, 'Antarctic divergence velocity time series.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+    plt.close()
+
+    """ Second figure """
+    fig, host = plt.subplots(figsize=(16, 4.5))
+    fig.subplots_adjust(right=0.75)
+
+    par1 = host.twinx()
+    par2 = host.twinx()
+
+    # Offset the right spine of par2.  The ticks and label have already been placed on the right by twinx above.
+    par2.spines['right'].set_position(('axes', 1.1))
+
+    # Having been created by twinx, par2 has its frame off, so the line of its detached spine is invisible.  First,
+    # activate the frame but make the patch and spines invisible.
+    make_patch_spines_invisible(par2)
+
+    # Second, show the right spine.
+    par2.spines['right'].set_visible(True)
+
+    host.fill_between(dates, 0, alpha_AD, color='lightgray')
+
+    p1, = host.plot(dates, alpha_AD, 'lightgray')
+    p2, = par1.plot(dates, 3600*24*365 * w_Ek_nogeo_AD, 'red')
+    p3, = par2.plot(dates, 3600*24*365 * w_Ek_geo_AD, 'black')
+
+    par2.axhline(linewidth=1, color='black', linestyle='dashed')
+
+    host.set_xlim(dates[0], dates[-1])
+    host.set_ylim(0, 1)
+    par1.set_ylim(-60, 100)
+    par2.set_ylim(-60, 100)
+
+    host.set_xlabel('Date')
+    host.set_ylabel(r'Mean sea ice fraction $\alpha$')
+    par1.set_ylabel(r'Mean Ekman pumping (no $u_{geo}$) (m/year)', color='red')
+    par2.set_ylabel(r'Mean Ekman pumping (with $u_{geo}$) (m/year)')
+
+    # host.yaxis.label.set_color(p1.get_color())
+    # par1.yaxis.label.set_color(p2.get_color())
+    # par2.yaxis.label.set_color(p3.get_color())
+
+    tkw = dict(size=4, width=1.5)
+    # host.tick_params(axis='y', colors=p1.get_color(), **tkw)
+    par1.tick_params(axis='y', colors=p2.get_color(), **tkw)
+    par2.tick_params(axis='y', colors=p3.get_color(), **tkw)
+    host.tick_params(axis='x', **tkw)
+
+    # lines = [p1, p2, p3]
+    # host.legend(lines, [l.get_label() for l in lines])
+
+    plt.title(r'30-day running mean of Ekman pumping (with and without $u_{geo}$) south of the Antarctic Divergence')
+
+    alpha_patch = mpatches.Patch(color='lightgray', label='Sea ice fraction')
+    w_Ekman_patch = mpatches.Patch(color='red', label=r'Ekman pumping (no $u_{geo}$)')
+    w_Ekman_geo_patch = mpatches.Patch(color='black', label=r'Ekman pumping (with $u_{geo}$)')
+
+    plt.legend(handles=[alpha_patch, w_Ekman_patch, w_Ekman_geo_patch], loc='lower center',
+               bbox_to_anchor=(0, -0.2, 1, -0.2), ncol=3, mode='expand', borderaxespad=0, framealpha=0)
+
+    png_filepath = os.path.join(figure_dir_path, 'Antarctic Divergence Ekman pumping time series.png')
+
+    tau_dir = os.path.dirname(png_filepath)
+    if not os.path.exists(tau_dir):
+        logger.info('Creating directory: {:s}'.format(tau_dir))
+        os.makedirs(tau_dir)
+
+    logger.info('Saving figure: {:s}'.format(png_filepath))
+    plt.savefig(png_filepath, dpi=300, format='png', transparent=False, bbox_inches='tight')
+    plt.close()
+
 if __name__ == '__main__':
     # make_five_box_climo_fig('tau_x')
     # make_five_box_climo_fig('tau_y')
