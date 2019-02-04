@@ -1932,14 +1932,14 @@ def make_ugeo_uice_figure():
     ax1.contour(lons, lats, np.ma.array(climo_alpha_field, mask=np.isnan(climo_alpha_field)),
                 levels=[0.15], colors='black', linewidths=1.5, transform=vector_crs)
 
-    ax1.text(0.49,  1.01,  '0°',   transform=ax1.transAxes)
+    ax1.text(0.485, 1.01,  '0°',   transform=ax1.transAxes)
     ax1.text(1.01,  0.49,  '90°E', transform=ax1.transAxes)
-    ax1.text(0.47,  -0.03, '180°', transform=ax1.transAxes)
-    ax1.text(-0.09, 0.49,  '90°W', transform=ax1.transAxes)
-    ax1.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax1.transAxes)
-    ax1.text(0.85,  0.125, '135°E', rotation=-45, transform=ax1.transAxes)
-    ax1.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax1.transAxes)
-    ax1.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax1.transAxes)
+    ax1.text(0.46, -0.04,  '180°', transform=ax1.transAxes)
+    ax1.text(-0.14, 0.49,  '90°W', transform=ax1.transAxes)
+    ax1.text(0.84,  0.915, '45°E',  rotation=45,  transform=ax1.transAxes)
+    ax1.text(0.845, 0.115, '135°E', rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.04,  0.925, '45°W',  rotation=-45, transform=ax1.transAxes)
+    ax1.text(0.025, 0.115, '135°W', rotation=45,  transform=ax1.transAxes)
 
     ax1.text(0.505, 1.05, r'Zonal geostrophic velocity $u_g$', fontsize=14, va='bottom', ha='center', rotation='horizontal',
              rotation_mode='anchor', transform=ax1.transAxes)
@@ -1971,14 +1971,14 @@ def make_ugeo_uice_figure():
     # ax2.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
     #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-    ax2.text(0.49,  1.01,  '0°',   transform=ax2.transAxes)
+    ax2.text(0.485, 1.01,  '0°',   transform=ax2.transAxes)
     ax2.text(1.01,  0.49,  '90°E', transform=ax2.transAxes)
-    ax2.text(0.47,  -0.03, '180°', transform=ax2.transAxes)
-    ax2.text(-0.09, 0.49,  '90°W', transform=ax2.transAxes)
-    ax2.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax2.transAxes)
-    ax2.text(0.85,  0.125, '135°E', rotation=-45, transform=ax2.transAxes)
-    ax2.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax2.transAxes)
-    ax2.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax2.transAxes)
+    ax2.text(0.46, -0.04,  '180°', transform=ax2.transAxes)
+    ax2.text(-0.14, 0.49,  '90°W', transform=ax2.transAxes)
+    ax2.text(0.84,  0.915, '45°E',  rotation=45,  transform=ax2.transAxes)
+    ax2.text(0.845, 0.115, '135°E', rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.04,  0.925, '45°W',  rotation=-45, transform=ax2.transAxes)
+    ax2.text(0.025, 0.115, '135°W', rotation=45,  transform=ax2.transAxes)
 
     ax2.text(0.50, 1.05, r'Meridional geostrophic velocity $v_g$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax2.transAxes)
@@ -2008,14 +2008,14 @@ def make_ugeo_uice_figure():
     # ax3.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
     #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-    ax3.text(0.49,  1.01,  '0°',   transform=ax3.transAxes)
+    ax3.text(0.485, 1.01,  '0°',   transform=ax3.transAxes)
     ax3.text(1.01,  0.49,  '90°E', transform=ax3.transAxes)
-    ax3.text(0.47,  -0.03, '180°', transform=ax3.transAxes)
-    ax3.text(-0.09, 0.49,  '90°W', transform=ax3.transAxes)
-    ax3.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax3.transAxes)
-    ax3.text(0.85,  0.125, '135°E', rotation=-45, transform=ax3.transAxes)
-    ax3.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax3.transAxes)
-    ax3.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax3.transAxes)
+    ax3.text(0.46, -0.04,  '180°', transform=ax3.transAxes)
+    ax3.text(-0.14, 0.49,  '90°W', transform=ax3.transAxes)
+    ax3.text(0.84,  0.915, '45°E',  rotation=45,  transform=ax3.transAxes)
+    ax3.text(0.845, 0.115, '135°E', rotation=-45, transform=ax3.transAxes)
+    ax3.text(0.04,  0.925, '45°W',  rotation=-45, transform=ax3.transAxes)
+    ax3.text(0.025, 0.115, '135°W', rotation=45,  transform=ax3.transAxes)
 
     ax3.text(0.50, 1.05, r'Zonal ice drift $u_i$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax3.transAxes)
@@ -2044,14 +2044,14 @@ def make_ugeo_uice_figure():
     # ax4.contour(lons, lats, np.ma.array(sep_climo_alpha_field, mask=np.isnan(sep_climo_alpha_field)),
     #             levels=[0.15], colors='black', linewidths=1, transform=vector_crs)
 
-    ax4.text(0.49,  1.01,  '0°',   transform=ax4.transAxes)
+    ax4.text(0.485, 1.01,  '0°',   transform=ax4.transAxes)
     ax4.text(1.01,  0.49,  '90°E', transform=ax4.transAxes)
-    ax4.text(0.47,  -0.03, '180°', transform=ax4.transAxes)
-    ax4.text(-0.09, 0.49,  '90°W', transform=ax4.transAxes)
-    ax4.text(0.855, 0.895, '45°E',  rotation=45,  transform=ax4.transAxes)
-    ax4.text(0.85,  0.125, '135°E', rotation=-45, transform=ax4.transAxes)
-    ax4.text(0.07,  0.90,  '45°W',  rotation=-45, transform=ax4.transAxes)
-    ax4.text(0.06,  0.13,  '135°W', rotation=45,  transform=ax4.transAxes)
+    ax4.text(0.46, -0.04,  '180°', transform=ax4.transAxes)
+    ax4.text(-0.14, 0.49,  '90°W', transform=ax4.transAxes)
+    ax4.text(0.84,  0.915, '45°E',  rotation=45,  transform=ax4.transAxes)
+    ax4.text(0.845, 0.115, '135°E', rotation=-45, transform=ax4.transAxes)
+    ax4.text(0.04,  0.925, '45°W',  rotation=-45, transform=ax4.transAxes)
+    ax4.text(0.025, 0.115, '135°W', rotation=45,  transform=ax4.transAxes)
 
     ax4.text(0.50, 1.05, r'Meridional ice velocity $v_i$', fontsize=14, va='bottom', ha='center',
              rotation='horizontal', rotation_mode='anchor', transform=ax4.transAxes)
