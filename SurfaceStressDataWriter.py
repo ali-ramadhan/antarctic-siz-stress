@@ -94,6 +94,20 @@ class SurfaceStressDataWriter(object):
         self.tau_x_field = np.zeros((len(self.lats), len(self.lons)))
         self.tau_y_field = np.zeros((len(self.lats), len(self.lons)))
 
+        # Surface stress fields (neglecting geostrophic currents).
+        self.tau_nogeo_air_x_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_nogeo_air_y_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_nogeo_ice_x_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_nogeo_ice_y_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_nogeo_SIZ_x_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_nogeo_SIZ_y_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_nogeo_x_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_nogeo_y_field = np.zeros((len(self.lats), len(self.lons)))
+
+        # Difference between tau (with u_geo) and tau (without u_geo).
+        self.tau_ig_x_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_ig_y_field = np.zeros((len(self.lats), len(self.lons)))
+
         # Ekman surface velocity (u_Ekman) and Ekman volume transport (U_Ekman) fields.
         self.u_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
         self.v_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
@@ -109,6 +123,20 @@ class SurfaceStressDataWriter(object):
         self.ddx_tau_y_field = np.zeros((len(self.lats), len(self.lons)))
         self.stress_curl_field = np.zeros((len(self.lats), len(self.lons)))
         self.w_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
+
+        # Ekman pumping fields (neglecting geostrophic currents).
+        self.ddy_tau_nogeo_x_field = np.zeros((len(self.lats), len(self.lons)))
+        self.ddx_tau_nogeo_y_field = np.zeros((len(self.lats), len(self.lons)))
+        self.stress_curl_nogeo_field = np.zeros((len(self.lats), len(self.lons)))
+        self.w_Ekman_nogeo_field = np.zeros((len(self.lats), len(self.lons)))
+
+        # Ekman pumping components.
+        self.w_a_field = np.zeros((len(self.lats), len(self.lons)))
+        self.w_i_field = np.zeros((len(self.lats), len(self.lons)))
+        self.w_i0_field = np.zeros((len(self.lats), len(self.lons)))
+        self.w_ig_field = np.zeros((len(self.lats), len(self.lons)))
+        self.w_A_field = np.zeros((len(self.lats), len(self.lons)))
+        self.gamma_metric_field = np.zeros((len(self.lats), len(self.lons)))
 
         # Thermodynamic fields.
         self.salinity_field = np.zeros((len(self.lats), len(self.lons)))
@@ -152,6 +180,16 @@ class SurfaceStressDataWriter(object):
             'tau_SIZ_y': self.tau_SIZ_y_field,
             'tau_x': self.tau_x_field,
             'tau_y': self.tau_y_field,
+            'tau_nogeo_air_x': self.tau_nogeo_air_x_field,
+            'tau_nogeo_air_y': self.tau_nogeo_air_y_field,
+            'tau_nogeo_ice_x': self.tau_nogeo_ice_x_field,
+            'tau_nogeo_ice_y': self.tau_nogeo_ice_y_field,
+            'tau_nogeo_SIZ_x': self.tau_nogeo_SIZ_x_field,
+            'tau_nogeo_SIZ_y': self.tau_nogeo_SIZ_y_field,
+            'tau_nogeo_x': self.tau_nogeo_x_field,
+            'tau_nogeo_y': self.tau_nogeo_y_field,
+            'tau_ig_x': self.tau_ig_x_field,
+            'tau_ig_y': self.tau_ig_y_field,
             'Ekman_u': self.u_Ekman_field,
             'Ekman_v': self.v_Ekman_field,
             'Ekman_SIZ_u': self.u_Ekman_SIZ_field,
@@ -164,6 +202,16 @@ class SurfaceStressDataWriter(object):
             'dtau_y_dx': self.ddx_tau_y_field,
             'curl_stress': self.stress_curl_field,
             'Ekman_w': self.w_Ekman_field,
+            'ddy_tau_nogeo_x': self.ddy_tau_nogeo_x_field,
+            'ddx_tau_nogeo_y': self.ddx_tau_nogeo_y_field,
+            'stress_curl_nogeo': self.stress_curl_nogeo_field,
+            'w_Ekman_nogeo': self.w_Ekman_nogeo_field,
+            'w_a': self.w_a_field,
+            'w_i': self.w_i_field,
+            'w_i0': self.w_i0_field,
+            'w_ig': self.w_ig_field,
+            'w_A': self.w_A_field,
+            'gamma_metric': self.gamma_metric_field,
             'salinity': self.salinity_field,
             'temperature': self.temperature_field,
             'neutral_density': self.neutral_density_field,
@@ -214,6 +262,8 @@ class SurfaceStressDataWriter(object):
         # w_Ekman, ice_flux_div) cannot be calculated as there is no northern or southern value to use to calculate
         # meridional (y) derivatives.
         derivative_fields = [self.ddx_tau_y_field, self.ddy_tau_x_field, self.stress_curl_field, self.w_Ekman_field,
+                             self.ddx_tau_nogeo_y_field, self.ddy_tau_nogeo_x_field, self.stress_curl_nogeo_field,
+                             self.w_Ekman_nogeo_field,
                              self.dSdx_field, self.dSdy_field, self.ddx_uEk_S_field, self.ddy_vEk_S_field,
                              self.freshwater_ekman_advection_field,
                              self.zonal_ice_flux_div_field, self.merid_ice_flux_div_field, self.ice_flux_div_field,
@@ -365,6 +415,20 @@ class SurfaceStressDataWriter(object):
                     self.V_Ekman_field[i][j] = V_Ekman_scalar
                     self.U_Ekman_SIZ_field[i][j] = np.nan
                     self.V_Ekman_SIZ_field[i][j] = np.nan
+
+                    # In the absence of ice, the geostrophic current doesn't matter for the stress so it's
+                    # the same as the surface stress including geostrophic currents.
+                    self.tau_nogeo_air_x_field[i][j] = tau_air_vec[0]
+                    self.tau_nogeo_air_y_field[i][j] = tau_air_vec[1]
+                    self.tau_nogeo_ice_x_field[i][j] = 0
+                    self.tau_nogeo_ice_y_field[i][j] = 0
+                    self.tau_nogeo_SIZ_x_field[i][j] = np.nan
+                    self.tau_nogeo_SIZ_y_field[i][j] = np.nan
+                    self.tau_nogeo_x_field[i][j] = tau_air_vec[0]
+                    self.tau_nogeo_y_field[i][j] = tau_air_vec[1]
+
+                    self.tau_ig_x_field[i][j] = np.nan
+                    self.tau_ig_y_field[i][j] = np.nan
                     continue
 
                 # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
@@ -387,6 +451,18 @@ class SurfaceStressDataWriter(object):
                     self.V_Ekman_field[i][j] = np.nan
                     self.U_Ekman_SIZ_field[i][j] = np.nan
                     self.V_Ekman_SIZ_field[i][j] = np.nan
+
+                    self.tau_nogeo_air_x_field[i][j] = np.nan
+                    self.tau_nogeo_air_y_field[i][j] = np.nan
+                    self.tau_nogeo_ice_x_field[i][j] = np.nan
+                    self.tau_nogeo_ice_y_field[i][j] = np.nan
+                    self.tau_nogeo_SIZ_x_field[i][j] = np.nan
+                    self.tau_nogeo_SIZ_y_field[i][j] = np.nan
+                    self.tau_nogeo_x_field[i][j] = np.nan
+                    self.tau_nogeo_y_field[i][j] = np.nan
+
+                    self.tau_ig_x_field[i][j] = np.nan
+                    self.tau_ig_y_field[i][j] = np.nan
                     continue
 
                 # If we have data for everything, and we're in the SIZ then use the Richardson method to compute tau.
@@ -402,6 +478,8 @@ class SurfaceStressDataWriter(object):
                 self.tau_SIZ_y_field[i][j] = tau_vec[1]
 
                 # Recalculate u_Ekman_vec. Not sure why I have to do this, but otherwise I just get the zero vector...
+                # This is the Ekman velocity vector at the ocean surface where it is 45 degrees to the left of the
+                # stress (in the Southern Hemisphere).
                 u_Ekman_vec = (np.sqrt(2) / (f * rho_0 * D_e)) * np.matmul(self.R_m45deg, tau_vec)
 
                 # if u_Ekman_vec_type == 'surface':
@@ -429,6 +507,28 @@ class SurfaceStressDataWriter(object):
                 self.U_Ekman_SIZ_field[i][j] = U_Ekman_scalar
                 self.V_Ekman_SIZ_field[i][j] = V_Ekman_scalar
 
+                # Calculate the ice-ocean and air-ocean surface stresses neglecting geostrophic currents. Here we
+                # are going to calculate it by assuming the Ekman velocity is the same as the case with geostrophic
+                # currents and use u_rel = u_ice - u_Ekman. Since we know u_Ekman there is no need to perform an
+                # iteration and we can just straight away compute tau.
+
+                tau_nogeo_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
+                u_nogeo_rel_vec = u_ice_vec - u_Ekman_vec
+                tau_nogeo_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_nogeo_rel_vec) * u_nogeo_rel_vec
+                tau_nogeo_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air_vec
+
+                self.tau_nogeo_air_x_field[i][j] = tau_nogeo_air_vec[0]
+                self.tau_nogeo_air_y_field[i][j] = tau_nogeo_air_vec[1]
+                self.tau_nogeo_ice_x_field[i][j] = tau_nogeo_ice_vec[0]
+                self.tau_nogeo_ice_y_field[i][j] = tau_nogeo_ice_vec[1]
+                self.tau_nogeo_SIZ_x_field[i][j] = tau_nogeo_vec[0]
+                self.tau_nogeo_SIZ_y_field[i][j] = tau_nogeo_vec[1]
+                self.tau_nogeo_x_field[i][j] = tau_nogeo_vec[0]
+                self.tau_nogeo_y_field[i][j] = tau_nogeo_vec[1]
+
+                self.tau_ig_x_field[i][j] = self.tau_ice_x_field[i][j] - self.tau_nogeo_ice_x_field[i][j]
+                self.tau_ig_y_field[i][j] = self.tau_ice_y_field[i][j] - self.tau_nogeo_ice_y_field[i][j]
+
     def compute_daily_ekman_pumping_field(self):
         """ Compute daily Ekman pumping field w_Ekman = curl(tau / rho * f). """
 
@@ -438,8 +538,7 @@ class SurfaceStressDataWriter(object):
         i_max = len(self.lats) - 1
         j_max = len(self.lons) - 1
 
-        for i in range(1, len(self.lats) - 1):
-            lat = self.lats[i]
+        for i, lat in enumerate(self.lats[1:-1]):
             f = 2 * Omega * np.sin(np.deg2rad(lat))  # Coriolis parameter [s^-1]
 
             progress_percent = 100 * i / (len(self.lats) - 2)
@@ -448,8 +547,7 @@ class SurfaceStressDataWriter(object):
             dx = distance(self.lats[i-1], self.lons[0], self.lats[i+1], self.lons[0])
             dy = distance(self.lats[i], self.lons[0], self.lats[i], self.lons[2])
 
-            for j in range(len(self.lons)):
-
+            for j, lon in enumerate(self.lons):
                 # Taking modulus of j-1 and j+1 to get the correct index in the special cases of
                 #  * j=0 (180 W) and need to use the value from j=j_max (180 E)
                 #  * j=j_max (180 E) and need to use the value from j=0 (180 W)
@@ -462,11 +560,11 @@ class SurfaceStressDataWriter(object):
                     # Second-order centered difference scheme where we divide by the distance between the i+1 and i-1
                     # cells, which is just dx as defined in the above line. Textbook formulas will usually have a 2*dx
                     # in the denominator because dx is the width of just one cell.
-
-                    # TODO: Why does it look like accessing the wrong axis gives the right derivative!?
-
                     # dtauydx = (self.tau_y_field[i+1][j] - self.tau_y_field[i-1][j]) / dx
                     # dtauxdy = (self.tau_x_field[i][j+1] - self.tau_x_field[i][j-1]) / dy
+
+                    # Calculate Ekman pumping rates (including geostrophic currents).
+                    # TODO: Why does it look like accessing the wrong axis gives the right derivative!?
                     dtauydx = (self.tau_y_field[i][jp1] - self.tau_y_field[i][jm1]) / dx
                     dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
 
@@ -474,11 +572,78 @@ class SurfaceStressDataWriter(object):
                     self.ddy_tau_x_field[i][j] = dtauxdy
                     self.stress_curl_field[i][j] = dtauydx - dtauxdy
                     self.w_Ekman_field[i][j] = (dtauydx - dtauxdy) / (rho_0 * f)
+
+                    dtauydx_nogeo = (self.tau_nogeo_y_field[i][jp1] - self.tau_nogeo_y_field[i][jm1]) / dx
+                    dtauxdy_nogeo = (self.tau_nogeo_x_field[i+1][j] - self.tau_nogeo_x_field[i-1][j]) / dy
+
+                    self.ddx_tau_nogeo_y_field[i][j] = dtauydx_nogeo
+                    self.ddy_tau_nogeo_x_field[i][j] = dtauxdy_nogeo
+                    self.stress_curl_nogeo_field[i][j] = dtauydx_nogeo - dtauxdy_nogeo
+                    self.w_Ekman_nogeo_field[i][j] = (dtauydx_nogeo - dtauxdy_nogeo) / (rho_0 * f)
+
+                    alpha_i_jp1 = self.alpha_field[i][jp1]
+                    alpha_i_jm1 = self.alpha_field[i][jm1]
+                    alpha_ip1_j = self.alpha_field[i+1][j]
+                    alpha_im1_j = self.alpha_field[i-1][j]
+
+                    tau_ao_x_ip1_j = self.tau_air_x_field[i+1][j]
+                    tau_ao_x_im1_j = self.tau_air_x_field[i-1][j]
+
+                    tau_ao_y_i_jp1 = self.tau_air_y_field[i][jp1]
+                    tau_ao_y_i_jm1 = self.tau_air_y_field[i][jm1]
+
+                    tau_io_x_geo_ip1_j = self.tau_ice_x_field[i+1][j]
+                    tau_io_x_geo_im1_j = self.tau_ice_x_field[i-1][j]
+
+                    tau_io_y_geo_i_jp1 = self.tau_ice_y_field[i][jp1]
+                    tau_io_y_geo_i_jm1 = self.tau_ice_y_field[i][jm1]
+
+                    tau_io_x_nogeo_ip1_j = self.tau_nogeo_ice_x_field[i+1][j]
+                    tau_io_x_nogeo_im1_j = self.tau_nogeo_ice_x_field[i-1][j]
+
+                    tau_io_y_nogeo_i_jp1 = self.tau_nogeo_ice_y_field[i][jp1]
+                    tau_io_y_nogeo_i_jm1 = self.tau_nogeo_ice_y_field[i][jm1]
+
+                    tau_ig_x_ip1_j = self.tau_ig_x_field[i+1][j]
+                    tau_ig_x_im1_j = self.tau_ig_x_field[i-1][j]
+
+                    tau_ig_y_i_jp1 = self.tau_ig_y_field[i][jp1]
+                    tau_ig_y_i_jm1 = self.tau_ig_y_field[i][jm1]
+
+                    ddx_tau_ao_y = (tau_ao_y_i_jp1 - tau_ao_y_i_jm1) / dx
+                    ddy_tau_ao_x = (tau_ao_x_ip1_j - tau_ao_x_im1_j) / dy
+                    self.w_A_field[i][j] = (ddx_tau_ao_y - ddy_tau_ao_x) / (rho_0 * f)
+
+                    ddx_1malpha_tau_ao_y = ((1-alpha_i_jp1) * tau_ao_y_i_jp1 - (1-alpha_i_jm1) * tau_ao_y_i_jm1) / dx
+                    ddy_1malpha_tau_ao_x = ((1-alpha_ip1_j) * tau_ao_x_ip1_j - (1-alpha_im1_j) * tau_ao_x_im1_j) / dy
+                    self.w_a_field[i][j] = (ddx_1malpha_tau_ao_y - ddy_1malpha_tau_ao_x) / (rho_0 * f)
+
+                    ddx_alpha_tau_io_y_geo = (alpha_i_jp1 * tau_io_y_geo_i_jp1 - alpha_i_jm1 * tau_io_y_geo_i_jm1) / dx
+                    ddy_alpha_tau_io_x_geo = (alpha_ip1_j * tau_io_x_geo_ip1_j - alpha_im1_j * tau_io_x_geo_im1_j) / dy
+                    self.w_i_field[i][j] = (ddx_alpha_tau_io_y_geo - ddy_alpha_tau_io_x_geo) / (rho_0 * f)
+
+                    ddx_alpha_tau_io_y_nogeo = (alpha_i_jp1 * tau_io_y_nogeo_i_jp1 - alpha_i_jm1 * tau_io_y_nogeo_i_jm1) / dx
+                    ddy_alpha_tau_io_x_nogeo = (alpha_ip1_j * tau_io_x_nogeo_ip1_j - alpha_im1_j * tau_io_x_nogeo_im1_j) / dy
+                    self.w_i0_field[i][j] = (ddx_alpha_tau_io_y_nogeo - ddy_alpha_tau_io_x_nogeo) / (rho_0 * f)
+
+                    ddx_alpha_tau_ig_y = (alpha_i_jp1 * tau_ig_y_i_jp1 - alpha_i_jm1 * tau_ig_y_i_jm1) / dx
+                    ddy_alpha_tau_ig_x = (alpha_ip1_j * tau_ig_x_ip1_j - alpha_im1_j * tau_ig_x_im1_j) / dx
+                    self.w_ig_field[i][j] = (ddx_alpha_tau_ig_y - ddy_alpha_tau_ig_x) / (rho_0 * f)
+
+                    self.gamma_metric_field[i][j] = np.abs(self.w_ig_field[i][j]) \
+                        / (np.abs(self.w_a_field[i][j]) + np.abs(self.w_i0_field[i][j]) + np.abs(self.w_ig_field[i][j]))
                 else:
                     self.ddx_tau_y_field[i][j] = np.nan
                     self.ddy_tau_x_field[i][j] = np.nan
                     self.stress_curl_field[i][j] = np.nan
                     self.w_Ekman_field[i][j] = np.nan
+
+                    self.w_A_field[i][j] = np.nan
+                    self.w_a_field[i][j] = np.nan
+                    self.w_i_field[i][j] = np.nan
+                    self.w_i0_field[i][j] = np.nan
+                    self.w_ig_field[i][j] = np.nan
+                    self.gamma_metric_field[i][j] = np.nan
 
     def process_thermodynamic_fields(self, levels=None, process_neutral_density=False):
         logger.info('Calculating average T, S, gamma_n...')
