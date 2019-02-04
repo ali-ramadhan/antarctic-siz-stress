@@ -4536,11 +4536,14 @@ def ice_ocean_govenor_monthly_climo_barchart():
     fig = plt.subplots(figsize=(16, 9))
     ax = plt.subplot(111)
 
-    ax.bar(np.arange(1, 13)-0.3, 365*3600*24 * w_i0_monthly, width=0.15, color='green', align='center', label="ice")
+    ax.bar(np.arange(1, 13)-0.30, 365*3600*24 * w_i0_monthly, width=0.15, color='green', align='center', label="ice")
     ax.bar(np.arange(1, 13)-0.15, 365*3600*24 * w_ig_monthly, width=0.15, color='blue', align='center', label="geo")
     ax.bar(np.arange(1, 13), 365*3600*24 * w_a_monthly, width=0.15, color='red', align='center', label="wind")
-    ax.bar(np.arange(1, 13)+0.15, 365*3600*24 * w_i_monthly, width=0.15, color='orange', align='center', label="ice+geo")
-    ax.bar(np.arange(1, 13)+0.3, 365*3600*24 * w_Ek_geo_monthly, width=0.15, color='black', align='center', label="total")
+    ax.bar(np.arange(1, 13)+0.15, 365 * 3600 * 24 * w_i_monthly, width=0.15, color='orange', align='center', label="ice+geo")
+    ax.bar(np.arange(1, 13)+0.15, 365 * 3600 * 24 * (w_i0_monthly + w_ig_monthly), width=0.15, color='orange', alpha=0.3, hatch='//', align='center', label="ice+geo (sum)")
+    ax.bar(np.arange(1, 13)+0.30, 365 * 3600 * 24 * w_Ek_geo_monthly, width=0.15, color='black', align='center', label="total")
+    ax.bar(np.arange(1, 13)+0.30, 365*3600*24 * (w_i0_monthly + w_ig_monthly + w_a_monthly), width=0.15, color='black', edgecolor='gray', alpha =0.3, hatch='//', align='center', label="total (sum)")
+    ax.bar(np.arange(1, 13)+0.45, 365 * 3600 * 24 * w_Ek_nogeo_monthly, width=0.15, color='purple', align='center', label="total (no_geo)")
 
     ax.set_xlabel("Month", fontsize=18)
     ax.set_ylabel("Ekman pumping (m/year)", fontsize=18)
