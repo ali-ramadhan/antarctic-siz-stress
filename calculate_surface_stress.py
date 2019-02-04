@@ -120,10 +120,10 @@ if __name__ == '__main__':
     from SurfaceStressDataWriter import SurfaceStressDataWriter
     from utils import date_range
 
-    process_and_plot_day(datetime.date(2015, 2, 16))
-    process_and_plot_day(datetime.date(2015, 6, 30))
-    process_and_plot_day(datetime.date(2015, 10, 1))
-    # process_day(datetime.date(2015, 7, 16))
+    # process_and_plot_day(datetime.date(2015, 2, 16))
+    # process_and_plot_day(datetime.date(2015, 6, 30))
+    # process_and_plot_day(datetime.date(2015, 10, 1))
+    process_day(datetime.date(2015, 7, 16))
     # plot_day(datetime.date(2015, 7, 16))
     # process_day(datetime.date(2015, 1, 1))
 
