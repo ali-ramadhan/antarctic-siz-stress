@@ -323,7 +323,7 @@ class SurfaceStressDataWriter(object):
             #     v_Ekman_scalar = -tau_x_scalar / (f * rho_0 * D_e)
             #     u_Ekman_vec = np.array([u_Ekman_scalar, v_Ekman_scalar])
 
-            u_rel_vec = u_ice_vec - (u_geo_vec - u_Ekman_vec)
+            u_rel_vec = u_ice_vec - (u_geo_vec + u_Ekman_vec)
             tau_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_rel_vec) * u_rel_vec
             tau_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air_vec
 
