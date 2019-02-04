@@ -4484,6 +4484,13 @@ def ice_ocean_govenor_monthly_climo_barchart():
 
             import astropy.convolution
             kernel = astropy.convolution.Box2DKernel(4)
+            # w_a_field = astropy.convolution.convolve(w_a_field, kernel, boundary='wrap')
+            # w_A_field = astropy.convolution.convolve(w_A_field, kernel, boundary='wrap')
+            # w_Ek_geo_field = astropy.convolution.convolve(w_Ek_geo_field, kernel, boundary='wrap')
+            # w_Ek_nogeo_field = astropy.convolution.convolve(w_Ek_nogeo_field, kernel, boundary='wrap')
+            # w_i_field = astropy.convolution.convolve(w_i_field, kernel, boundary='wrap')
+            # w_i0_field = astropy.convolution.convolve(w_i0_field, kernel, boundary='wrap')
+            # w_ig_field = astropy.convolution.convolve(w_ig_field, kernel, boundary='wrap')
 
             c_south_of_AD = np.logical_and(contour_coordinates >= 0, contour_coordinates < 0.5)
 
