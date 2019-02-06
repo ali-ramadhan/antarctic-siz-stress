@@ -515,7 +515,7 @@ class SurfaceStressDataWriter(object):
                 tau_nogeo_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
                 u_nogeo_rel_vec = u_ice_vec - u_Ekman_vec
                 tau_nogeo_ice_vec = rho_0 * C_seawater * np.linalg.norm(u_nogeo_rel_vec) * u_nogeo_rel_vec
-                tau_nogeo_vec = alpha * tau_ice_vec + (1 - alpha) * tau_air_vec
+                tau_nogeo_vec = alpha * tau_nogeo_ice_vec + (1 - alpha) * tau_nogeo_air_vec
 
                 self.tau_nogeo_air_x_field[i][j] = tau_nogeo_air_vec[0]
                 self.tau_nogeo_air_y_field[i][j] = tau_nogeo_air_vec[1]
