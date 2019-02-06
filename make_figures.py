@@ -4363,13 +4363,8 @@ def ice_ocean_govenor_monthly_climo_barchart():
     import constants
     from utils import get_northward_zero_zonal_stress_line, get_northward_ice_edge, get_coast_coordinates
 
-    nogeo_output_dir_path = 'E:\\output\\'
-    geo_output_dir_path = 'C:\\Users\\Ali\\Downloads\\output\\'
-    govenor_output_dir_path = "E:\\output\\ice_ocean_govenor\\"
-
-    constants.output_dir_path = nogeo_output_dir_path
     climo_nogeo_filepath = get_netCDF_filepath(field_type='seasonal_climo', season_str='JAS',
-                                               year_start=2005, year_end=2015)
+                                               year_start=2011, year_end=2015)
 
     lons, lats, tau_x_nogeo_field = get_field_from_netcdf(climo_nogeo_filepath, 'tau_x')
 
@@ -4438,49 +4433,27 @@ def ice_ocean_govenor_monthly_climo_barchart():
         w_i0_monthly = np.zeros(12)
 
         for d, date in enumerate(dates):
-            constants.output_dir_path = nogeo_output_dir_path
 
             try:
-                climo_filepath_nogeo = get_netCDF_filepath(field_type='daily', date=date)
-                lons, lats, _ = get_field_from_netcdf(climo_filepath_nogeo, 'Ekman_w')
+                daily_filepath = get_netCDF_filepath(field_type='daily', date=date)
+                lons, lats, _ = get_field_from_netcdf(daily_filepath, 'Ekman_w')
             except Exception as e:
                 logger.error('{}'.format(e))
-                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_nogeo))
-                n_days = n_days - 1  # Must account for lost day if no data available for that day.
-                continue
-
-            constants.output_dir_path = geo_output_dir_path
-
-            try:
-                climo_filepath_geo = get_netCDF_filepath(field_type='daily', date=date)
-                _, _, _ = get_field_from_netcdf(climo_filepath_geo, 'Ekman_w')
-            except OSError as e:
-                logger.error('{}'.format(e))
-                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_geo))
-                n_days = n_days - 1  # Must account for lost day if no data available for that day.
-                continue
-
-            try:
-                govenor_filename = "ice_ocean_govenor_{:}.nc".format(date)
-                govenor_filepath = os.path.join(govenor_output_dir_path, govenor_filename)
-                _, _, _ = get_field_from_netcdf(govenor_filepath, 'alpha')
-            except OSError as e:
-                logger.error('{}'.format(e))
-                logger.warning('{:s} not found. Proceeding without it...'.format(climo_filepath_geo))
+                logger.warning('{:s} not found. Proceeding without it...'.format(daily_filepath))
                 n_days = n_days - 1  # Must account for lost day if no data available for that day.
                 continue
 
             logger.info('Averaging {:%b %d, %Y}...'.format(date))
 
-            alpha_field = get_field_from_netcdf(climo_filepath_geo, 'alpha')[2]
+            alpha_field = get_field_from_netcdf(daily_filepath, 'alpha')[2]
 
-            w_a_field = get_field_from_netcdf(govenor_filepath, 'w_a')[2]
-            w_A_field = get_field_from_netcdf(govenor_filepath, 'w_A')[2]
-            w_Ek_geo_field = get_field_from_netcdf(govenor_filepath, 'w_Ek_geo')[2]
-            w_Ek_nogeo_field = get_field_from_netcdf(govenor_filepath, 'w_Ek_nogeo')[2]
-            w_i_field = get_field_from_netcdf(govenor_filepath, 'w_i')[2]
-            w_i0_field = get_field_from_netcdf(govenor_filepath, 'w_i0')[2]
-            w_ig_field = get_field_from_netcdf(govenor_filepath, 'w_ig')[2]
+            w_a_field = get_field_from_netcdf(daily_filepath, 'w_a')[2]
+            w_A_field = get_field_from_netcdf(daily_filepath, 'w_A')[2]
+            w_Ek_geo_field = get_field_from_netcdf(daily_filepath, 'Ekman_w')[2]
+            w_Ek_nogeo_field = get_field_from_netcdf(daily_filepath, 'w_Ekman_nogeo')[2]
+            w_i_field = get_field_from_netcdf(daily_filepath, 'w_i')[2]
+            w_i0_field = get_field_from_netcdf(daily_filepath, 'w_i0')[2]
+            w_ig_field = get_field_from_netcdf(daily_filepath, 'w_ig')[2]
 
             import astropy.convolution
             kernel = astropy.convolution.Box2DKernel(4)
