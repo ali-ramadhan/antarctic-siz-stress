@@ -300,7 +300,7 @@ class SurfaceStressDataWriter(object):
         while np.linalg.norm(tau_vec_residual) > 1e-5:
             iter_count = iter_count + 1
             if iter_count > 50:
-                logger.warning('iter_acount exceeded 50 during calculation of tau and u_Ekman.')
+                logger.warning('iter_count exceeded 50 during calculation of tau and u_Ekman.')
                 logger.warning('tau = {}, u_Ekman = {}, tau_residual = {}, tau_rel_error = {:.4f}'
                                .format(tau_vec, u_Ekman_vec, tau_vec_residual, tau_relative_error))
                 break
@@ -364,11 +364,11 @@ class SurfaceStressDataWriter(object):
                 # elif u_geo_source == 'climo':
                 #     u_geo_vec = self.u_geo_data.u_geo_mean(lat, lon, 'interp')
 
+                self.alpha_field[i][j] = alpha
                 self.u_geo_field[i][j] = u_geo_vec[0]
                 self.v_geo_field[i][j] = u_geo_vec[1]
                 self.u_wind_field[i][j] = u_wind_vec[0]
                 self.v_wind_field[i][j] = u_wind_vec[1]
-                self.alpha_field[i][j] = alpha
                 self.u_ice_field[i][j] = u_ice_vec[0]
                 self.v_ice_field[i][j] = u_ice_vec[1]
 
@@ -588,25 +588,21 @@ class SurfaceStressDataWriter(object):
 
                     tau_ao_x_ip1_j = self.tau_air_x_field[i+1][j]
                     tau_ao_x_im1_j = self.tau_air_x_field[i-1][j]
-
                     tau_ao_y_i_jp1 = self.tau_air_y_field[i][jp1]
                     tau_ao_y_i_jm1 = self.tau_air_y_field[i][jm1]
 
                     tau_io_x_geo_ip1_j = self.tau_ice_x_field[i+1][j]
                     tau_io_x_geo_im1_j = self.tau_ice_x_field[i-1][j]
-
                     tau_io_y_geo_i_jp1 = self.tau_ice_y_field[i][jp1]
                     tau_io_y_geo_i_jm1 = self.tau_ice_y_field[i][jm1]
 
                     tau_io_x_nogeo_ip1_j = self.tau_nogeo_ice_x_field[i+1][j]
                     tau_io_x_nogeo_im1_j = self.tau_nogeo_ice_x_field[i-1][j]
-
                     tau_io_y_nogeo_i_jp1 = self.tau_nogeo_ice_y_field[i][jp1]
                     tau_io_y_nogeo_i_jm1 = self.tau_nogeo_ice_y_field[i][jm1]
 
                     tau_ig_x_ip1_j = self.tau_ig_x_field[i+1][j]
                     tau_ig_x_im1_j = self.tau_ig_x_field[i-1][j]
-
                     tau_ig_y_i_jp1 = self.tau_ig_y_field[i][jp1]
                     tau_ig_y_i_jm1 = self.tau_ig_y_field[i][jm1]
 
