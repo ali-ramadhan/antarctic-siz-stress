@@ -4393,6 +4393,8 @@ def ice_ocean_govenor_monthly_climo_barchart():
     delta_c = c_bins[1] - c_bins[0]
     c_bins = c_bins + (delta_c / 2)
 
+    c_south_of_AD = np.logical_and(contour_coordinates >= 0, contour_coordinates < 0.5)
+
     year_start = 2011
     year_end = 2015
     dates = date_range(datetime.date(year_start, 1, 1), datetime.date(year_end, 12, 31))
@@ -4465,13 +4467,10 @@ def ice_ocean_govenor_monthly_climo_barchart():
             # w_i0_field = astropy.convolution.convolve(w_i0_field, kernel, boundary='wrap')
             # w_ig_field = astropy.convolution.convolve(w_ig_field, kernel, boundary='wrap')
 
-            c_south_of_AD = np.logical_and(contour_coordinates >= 0, contour_coordinates < 0.5)
-
             m = date.month - 1
             month_days[m] += 1
 
             alpha_monthly[m] += np.nanmean(alpha_field[c_south_of_AD])
-
             w_a_monthly[m] += np.nanmean(w_a_field[c_south_of_AD])
             w_A_monthly[m] += np.nanmean(w_A_field[c_south_of_AD])
             w_Ek_geo_monthly[m] += np.nanmean(w_Ek_geo_field[c_south_of_AD])
@@ -4482,7 +4481,6 @@ def ice_ocean_govenor_monthly_climo_barchart():
 
         for m in range(12):
             alpha_monthly[m] /= month_days[m]
-
             w_a_monthly[m] /= month_days[m]
             w_A_monthly[m] /= month_days[m]
             w_Ek_geo_monthly[m] /= month_days[m]
