@@ -625,7 +625,7 @@ class SurfaceStressDataWriter(object):
                     self.w_i0_field[i][j] = (ddx_alpha_tau_io_y_nogeo - ddy_alpha_tau_io_x_nogeo) / (rho_0 * f)
 
                     ddx_alpha_tau_ig_y = (alpha_i_jp1 * tau_ig_y_i_jp1 - alpha_i_jm1 * tau_ig_y_i_jm1) / dx
-                    ddy_alpha_tau_ig_x = (alpha_ip1_j * tau_ig_x_ip1_j - alpha_im1_j * tau_ig_x_im1_j) / dx
+                    ddy_alpha_tau_ig_x = (alpha_ip1_j * tau_ig_x_ip1_j - alpha_im1_j * tau_ig_x_im1_j) / dy
                     self.w_ig_field[i][j] = (ddx_alpha_tau_ig_y - ddy_alpha_tau_ig_x) / (rho_0 * f)
 
                     self.gamma_metric_field[i][j] = np.abs(self.w_ig_field[i][j]) \
