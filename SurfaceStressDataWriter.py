@@ -108,6 +108,11 @@ class SurfaceStressDataWriter(object):
         self.tau_ig_x_field = np.zeros((len(self.lats), len(self.lons)))
         self.tau_ig_y_field = np.zeros((len(self.lats), len(self.lons)))
 
+        # Ice-ocean surface stress dotted with ocean velocity.
+        self.tau_ice_dot_u_geo_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_ice_dot_u_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
+        self.tau_ice_dot_u_ocean_field = np.zeros((len(self.lats), len(self.lons)))
+
         # Ekman surface velocity (u_Ekman) and Ekman volume transport (U_Ekman) fields.
         self.u_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
         self.v_Ekman_field = np.zeros((len(self.lats), len(self.lons)))
@@ -429,6 +434,10 @@ class SurfaceStressDataWriter(object):
 
                     self.tau_ig_x_field[i][j] = np.nan
                     self.tau_ig_y_field[i][j] = np.nan
+
+                    self.tau_ice_dot_u_geo_field[i][j] = 0
+                    self.tau_ice_dot_u_Ekman_field[i][j] = 0
+                    self.tau_ice_dot_u_ocean_field[i][j] = 0
                     continue
 
                 # If we have data missing, then we're probably on land or somewhere where we cannot calculate tau.
@@ -463,6 +472,10 @@ class SurfaceStressDataWriter(object):
 
                     self.tau_ig_x_field[i][j] = np.nan
                     self.tau_ig_y_field[i][j] = np.nan
+
+                    self.tau_ice_dot_u_geo_field[i][j] = np.nan
+                    self.tau_ice_dot_u_Ekman_field[i][j] = np.nan
+                    self.tau_ice_dot_u_ocean_field[i][j] = np.nan
                     continue
 
                 # If we have data for everything, and we're in the SIZ then use the Richardson method to compute tau.
@@ -528,6 +541,11 @@ class SurfaceStressDataWriter(object):
 
                 self.tau_ig_x_field[i][j] = self.tau_ice_x_field[i][j] - self.tau_nogeo_ice_x_field[i][j]
                 self.tau_ig_y_field[i][j] = self.tau_ice_y_field[i][j] - self.tau_nogeo_ice_y_field[i][j]
+
+                # Calculate the ice-ocean stress dotted with three choices for the ocean velocity.
+                self.tau_ice_dot_u_geo_field[i][j] = self.tau_ice_x_field[i][j]*self.u_geo_field[i][j] + self.tau_ice_y_field[i][j]*self.v_geo_field[i][j]
+                self.tau_ice_dot_u_Ekman_field[i][j] = self.tau_ice_x_field[i][j]*self.u_Ekman_field[i][j] + self.tau_ice_y_field[i][j]*self.v_Ekman_field[i][j]
+                self.tau_ice_dot_u_ocean_field[i][j] = self.tau_ice_x_field[i][j]*(self.u_geo_field[i][j] + self.u_Ekman_field[i][j]) + self.tau_ice_y_field[i][j]*(self.v_geo_field[i][j] + self.v_Ekman_field[i][j])
 
     def compute_daily_ekman_pumping_field(self):
         """ Compute daily Ekman pumping field w_Ekman = curl(tau / rho * f). """
