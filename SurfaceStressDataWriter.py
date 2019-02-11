@@ -7,7 +7,7 @@ import netCDF4
 import matplotlib
 import matplotlib.colors as colors
 
-# matplotlib.use('AGG')
+matplotlib.use('AGG')
 
 from MeanDynamicTopographyDataReader import MeanDynamicTopographyDataReader
 from SurfaceWindDataset import SurfaceWindDataset
@@ -375,7 +375,7 @@ class SurfaceStressDataWriter(object):
                 # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
                 # then tau is just tau_air and easy to calculate. Note that this encompasses regions of alpha < 0.15 as
                 # well since SeaIceConcentrationDataset returns 0 for alpha < 0.15.
-                if ((alpha == 0 or not np.isnan(alpha)) and not np.isnan(u_ice_vec[0])) \
+                if alpha == 0 and not np.isnan(u_ice_vec[0]) \
                         and not np.isnan(u_geo_vec[0]) and not np.isnan(u_wind_vec[0]):
 
                     tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
