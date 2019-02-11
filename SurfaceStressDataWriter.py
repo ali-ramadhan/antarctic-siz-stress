@@ -375,7 +375,7 @@ class SurfaceStressDataWriter(object):
                 # If there's no sea ice at a point and we have data at that point (i.e. the point is still in the ocean)
                 # then tau is just tau_air and easy to calculate. Note that this encompasses regions of alpha < 0.15 as
                 # well since SeaIceConcentrationDataset returns 0 for alpha < 0.15.
-                if ((alpha == 0 or np.isnan(alpha)) and np.isnan(u_ice_vec[0])) \
+                if ((alpha == 0 or not np.isnan(alpha)) and not np.isnan(u_ice_vec[0])) \
                         and not np.isnan(u_geo_vec[0]) and not np.isnan(u_wind_vec[0]):
 
                     tau_air_vec = rho_air * C_air * np.linalg.norm(u_wind_vec) * u_wind_vec
@@ -568,6 +568,7 @@ class SurfaceStressDataWriter(object):
                     dtauydx = (self.tau_y_field[i][jp1] - self.tau_y_field[i][jm1]) / dx
                     dtauxdy = (self.tau_x_field[i+1][j] - self.tau_x_field[i-1][j]) / dy
 
+                    # Calculate Ekman pumping with geostrophic currents.
                     self.ddx_tau_y_field[i][j] = dtauydx
                     self.ddy_tau_x_field[i][j] = dtauxdy
                     self.stress_curl_field[i][j] = dtauydx - dtauxdy
@@ -576,6 +577,7 @@ class SurfaceStressDataWriter(object):
                     dtauydx_nogeo = (self.tau_nogeo_y_field[i][jp1] - self.tau_nogeo_y_field[i][jm1]) / dx
                     dtauxdy_nogeo = (self.tau_nogeo_x_field[i+1][j] - self.tau_nogeo_x_field[i-1][j]) / dy
 
+                    # Calculate Ekman pumping without geostrophic currents.
                     self.ddx_tau_nogeo_y_field[i][j] = dtauydx_nogeo
                     self.ddy_tau_nogeo_x_field[i][j] = dtauxdy_nogeo
                     self.stress_curl_nogeo_field[i][j] = dtauydx_nogeo - dtauxdy_nogeo
