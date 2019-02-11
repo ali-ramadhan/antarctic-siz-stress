@@ -106,7 +106,7 @@ def process_multiple_years(year_start, year_end):
     for year in range(year_end, year_start - 1, -1):
         for month in range(1, 13):
             n_days = calendar.monthrange(year, month)[1]
-            Parallel(n_jobs=12)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days + 1))
+            Parallel(n_jobs=20)(delayed(process_day)(datetime.date(year, month, day)) for day in range(1, n_days + 1))
 
             # try:
             #     Parallel(n_jobs=12)(delayed(process_day)(datetime.date(date_in_month.year, date_in_month.month, day))
@@ -123,8 +123,8 @@ if __name__ == '__main__':
     # process_and_plot_day(datetime.date(2015, 2, 16))
     # process_and_plot_day(datetime.date(2015, 6, 30))
     # process_and_plot_day(datetime.date(2015, 10, 1))
-    process_day(datetime.date(2015, 7, 16))
+    # process_day(datetime.date(2015, 7, 16))
     # plot_day(datetime.date(2015, 7, 16))
     # process_day(datetime.date(2015, 1, 1))
 
-    # process_multiple_years(1995, 1995)
+    process_multiple_years(2011, 2015)
